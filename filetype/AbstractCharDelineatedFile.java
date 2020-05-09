@@ -1,10 +1,12 @@
 /*
- * AbstractCommaSepFile.java
+ * AbstractCharDelineatedFile.java
  *
  * @Author James McConnel
  *
  * License: Artistic, http://www.opensource.org/licenses/artistic-license-2.0.php
  */
+
+package filetype;
 
 import java.io.File;
 import java.io.FileReader;

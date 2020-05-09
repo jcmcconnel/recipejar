@@ -6,7 +6,10 @@
  * By: James McConnel (yehoodig@gmail.com) Last updated 5/8/2020 Status: Able to compile.
  * License: MIT (I think, I don't understand the legal stuff too well.)
  */
+package unit;
 
+import java.lang.Math;
+import java.text.DecimalFormat;
 import java.util.Collections;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -18,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
+
+import filetype.*;
 
 /**
  *
@@ -46,6 +51,9 @@ public class Unit implements Comparable<Unit> {
       conversionUnits = null;
    }
 
+   /**
+    * Reads from a string of the form: [Plural Form],[Singular Form],[Convertable Unit Plural form]([Factor])|[Converatable Unit Plural form]([Factor])|...
+    */
    public Unit(String combined) {
       String[] parts = combined.split(",");
       if (parts.length == 1) {
@@ -69,7 +77,7 @@ public class Unit implements Comparable<Unit> {
             int endKey = convUnts[i].lastIndexOf("(");
             String key = convUnts[i].substring(0, endKey);
             String factor = convUnts[i].substring(endKey + 1, convUnts[i].length() - 1);
-            conversionUnits.put(key, factor);
+            conversionUnits.put(key.toUpperCase(), factor);
          }
       }
    }
@@ -136,8 +144,14 @@ public class Unit implements Comparable<Unit> {
       return (this.conversionUnits != null && !conversionUnits.isEmpty());
    }
 
+   /**
+    * @param s The name of the unit to convert to.
+    * @return A String giving the formula for conversion.
+    */
    public String getConversionFactor(String s) {
-      return conversionUnits.get(s);
+      String factor = conversionUnits.get(getUnit(s).getPlural().toUpperCase());
+      if(factor == null) factor = conversionUnits.get(getUnit(s).getSingular().toUpperCase());
+      return factor;
    }
 
    public int getConversionUnitCount() {
@@ -152,7 +166,9 @@ public class Unit implements Comparable<Unit> {
       useSingular = b;
    }
    
-   //Unitfile
+   /**
+    * Static methods for database interaction.
+    */
    protected static void readUnitsFromFile(String s){
       diskFile = new AbstractCharDelineatedFile(s,","){
          @Override
@@ -219,6 +235,7 @@ public class Unit implements Comparable<Unit> {
       Unit newUnit;
       Units.add(newUnit = new Unit(ptext, stext));
       Collections.sort(Units);
+      diskFile.save();
       return newUnit;
    }
 
@@ -230,7 +247,7 @@ public class Unit implements Comparable<Unit> {
     * Returns the unit in the list given by the parameter "s".  If it does not
     * exist null is returned.
     *
-    * @param s The unit to search for, or create
+    * @param s The unit to search for.
     * @return The unit defined by s.
     */
    public static Unit getUnit(String s) {
@@ -254,5 +271,113 @@ public class Unit implements Comparable<Unit> {
       }
       return -1;
    }
+
+   /**
+    *
+    * @param f
+    * @return
+    */
+   public static String decimalToFraction(float f) {
+      int wholepart = (int) f;
+      f = f - wholepart;
+      String output = "";
+      if(Math.abs(wholepart) > 0) output = Integer.toString(wholepart)+" ";
+      if(f == 0.25) output += "1/4";
+      if(f == 0.5) output += "1/2";
+      if(f == 0.75) output += "3/4";
+      if(!output.isEmpty()) return output;
+      return new DecimalFormat("0.##").format(f);
+   }
+
+
+   private static float parseMixedNumber(String qty){
+      if (!qty.trim().contains(" ") && qty.contains("/")) {
+         //A fraction; if does contain a " " then it's a mixed number
+         try {
+            float num = Float.parseFloat(qty.substring(0, qty.indexOf("/")));
+            float denom = Float.parseFloat(qty.substring(qty.indexOf("/") + 1));
+            return num / denom;
+         } catch (NumberFormatException numberFException) {
+            return -1;//cannot convert
+         }
+      } else if (qty.trim().contains(" ") && qty.contains("/")) {
+         //a mixed number
+         try {
+            float whole = Float.parseFloat(qty.substring(0, qty.indexOf(" ")));
+            float num = Float.parseFloat(qty.substring(qty.indexOf(" ") + 1, qty.indexOf("/")));
+            float denom = Float.parseFloat(qty.substring(qty.indexOf("/") + 1));
+            return whole + num / denom;
+         } catch (NumberFormatException numberFException) {
+            return -1;//cannot convert
+         }
+      }
+      return Float.parseFloat(qty);
+   }
+
+   /**
+    * Parses the number out of the string given by qty,
+    * and processes it with the function defined by factor,
+    * then returns the result as a string.
+    * @param qty
+    * @param factor
+    * @param outputFraction
+    * @return
+    */
+   private static String convert(String qty, String factor, boolean outputFraction) {
+      float x = 0;
+      if (qty.isEmpty()) {
+         x = 0;
+      } else {//Parse out the value of qty
+         if (qty.trim().contains("-")) {
+            //A range
+            return (convert(qty.substring(0, qty.indexOf("-")).trim(), factor, outputFraction) + "-"
+                    + convert(qty.substring(qty.indexOf("-") + 1).trim(), factor, outputFraction));
+         }
+         try {
+            x = parseMixedNumber(qty);
+         } catch (NumberFormatException numberFormatException) {
+            return qty;//cannot convert
+         }
+      }
+      try {
+         float result;
+         //Plus or minus indicates a function.
+         if (factor.contains("+")) {
+            String[] formula = factor.split("\\+");
+            float m = parseMixedNumber(formula[0]);
+            float b = parseMixedNumber(formula[1]);
+            result = m * x + b;
+         } else if (factor.contains("-")) {
+            String[] formula = factor.split("-");
+            float m = parseMixedNumber(formula[0]);
+            float b = parseMixedNumber(formula[1]);
+            result = m * x - b;
+         } else {
+            result = Float.parseFloat(factor) * x;
+         }
+         if (outputFraction) {
+            return decimalToFraction(result);
+         } else {
+            return (new DecimalFormat("0.##")).format(result);
+         }
+      } catch (NumberFormatException numberFormatException) {
+         return qty;//Cannot parse number
+      }
+   }
+
+   public static String convert(String qty, String factor) {
+      if (qty.contains(".")) {
+         return convert(qty, factor, false);
+      } else {
+         return convert(qty, factor, true);
+      }
+   }
+   public static String convert(String qty, Unit from, Unit to) {
+     String factor = from.getConversionFactor(to.getPlural()); 
+     if(factor != null){
+        return convert(qty, factor);
+     }else return null;
+   }
+
 
 }

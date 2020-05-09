@@ -21,12 +21,11 @@ public class Ingredient {
    /**
     * Takes a string (ostensibly the contents of an HTML list item),
     * and returns the three pieces of data:
-    * number, Unit, and name as a string array.
-    * Always returns a three item array.
+    * number, Unit, and name as an Ingredient.
     *
     * @param s The list item contents
-    * @return the separated data
-    */
+    * @return the new Ingredient
+    **/
    public static Ingredient parse(String s) {
       String[] data = new String[3];
       data[0] = new String();
@@ -62,7 +61,7 @@ public class Ingredient {
                }
             }
             if (!u.isEmpty()) {
-               //If unit does not exist
+               //If unit does exist
                if (Unit.Units.getSource().getUnit(u) != null) {
                   data[1] = u;
                   s = s.substring(u.length());
@@ -232,11 +231,11 @@ public class Ingredient {
          float numerator = 1, denominator = 1;
 
          for (int i = 0; i < 1000; i++) {
-            if ((numerator / denominator) < f) {
+            if ((numerator / denominator) < f+0.0001) {
                numerator++;
-            } else if ((numerator / denominator) > f) {
+            } else if ((numerator / denominator) > f-0.0001) {
                denominator++;
-               numerator = 1;
+               //numerator = 1;
             } else {
                if (((int) denominator) == 1) {
                   return Integer.toString((int) numerator);
@@ -253,7 +252,7 @@ public class Ingredient {
    }
 
    public void convertTo(String newUnit) {
-      String newVal = convert(quantity, unit.getConversionFactor(newUnit));
+      String newVal = Unit.convert(quantity, unit.getConversionFactor(newUnit));
       unit = Unit.Units.getSource().getUnit(newUnit);
       quantity = newVal;
    }
