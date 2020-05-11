@@ -1,9 +1,9 @@
-unitTest: unit/Unit.java unit/manageUnits.java
-	javac unit/Unit.java unit/manageUnits.java
+unitTest: recipe/Unit.java recipe/testUnits.java
+	javac recipe/Unit.java recipe/testUnits.java
 
 .PHONY: clean
 
 clean:
-	rm unit/*.class
+	rm recipe/*.class
 
 

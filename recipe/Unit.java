@@ -6,8 +6,9 @@
  * By: James McConnel (yehoodig@gmail.com) Last updated 5/8/2020 Status: Able to compile.
  * License: MIT (I think, I don't understand the legal stuff too well.)
  */
-package unit;
+package recipe;
 
+import java.util.Iterator;
 import java.lang.Math;
 import java.text.DecimalFormat;
 import java.util.Collections;
@@ -42,13 +43,13 @@ public class Unit implements Comparable<Unit> {
    public Unit() {
       plural = "";
       singular = "";
-      conversionUnits = null;
+      conversionUnits = new HashMap<String,String>();
    }
 
    public Unit(String p, String s) {
       plural = p;
       singular = s;
-      conversionUnits = null;
+      conversionUnits = new HashMap<String,String>();
    }
 
    /**
@@ -144,6 +145,12 @@ public class Unit implements Comparable<Unit> {
       return (this.conversionUnits != null && !conversionUnits.isEmpty());
    }
 
+   public String getConversionFactor(Unit u){
+      String factor = conversionUnits.get(u.getPlural().toUpperCase());
+      if(factor == null) factor = conversionUnits.get(u.getSingular().toUpperCase());
+      return factor;
+   }
+
    /**
     * @param s The name of the unit to convert to.
     * @return A String giving the formula for conversion.
@@ -176,11 +183,29 @@ public class Unit implements Comparable<Unit> {
             FileWriter out = null;
             try {
                out = new FileWriter(diskFile);
+
+               out.write(";These are the units that RecipeJar recognizes.\n");
+               out.write(";You can add your own simply by typing them in below.\n");
+               out.write(";For more information about Units, see: [The project website...]\n");
+               out.write(";Please note, units are used exactly as they are typed, spaces and all.\n");
+               out.write("\n");
+               out.write(";Lines beginning with \";\" are comments, and will be ignored by the program.\n");
+               out.write(";Feel free to add comments, etc.  But be aware User comments will be discarded if the program saves this file.\n");
                for (int i = 0; i < Units.size(); i++) {
                   if (Units.get(i).getPlural() != null && !Units.get(i).getPlural().isEmpty()) {
                      out.write(Units.get(i).getPlural());
                      if (Units.get(i).getSingular() != null && !Units.get(i).getSingular().isEmpty()) {
                         out.write("," + Units.get(i).getSingular());
+                     }
+                     System.out.println(Units.get(i));
+                     if(Units.get(i).isConvertable()){
+                        Iterator<String> j = Units.get(i).conversionUnits.keySet().iterator();
+                        if(j.hasNext()) out.write(",");
+                        while(j.hasNext()){
+                           String name = j.next();
+                           out.write(name+"("+Units.get(i).conversionUnits.get(name)+")");
+                           if(j.hasNext()) out.write("|");
+                        }
                      }
                      out.write("\n");
                   }
@@ -235,7 +260,7 @@ public class Unit implements Comparable<Unit> {
       Unit newUnit;
       Units.add(newUnit = new Unit(ptext, stext));
       Collections.sort(Units);
-      diskFile.save();
+      diskFile.save(); //Warning!!! You will lose all User comments.
       return newUnit;
    }
 
@@ -373,7 +398,7 @@ public class Unit implements Comparable<Unit> {
       }
    }
    public static String convert(String qty, Unit from, Unit to) {
-     String factor = from.getConversionFactor(to.getPlural()); 
+     String factor = from.getConversionFactor(to); 
      if(factor != null){
         return convert(qty, factor);
      }else return null;
