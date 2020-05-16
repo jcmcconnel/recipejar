@@ -1,9 +1,8 @@
-//package recipejar.data;
+package recipejar.recipe;
 
-//import recipejar.data.Unit;
-//import recipejar.data.Units;
 import java.io.StringWriter;
 import java.text.DecimalFormat;
+
 
 public class Ingredient {
 
@@ -62,7 +61,7 @@ public class Ingredient {
             }
             if (!u.isEmpty()) {
                //If unit does exist
-               if (Unit.Units.getSource().getUnit(u) != null) {
+               if (Unit.getUnit(u) != null) {
                   data[1] = u;
                   s = s.substring(u.length());
                }
@@ -72,7 +71,7 @@ public class Ingredient {
          unit = s.indexOf(">", unit) + 1;
          String data1String = s.substring(unit, s.indexOf("</span>", unit));
          s = s.substring(s.indexOf("</span>", unit) + 7);
-         if (Unit.Units.getSource().getUnit(data1String) != null) {
+         if (Unit.getUnit(data1String) != null) {
             data[1] = data1String;
          } else {
             //add unit text to the name field
@@ -99,7 +98,7 @@ public class Ingredient {
             }
             if (!u.isEmpty()) {
                //If unit does not exist
-               if (Unit.Units.getSource().getUnit(u) != null) {
+               if (Unit.getUnit(u) != null) {
                   data[1] = u;
                   while (Character.isSpaceChar(s.charAt(name))) {
                      name++;
@@ -219,120 +218,6 @@ public class Ingredient {
       return false;
    }
 
-   /**
-    *
-    * @param f
-    * @return
-    */
-   public static String decimalToFraction(float f) {
-      if (f == 0.5) {
-         return "1/2";
-      } else {
-         float numerator = 1, denominator = 1;
-
-         for (int i = 0; i < 1000; i++) {
-            if ((numerator / denominator) < f+0.0001) {
-               numerator++;
-            } else if ((numerator / denominator) > f-0.0001) {
-               denominator++;
-               //numerator = 1;
-            } else {
-               if (((int) denominator) == 1) {
-                  return Integer.toString((int) numerator);
-               } else if (((int) numerator) > ((int) denominator)) {
-                  int whole = (int) (numerator / denominator);
-                  return whole + " " + (((int) numerator) - whole * ((int) denominator)) + "/" + ((int) denominator);
-               } else {
-                  return ((int) numerator) + "/" + ((int) denominator);
-               }
-            }
-         }
-         return new DecimalFormat("0.##").format(f);
-      }
-   }
-
-   public void convertTo(String newUnit) {
-      String newVal = Unit.convert(quantity, unit.getConversionFactor(newUnit));
-      unit = Unit.Units.getSource().getUnit(newUnit);
-      quantity = newVal;
-   }
-
-   /**
-    * Parses the number out of the string given by qty,
-    * and processes it with the function defined by factor,
-    * then returns the result as a string.
-    * @param qty
-    * @param factor
-    * @param outputFraction
-    * @return
-    */
-   private static String convert(String qty, String factor, boolean outputFraction) {
-      float x = 0;
-      if (qty.isEmpty()) {
-         x = 0;
-      } else {//Parse out the value of qty
-         try {
-            x = Float.parseFloat(qty.trim());
-         } catch (NumberFormatException numberFormatException) {//not a pure number
-            if (qty.trim().contains("-")) {
-               //A range
-               return (convert(qty.substring(0, qty.indexOf("-")).trim(), factor, outputFraction) + "-"
-                       + convert(qty.substring(qty.indexOf("-") + 1).trim(), factor, outputFraction));
-            } else if (!qty.trim().contains(" ") && qty.contains("/")) {
-               //A fraction; if does contain a " " then it's a mixed number
-               try {
-                  float num = Float.parseFloat(qty.substring(0, qty.indexOf("/")));
-                  float denom = Float.parseFloat(qty.substring(qty.indexOf("/") + 1));
-                  x = num / denom;
-               } catch (NumberFormatException numberFException) {
-                  return null;//cannot convert
-               }
-            } else if (qty.trim().contains(" ") && qty.contains("/")) {
-               //a mixed number
-               try {
-                  float whole = Float.parseFloat(qty.substring(0, qty.indexOf(" ")));
-                  float num = Float.parseFloat(qty.substring(qty.indexOf(" ") + 1, qty.indexOf("/")));
-                  float denom = Float.parseFloat(qty.substring(qty.indexOf("/") + 1));
-                  x = whole + num / denom;
-               } catch (NumberFormatException numberFException) {
-                  return qty;//cannot convert
-               }
-            }
-         }
-      }
-      try {
-         float result;
-         //Plus or minus indicates a function.
-         if (factor.contains("+")) {
-            String[] formula = factor.split("\\+");
-            float m = Float.parseFloat(formula[0]);
-            float b = Float.parseFloat(formula[1]);
-            result = m * x + b;
-         } else if (factor.contains("-")) {
-            String[] formula = factor.split("-");
-            float m = Float.parseFloat(formula[0]);
-            float b = Float.parseFloat(formula[1]);
-            result = m * x - b;
-         } else {
-            result = Float.parseFloat(factor) * x;
-         }
-         if (outputFraction) {
-            return decimalToFraction(result);
-         } else {
-            return (new DecimalFormat("0.##")).format(result);
-         }
-      } catch (NumberFormatException numberFormatException) {
-         return qty;
-      }
-   }
-
-   public static String convert(String qty, String factor) {
-      if (qty.contains(".")) {
-         return convert(qty, factor, false);
-      } else {
-         return convert(qty, factor, true);
-      }
-   }
 
 
 }

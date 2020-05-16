@@ -6,7 +6,7 @@
  * By: James McConnel (yehoodig@gmail.com) Last updated 5/8/2020 Status: Able to compile.
  * License: MIT (I think, I don't understand the legal stuff too well.)
  */
-package recipe;
+package recipejar.recipe;
 
 import java.util.Iterator;
 import java.lang.Math;
@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
-import filetype.*;
+import file.*;
 
 /**
  *
@@ -172,9 +172,19 @@ public class Unit implements Comparable<Unit> {
    public void setSingular(boolean b) {
       useSingular = b;
    }
+
+
+
+
    
+   /** *********************************************************************
+    *  Static methods ONLY beyond this point!
+    *  ********************************************************************
+    */
+
+
    /**
-    * Static methods for database interaction.
+    *
     */
    protected static void readUnitsFromFile(String s){
       diskFile = new AbstractCharDelineatedFile(s,","){

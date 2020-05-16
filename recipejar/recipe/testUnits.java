@@ -1,9 +1,9 @@
 //James McConnel 5/6/2020
 //Plan:
 //
-package recipe;
+package recipejar.recipe;
 
-import filetype.*;
+import file.*;
 import java.util.Random;
 class testUnits {
    public static void main(String args[]){
