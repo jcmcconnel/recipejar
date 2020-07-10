@@ -1,5 +1,5 @@
 /*
- * RecipeFile.java
+ * Template.java
  *
  * Created on October 18, 2007, 2:55 PM
  *
@@ -15,8 +15,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-//import recipejar.data.Prefs;
-//import recipejar.data.RecipeTemplate;
+
+import recipejar.lib.AbstractXHTMLBasedFile;
 
 /**
  * The purpose of this class is to provide fundamental capabilities for an HTML
@@ -24,13 +24,12 @@ import java.util.HashMap;
  *
  * @author Owner
  */
-public class RecipeFile extends AbstractXHTMLBasedFile {
+public class Template extends AbstractXHTMLBasedFile {
 
     ///////////////////////////////////
     //////Non-static members///////////
     ///////////////////////////////////
     //Private
-    private ArrayList<Ingredient> ingredients;
 
     /**
      * All constructors feed into this for common stuff
@@ -59,132 +58,11 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
 
         if (exists()) { //Initialize data structures from file
             this.load();
-            //DO NOT do this if this file is the template.
-            if (!Prefs.TEMPLATE_RECIPE.toString().equals(this.getPath())
-                    || RecipeTemplate.getSource() != null) {
-                //Make recipefile conform to template if it doesn't already.
-                if (!this.getStyle().equals(RecipeTemplate.getSource().getStyle())) {
-                    this.setStyle(RecipeTemplate.getSource().getStyle());
-                }
-                revertToDefault("header");
-                revertToDefault("notes-header");
-                revertToDefault("notes-footer");
-                revertToDefault("ingredients-header");
-                revertToDefault("ingredients-footer");
-                revertToDefault("procedure-header");
-                revertToDefault("procedure-footer");
-                revertToDefault("program-footer");
-                revertToDefault("browser-footer");
-                revertToDefault("export-footer");
-
-                for (int i = 0; i < RecipeTemplate.getSource().getMetaItems().size(); i++) {
-                    if (RecipeTemplate.getSource().getMetaItems().get(i).hasAttribute("name")
-                            && getMetaData(RecipeTemplate.getSource().getMetaItems().get(i).getAttribute("name")) != null) {
-                        getMetaItems().add(RecipeTemplate.getSource().getMetaItems().get(i).clone());
-                    }
-                }
-                //ingredients = new ArrayList<Ingredient>();
-                //setIngredientsFromHTML(getDataElement("ingredients").getContent());
-            }
-        } else { //File does not exist, so load default data from template
-            setDataElement("title", new recipejar.data.Element("title"));
-            //DO NOT do this if this file is the template.
-            if (!Prefs.TEMPLATE_RECIPE.toString().equals(this.getPath())
-                    || RecipeTemplate.getSource() != null) {
-                setDataElement("style", RecipeTemplate.getSource().getDataElement("style").clone());
-
-                setDataElement("notes", RecipeTemplate.getSource().getDataElement("notes").clone());
-                setDataElement("ingredients", RecipeTemplate.getSource().getDataElement("ingredients").clone());
-                ingredients = new ArrayList<Ingredient>();
-                setIngredientsFromHTML(getDataElement("ingredients").getContent());
-                setDataElement("procedure", RecipeTemplate.getSource().getDataElement("procedure").clone());
-                revertToDefault("header");
-
-                revertToDefault("notes-header");
-                revertToDefault("notes-footer");
-
-                revertToDefault("ingredients-header");
-                revertToDefault("ingredients-footer");
-
-                revertToDefault("procedure-header");
-                revertToDefault("procedure-footer");
-
-                revertToDefault("program-footer");
-                revertToDefault("browser-footer");
-                revertToDefault("export-footer");
-            } else {
-                throw new FileNotFoundException("Template does not exist.");
-            }
-        }
-        setActiveFooter("program-footer");
-    }
-
-    /**
-     * Makes sure that the element exists in this RecipeFile, and if it does
-     * sets the content to the default given in the template.
-     *
-     * @param token the Element
-     */
-    private void revertToDefault(String token) {
-        if (RecipeTemplate.getSource().dataElementExists(token)) {
-            if (!this.dataElementExists(token)) {
-                setDataElement(token, RecipeTemplate.getSource().getDataElement(token).clone());
-            } else {
-                this.getDataElement(token).setContent(RecipeTemplate.getSource().getDataElement(token).getContent());
-            }
         }
     }
+
     ////////Protected/////////
-    private String activeFooter = "program-footer";
 
-    /**
-     *
-     * @return
-     */
-    @Override
-    protected String buildBody() {
-        StringWriter out = new StringWriter();
-        out.write("\n   <body>\n");
-        if (this.dataElementExists("header")) {
-            out.write("    " + processMacros(this.getDataElement("header").toString()) + "\n");
-        }
-
-        if (this.dataElementExists("notes-header")) {
-            out.write("    " + processMacros(this.getDataElement("notes-header").toString()) + "\n");
-        }
-        out.write("    <div id=\"" + Section.NOTES.toString() + "\">");
-        out.write(this.getNotes());
-        out.write("    </div>\n");
-        if (this.dataElementExists("notes-footer")) {
-            out.write("    " + processMacros(this.getDataElement("notes-footer").toString()) + "\n");
-        }
-
-        if (this.dataElementExists("ingredients-header")) {
-            out.write("    " + processMacros(this.getDataElement("ingredients-header").toString()) + "\n");
-        }
-        out.write("    <div id=\"" + Section.INGREDIENTS.toString() + "\">");
-        out.write(this.getIngredientsAsHTML());
-        out.write("\n    </div>\n");
-        if (this.dataElementExists("ingredients-footer")) {
-            out.write("    " + processMacros(this.getDataElement("ingredients-footer").toString()) + "\n");
-        }
-
-        if (this.dataElementExists("procedure-header")) {
-            out.write("    " + processMacros(this.getDataElement("procedure-header").toString()) + "\n");
-        }
-        out.write("    <div id=\"" + Section.PROCEDURE.toString() + "\">");
-        out.write(this.getProcedure());
-        out.write("    </div>\n");
-        if (this.dataElementExists("procedure-footer")) {
-            out.write("    " + processMacros(this.getDataElement("procedure-footer").toString()) + "\n");
-        }
-
-        if (this.dataElementExists(activeFooter)) {
-            out.write("    " + processMacros(this.getDataElement(activeFooter).toString()) + "\n");
-        }
-        out.write("  </body>\n");
-        return out.toString();
-    }
 
     /**
      * Returns the meta data value associated with the [LABEL]. Used by
@@ -400,91 +278,91 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         this.setMetaData("labels", text);
     }
 
-    /////////////Ingredient Methods////////////
-    //public void swapIngredients(int a, int b) {
-    //    if ((a >= 0 && a < ingredients.size()) && (b >= 0 && b < ingredients.size())) {
-    //        Ingredient ia = ingredients.get(a);
-    //        Ingredient ib = ingredients.get(b);
+    ///////////Ingredient Methods////////////
+    public void swapIngredients(int a, int b) {
+        if ((a >= 0 && a < ingredients.size()) && (b >= 0 && b < ingredients.size())) {
+            Ingredient ia = ingredients.get(a);
+            Ingredient ib = ingredients.get(b);
 
-    //        ingredients.set(b, ia);
-    //        ingredients.set(a, ib);
-    //    }
-    //}
+            ingredients.set(b, ia);
+            ingredients.set(a, ib);
+        }
+    }
 
-    ///**
-    // *
-    // * @param i
-    // * @return
-    // */
-    //public Ingredient getIngredient(int i) {
-    //    return ingredients.get(i);
-    //}
+    /**
+     *
+     * @param i
+     * @return
+     */
+    public Ingredient getIngredient(int i) {
+        return ingredients.get(i);
+    }
 
-    ///**
-    // * Replaces Ingredient at index i, with Ingredient I.
-    // *
-    // * @param i
-    // * @param I
-    // */
-    //public void setIngredient(int i, Ingredient I) {
-    //    ingredients.set(i, I);
-    //}
+    /**
+     * Replaces Ingredient at index i, with Ingredient I.
+     *
+     * @param i
+     * @param I
+     */
+    public void setIngredient(int i, Ingredient I) {
+        ingredients.set(i, I);
+    }
 
-    ///**
-    // * Appends ingredient to the end of the list.
-    // *
-    // * @param I
-    // */
-    //public void addIngredient(Ingredient I) {
-    //    ingredients.add(I);
-    //}
+    /**
+     * Appends ingredient to the end of the list.
+     *
+     * @param I
+     */
+    public void addIngredient(Ingredient I) {
+        ingredients.add(I);
+    }
 
-    //protected Ingredient removeIngredient(int i) {
-    //    return ingredients.remove(i);
-    //}
+    protected Ingredient removeIngredient(int i) {
+        return ingredients.remove(i);
+    }
 
-    //public int getIngredientListSize() {
-    //    return ingredients.size();
-    //}
+    public int getIngredientListSize() {
+        return ingredients.size();
+    }
 
-    ///**
-    // * Translates the ingredient array into an HTML list.
-    // *
-    // * @return
-    // */
-    //private String getIngredientsAsHTML() {
-    //    //Remove empty ingredients first.
-    //    for (int i = 0; i < ingredients.size() - 1; i++) {
-    //        if (ingredients.get(i).getName().toString().isEmpty()) {
-    //            ingredients.remove(i);
-    //            i--;
-    //        }
-    //    }
-    //    StringWriter s = new StringWriter();
-    //    s.write("\n      <ul>\n");
-    //    for (int i = 0; i < ingredients.size() - 1; i++) {
-    //        s.write(ingredients.get(i).toString());
-    //    }
-    //    s.write("      </ul>");
-    //    return s.toString();
-    //}
+    /**
+     * Translates the ingredient array into an HTML list.
+     *
+     * @return
+     */
+    private String getIngredientsAsHTML() {
+        //Remove empty ingredients first.
+        for (int i = 0; i < ingredients.size() - 1; i++) {
+            if (ingredients.get(i).getName().toString().isEmpty()) {
+                ingredients.remove(i);
+                i--;
+            }
+        }
+        StringWriter s = new StringWriter();
+        s.write("\n      <ul>\n");
+        for (int i = 0; i < ingredients.size() - 1; i++) {
+            s.write(ingredients.get(i).toString());
+        }
+        s.write("      </ul>");
+        return s.toString();
+    }
 
-    ///**
-    // * Loads the contents of the ingredients div into the ingredients array.
-    // *
-    // * @param s the div contents
-    // */
-    //private void setIngredientsFromHTML(String s) {
-    //    if (ingredients == null) {
-    //        ingredients = new ArrayList<Ingredient>();
-    //    }
-    //    int next = s.indexOf("<li>");
-    //    while (next != -1) {
-    //        next = next + 4;//# of chars in "<li>"
-    //        ingredients.add(Ingredient.parse(s.substring(next, s.indexOf("</li>", next))));
-    //        next = s.indexOf("<li>", next);
-    //    }
-    //}
+    /**
+     * Loads the contents of the ingredients div into the ingredients array.
+     *
+     * @param s the div contents
+     */
+    private void setIngredientsFromHTML(String s) {
+        if (ingredients == null) {
+            ingredients = new ArrayList<Ingredient>();
+        }
+        int next = s.indexOf("<li>");
+        while (next != -1) {
+            next = next + 4;//# of chars in "<li>"
+            ingredients.add(Ingredient.parse(s.substring(next, s.indexOf("</li>", next))));
+            next = s.indexOf("<li>", next);
+        }
+    }
 
     private void setActiveFooter(String string) {
         activeFooter = string;
@@ -510,6 +388,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         }
         return l;
     }
+
     public enum Section {
 
         NOTES("notes"), INGREDIENTS("ingredients"), PROCEDURE("procedure");

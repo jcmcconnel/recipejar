@@ -1,5 +1,6 @@
 package recipejar.lib;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -10,30 +11,35 @@ import java.util.logging.Logger;
  */
 public class Anchor implements Comparable<Anchor> {
 
-   private RecipeFile source;
+   private File source;
+   private String link;
+   private String text;
 
-   public Anchor(RecipeFile newfile) {
+   public Anchor(File newfile) {
       source = newfile;
    }
 
    public Anchor(String l, String t) {
-      try {
+       //try {
          if (!l.contains(java.io.File.pathSeparator)) {
-            source = new RecipeFile(Prefs.DIR_DB.toString() + l);
+            //TODO
+            //source = new File(Prefs.DIR_DB.toString() + l);
          } else {
-            source = new RecipeFile(l);
+            source = new File(l);
          }
-      } catch (IOException ex) {
-         Logger.getLogger(Anchor.class.getName()).log(Level.SEVERE, null, ex);
-      }
+         //} catch (IOException ex) {
+         //Logger.getLogger(Anchor.class.getName()).log(Level.SEVERE, null, ex);
+         //}
    }
 
    public String getText() {
-      return source.getTitle();
+      return text;
+      //return source.getTitle();
    }
 
    public String getLink() {
-      return getSource().getName();
+      return link;
+      //return getSource().getName();
    }
 
    @Override
@@ -52,6 +58,7 @@ public class Anchor implements Comparable<Anchor> {
    }
 
    /**
+    * TODO: This is not what it is currently doing.
     * Computed thus: both fields null: 0
     *                link is null: -1
     *                text is null: -2
@@ -61,12 +68,14 @@ public class Anchor implements Comparable<Anchor> {
    @Override
    public int hashCode() {
       int hash;
-      if (getSource() == null) {
+      if (link == null && text == null) {
          hash = 0;
-      } else if (getSource() == null) {
+      } else if (link == null) {
          hash = -1;
+      } else if (text == null) {
+         hash = -2;
       } else {
-         hash = getSource().hashCode();
+         hash = link.hashCode() + text.hashCode();
       }
       return hash;
    }
@@ -82,13 +91,13 @@ public class Anchor implements Comparable<Anchor> {
 
    @Override
    public String toString() {
-      return "<a href=\"" + source.getName() + "\">" + source.getTitle() + "</a>";
+      return "<a href=\"" + link + "\">" + text + "</a>";
    }
 
    /**
     * @return the source
     */
-   public RecipeFile getSource() {
+   public File getSource() {
       return source;
    }
 }

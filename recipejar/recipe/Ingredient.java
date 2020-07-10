@@ -164,9 +164,8 @@ public class Ingredient {
    }
 
    /**
-    * Get the unit name that is in number agreement with the quantity field.
     * 
-    * @return The unit name as determined by the useSingular flag.
+    * @return The unit.
     */
    public Unit getUnit() {
       return unit;
@@ -194,14 +193,26 @@ public class Ingredient {
     * Returns this ingredient as an HTML <li>
     * @return
     */
-   @Override
-   public String toString() {
+   public String toXHTMLString() {
       StringWriter s = new StringWriter();
       s.write("         <li>");
       s.write("<span class=\"qty\">" + getQuantity() + "</span> ");
       s.write("<span class=\"unit\">" + getUnit() + "</span> ");
       s.write("<span class=\"name\">" + getName() + "</span>");
       s.write("</li>\n");
+      return s.toString();
+   }
+
+   /**
+    * Returns this ingredient as a String.
+    * @return
+    */
+   @Override
+   public String toString() {
+      StringWriter s = new StringWriter();
+      s.write(getQuantity()+" ");
+      s.write(getUnit() + " ");
+      s.write(getName() + " ");
       return s.toString();
    }
 
