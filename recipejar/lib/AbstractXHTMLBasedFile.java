@@ -485,7 +485,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
     * @return The last char read
     * @throws IOException
     */
-   private int loseCommentsEtc(Reader in) throws IOException {
+   protected int loseCommentsEtc(Reader in) throws IOException {
       int c = in.read();
       if (c == '-') { //First dash, the comments can contain anything, including '>' chars.
          c = in.read();
@@ -597,7 +597,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
     * @return Content of the element.
     * @throws java.io.IOException Thrown by anyone of the many read statements.
     */
-   private String parseForContentAsText(String name, Reader in) throws IOException {
+   protected String parseForContentAsText(String name, Reader in) throws IOException {
       Stack<Integer> stack = new Stack<Integer>();
       stack.push(1);
 

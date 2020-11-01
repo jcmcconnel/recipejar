@@ -17,19 +17,14 @@ public class Anchor implements Comparable<Anchor> {
 
    public Anchor(File newfile) {
       source = newfile;
+      link = newfile.getPath();
+      text = newfile.getName();
    }
 
    public Anchor(String l, String t) {
-       //try {
-         if (!l.contains(java.io.File.pathSeparator)) {
-            //TODO
-            //source = new File(Prefs.DIR_DB.toString() + l);
-         } else {
-            source = new File(l);
-         }
-         //} catch (IOException ex) {
-         //Logger.getLogger(Anchor.class.getName()).log(Level.SEVERE, null, ex);
-         //}
+       link = l;
+       text = t;
+       source = new File(l);
    }
 
    public String getText() {

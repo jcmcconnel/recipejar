@@ -44,7 +44,7 @@ public class Element {
    }
 
    /**
-    *
+    * Just parses out the opening tag, not the content.
     * @param s
     * @return
     */
