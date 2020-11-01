@@ -11,9 +11,11 @@ public class testFrame extends JFrame {
         super(name);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
-        recipejar.filetypes.IndexFile indexSource = new recipejar.filetypes.IndexFile("/home/james/projects/shiny-fortnight/Test/Recipes/index.html");
+        String databaseLocation = "/home/james/projects/shiny-fortnight/Test/Recipes/";
+        recipejar.filetypes.IndexFile indexSource = new recipejar.filetypes.IndexFile(databaseLocation+"index.html");
         AlphaTab tabbedPane = new AlphaTab(indexSource);
         readerPane = new rjTextPane();
+        readerPane.setDatabaseLocation(databaseLocation);
         tabbedPane.addHyperlinkListener(readerPane);
                                   
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, readerPane);

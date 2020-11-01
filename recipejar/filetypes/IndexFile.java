@@ -137,6 +137,9 @@ public class IndexFile extends AbstractXHTMLBasedFile {
                   if (!e.isSelfClosing()) {
                       e.setContent(parseForContentAsText(e.getName(), in));
                      if (e.getName().toLowerCase().equals("a")) {
+                         if(!anchors.get(s).containsKey(category)){
+                           this.putList(s, category, new ArrayList<Anchor>());
+                         }
                         anchors.get(s).get(category).add(new Anchor(e.getAttribute("href"), e.getContent()));
                      } else if (e.getName().toLowerCase().equals("ul")) {
                         if(e.getAttribute("id") != null) {
