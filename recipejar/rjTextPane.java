@@ -1,5 +1,5 @@
 /*
- * ViewerPanel.java
+ * rjTextPane.java
  *
  * Created on September 20, 2008, 8:30 PM
  */

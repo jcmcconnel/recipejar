@@ -1,6 +1,7 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * @author James McConnel
+ *
+ * Defines a class with general string processing functions for the Recipejar program.
  */
 package recipejar;
 
@@ -16,6 +17,38 @@ import javax.swing.KeyStroke;
  * @author james
  */
 public class StringProcessor {
+
+   /*
+    * TODO
+    * Consider options for these first two funtions, they are not string related.
+    */
+
+   /**
+    *
+    * @param k
+    * @return
+    */
+   public static boolean isAllowableAccelerator(KeyStroke k) {
+      if (isOS("mac os x")) {
+         if (k.getModifiers() == KeyEvent.META_DOWN_MASK) {
+            if (k.getKeyCode() == KeyEvent.VK_H || k.getKeyCode() == KeyEvent.VK_COMMA
+                    || k.getKeyCode() == KeyEvent.VK_Q) {
+               return false;
+            }
+         } else if (k.getModifiers() == (KeyEvent.META_DOWN_MASK + KeyEvent.ALT_DOWN_MASK)) {
+            if (k.getKeyCode() == KeyEvent.VK_H) {
+               return false;
+            }
+         }
+      } else {
+         return true;
+      }
+      return true;
+   }
+
+   public static boolean isOS(String s) {
+      return (System.getProperty("os.name").toLowerCase().indexOf(s) != -1);
+   }
 
    public static String underscoreSpaces(String cat) {
       StringWriter s = new StringWriter();
@@ -44,16 +77,14 @@ public class StringProcessor {
 
    }
 
-   public static boolean isOS(String s) {
-      return (System.getProperty("os.name").toLowerCase().indexOf(s) != -1);
-   }
-
    /**
+    * Removes carriage returns.
     * For some reason, some of my recipes have been showing up with carriage returns
     * along with newlines.  No big deal, but it causes some weird caret issues
     * in the text areas.  Specifically, the cursor is placed half a character width
     * to the right of where it should be when that line is preceded by the '\r'
     * character.  This method simply removes the '\r's.
+    *
     * @param content
     * @return
     */
@@ -233,29 +264,6 @@ public class StringProcessor {
               || removeBadChars(text).trim().toUpperCase().equals("INDEX")
               || removeBadChars(text).trim().toUpperCase().equals("CINDEX")
               || text.isEmpty();
-   }
-
-   /**
-    *
-    * @param k
-    * @return
-    */
-   public static boolean isAllowableAccelerator(KeyStroke k) {
-      if (isOS("mac os x")) {
-         if (k.getModifiers() == KeyEvent.META_DOWN_MASK) {
-            if (k.getKeyCode() == KeyEvent.VK_H || k.getKeyCode() == KeyEvent.VK_COMMA
-                    || k.getKeyCode() == KeyEvent.VK_Q) {
-               return false;
-            }
-         } else if (k.getModifiers() == (KeyEvent.META_DOWN_MASK + KeyEvent.ALT_DOWN_MASK)) {
-            if (k.getKeyCode() == KeyEvent.VK_H) {
-               return false;
-            }
-         }
-      } else {
-         return true;
-      }
-      return true;
    }
 
 }

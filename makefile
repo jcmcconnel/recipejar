@@ -1,14 +1,19 @@
 # "Unless the Lord builds the house, they labor in vain who build it" Psalm 127:1
 #
+# To Do list
+# ----------
+#  Add Menu bar
+#
+
+
 COMPILER=javac -d build
 project: libPackage recipePackage frame
 
-#Rules are in order from least dependencies to most dependencies
 libPackage: recipejar/lib/*.java
 	$(COMPILER) recipejar/lib/*.java
 
 #Depends on recipePackage
-recipePackage: recipejar/recipe/Unit.java recipejar/recipe/*.java
+recipePackage: recipejar/recipe/*.java
 	$(COMPILER) recipejar/recipe/Unit.java recipejar/recipe/*.java
 
 filetypes: recipejar/filetypes/*.java

@@ -7,14 +7,21 @@ import java.io.File;
 public class testFrame extends JFrame {
 
     public rjTextPane readerPane;
+    public EditorPanel  ePanel;
+    
+    /**
+     * Frame initializer.
+     */
     public testFrame(String name){
         super(name);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
+        
         String databaseLocation = "/home/james/projects/shiny-fortnight/Test/Recipes/";
         recipejar.filetypes.IndexFile indexSource = new recipejar.filetypes.IndexFile(databaseLocation+"index.html");
         AlphaTab tabbedPane = new AlphaTab(indexSource);
         readerPane = new rjTextPane();
+        ePanel = new EditorPanel().
         readerPane.setDatabaseLocation(databaseLocation);
         tabbedPane.addHyperlinkListener(readerPane);
                                   
@@ -23,6 +30,7 @@ public class testFrame extends JFrame {
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
         pack();
     }
+
     public static void main(String[] argv){
         testFrame f = new testFrame("test frame");
         f.setVisible(true);
