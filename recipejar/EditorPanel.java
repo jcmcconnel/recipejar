@@ -17,6 +17,9 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import recipejar.recipe.Recipe;
+import recipejar.IngredientTableModel;
+//
 ////TODO: Remove these imports and have something else listen on the panel.
 //import recipejar.manager.actions.ApplicationEvent;
 //import recipejar.manager.action.ApplicationEventSource;
@@ -26,7 +29,7 @@ import javax.swing.event.TableModelListener;
  *
  * @author  James McConnel
  */
-public class EditorPanel extends JPanel implements DocumentListener, TableModelListener {
+public class EditorPanel extends JPanel {
 
    /************Instance Variables*****************/
     // private ApplicationEventSource aes = new ApplicationEventSource();
@@ -34,6 +37,8 @@ public class EditorPanel extends JPanel implements DocumentListener, TableModelL
     // public ApplicationEventSource getApplicationEventSource() {
     //    return aes;
     // }
+
+   private IngredientTableModel table = null;
 
    /**
     * Creates new EditorPanel
@@ -51,7 +56,7 @@ public class EditorPanel extends JPanel implements DocumentListener, TableModelL
     *
     */
    public void clear() {
-      stopListening();
+      //stopListening();
       titleField.setText("Open a Recipe, or click \"New\".");
       titleField.setEditable(false);
       notesField.setText("");
@@ -61,7 +66,7 @@ public class EditorPanel extends JPanel implements DocumentListener, TableModelL
       procedureField.setEditable(false);
       saveButton.setEnabled(false);
 
-      startListening();
+      //startListening();
    }
 
     /**
@@ -69,7 +74,7 @@ public class EditorPanel extends JPanel implements DocumentListener, TableModelL
      *
      * @return
      */
-    public IngredientTableModel getIngredientTableModel(RecipeFile r) {
+    public IngredientTableModel getIngredientTableModel(Recipe r) {
         if (table == null) {
             return table = new IngredientTableModel(r);
         } else {
@@ -217,29 +222,29 @@ public class EditorPanel extends JPanel implements DocumentListener, TableModelL
 
    /*******************non public******************/
    
-   /**
-    * Adds this as a document listener on all the fields.
-    */
-   private void startListening() {
-      this.titleField.getDocument().addDocumentListener(this);
-      this.notesField.getDocument().addDocumentListener(this);
-      this.iListTable1.getModel().addTableModelListener(this);
-      this.procedureField.getDocument().addDocumentListener(this);
-      this.labelField.getDocument().addDocumentListener(this);
-   }
+  // /**
+  //  * Adds this as a document listener on all the fields.
+  //  */
+  // private void startListening() {
+  //    this.titleField.getDocument().addDocumentListener(this);
+  //    this.notesField.getDocument().addDocumentListener(this);
+  //    this.iListTable1.getModel().addTableModelListener(this);
+  //    this.procedureField.getDocument().addDocumentListener(this);
+  //    this.labelField.getDocument().addDocumentListener(this);
+  // }
 
-   /**
-    * Removes this as a DocumentListener on all the fields.
-    * This is so that DocumentEvents fired not as a result of
-    * user input are ignored.
-    */
-   private void stopListening() {
-      this.titleField.getDocument().removeDocumentListener(this);
-      this.notesField.getDocument().removeDocumentListener(this);
-      //TODO this.ingredientList1.getTable().getModel().removeTableModelListener(this);
-      this.procedureField.getDocument().removeDocumentListener(this);
-      this.labelField.getDocument().removeDocumentListener(this);
-   }
+  // /**
+  //  * Removes this as a DocumentListener on all the fields.
+  //  * This is so that DocumentEvents fired not as a result of
+  //  * user input are ignored.
+  //  */
+  // private void stopListening() {
+  //    this.titleField.getDocument().removeDocumentListener(this);
+  //    this.notesField.getDocument().removeDocumentListener(this);
+  //    //TODO this.ingredientList1.getTable().getModel().removeTableModelListener(this);
+  //    this.procedureField.getDocument().removeDocumentListener(this);
+  //    this.labelField.getDocument().removeDocumentListener(this);
+  // }
 
    /***************Interface implementations************************/
    /**

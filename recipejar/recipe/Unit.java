@@ -317,9 +317,13 @@ public class Unit implements Comparable<Unit> {
       f = f - wholepart;
       String output = "";
       if(Math.abs(wholepart) > 0) output = Integer.toString(wholepart)+" ";
-      if(f == 0.25) output += "1/4";
-      if(f == 0.5) output += "1/2";
       if(f == 0.75) output += "3/4";
+      if(f == 0.5) output += "1/2";
+      if(f > 0.3 && f < 0.334) output += "1/3";
+      if(f == 0.25) output += "1/4";
+      if(f == 0.2) output += "1/5";
+      if(f == 0.125) output += "1/8";
+      if(f == 0.0625) output += "1/16";
       if(!output.isEmpty()) return output;
       return new DecimalFormat("0.##").format(f);
    }

@@ -8,7 +8,7 @@
  *
  * Created on Apr 11, 2011, 9:44:44 AM
  */
-package recipejar.ui;
+package recipejar;
 
 import java.awt.Color;
 import java.awt.Point;
@@ -18,7 +18,7 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.table.TableColumn;
-import recipejar.data.IngredientTableModel;
+import recipejar.IngredientTableModel;
 
 /**
  *
@@ -70,7 +70,7 @@ public class IListTable extends JTable {
       nameCol.setPreferredWidth(260);
       nameCol.setCellEditor(new DefaultCellEditor(textEditor));
 
-      if (!recipejar.Util.isOS("mac")) {
+      if (!recipejar.StringProcessor.isOS("mac")) {
          this.setShowGrid(true);
          this.setGridColor(Color.BLACK);
       }
@@ -85,7 +85,7 @@ public class IListTable extends JTable {
     */
    @Override
    public javax.swing.table.TableCellRenderer getCellRenderer(int row, int column) {
-      if (recipejar.Util.isOS("mac")) {
+      if (recipejar.StringProcessor.isOS("mac")) {
          if (coloredRenderer == null) {
             coloredRenderer = new javax.swing.table.DefaultTableCellRenderer();
             coloredRenderer.setBackground(new Color(241, 245, 250));
@@ -207,7 +207,7 @@ public class IListTable extends JTable {
       int r = getSelectedRow();
       if (c == 1) {//the Unit column
          if (!getValueAt(r, c).toString().equals(unitEditor.getSelectedItem().toString())) {
-            int i = recipejar.data.Units.getSource().indexOf(getValueAt(r, c).toString());
+            int i = recipejar.recipe.Unit.indexOf(getValueAt(r, c).toString());
                   unitEditor.setSelectedIndex(i);
          }
       }

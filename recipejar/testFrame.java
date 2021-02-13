@@ -1,4 +1,5 @@
 package recipejar;
+
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -20,12 +21,13 @@ public class testFrame extends JFrame {
         String databaseLocation = "/home/james/projects/shiny-fortnight/Test/Recipes/";
         recipejar.filetypes.IndexFile indexSource = new recipejar.filetypes.IndexFile(databaseLocation+"index.html");
         AlphaTab tabbedPane = new AlphaTab(indexSource);
+        
         readerPane = new rjTextPane();
-        ePanel = new EditorPanel().
+        ePanel = new EditorPanel();
         readerPane.setDatabaseLocation(databaseLocation);
         tabbedPane.addHyperlinkListener(readerPane);
                                   
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, readerPane);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, ePanel);
         splitPane.setOneTouchExpandable(true);
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
         pack();

@@ -3,11 +3,12 @@
 # To Do list
 # ----------
 #  Add Menu bar
+#  Remove RecipeFile from direct interaction with text components.
 #
 
 
 COMPILER=javac -d build
-project: libPackage recipePackage frame
+all: libPackage filetypes recipePackage frame
 
 libPackage: recipejar/lib/*.java
 	$(COMPILER) recipejar/lib/*.java
@@ -19,8 +20,11 @@ recipePackage: recipejar/recipe/*.java
 filetypes: recipejar/filetypes/*.java
 	$(COMPILER) recipejar/filetypes/*.java
 
-frame: recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java
-	$(COMPILER) recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java
+editorpanel: recipejar/EditorPanel.java
+	$(COMPILER) recipejar/EditorPanel.java
+
+frame: recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java recipejar/EditorPanel.java
+	$(COMPILER) recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java recipejar/EditorPanel.java
 
 .PHONY: clean
 
