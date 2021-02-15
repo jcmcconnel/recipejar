@@ -12,6 +12,7 @@ package recipejar.recipe;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.io.StringWriter;
+import recipejar.recipe.IngredientTableModel;
 
 
 /**
@@ -29,16 +30,19 @@ public class Recipe {
     private String title;
     private String notes;
     private ArrayList<Ingredient> ingredients;
+    private IngredientTableModel tmodel;
     private String procedure;
     private ArrayList<String> labels;
 
     ////////Public///////////
     //Constructors
-    public Recipe(String t, String n, ArrayList<Ingredient> i, String p){
+    public Recipe(String t, String n, ArrayList<Ingredient> i, String p, ArrayList<String> l){
        title = t;
        notes = n;
        ingredients = i;
+       tmodel = new IngredientTableModel(this);
        procedure = p;
+       labels = l;
     }
 
 
@@ -60,6 +64,14 @@ public class Recipe {
     }
 
     /////Getters and Setters/////
+    /**
+     *
+     * @return
+     */
+    public String getTitle() {
+       return title;
+    }
+
     /**
      *
      * @return
@@ -157,6 +169,10 @@ public class Recipe {
 
     public int getNumberOfIngredients() {
         return ingredients.size();
+    }
+
+    public IngredientTableModel getTableModel(){
+       return tmodel;
     }
 
     @Override

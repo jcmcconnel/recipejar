@@ -14,6 +14,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import recipejar.lib.AbstractXHTMLBasedFile;
@@ -65,6 +66,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             System.out.print("Recipe does not exist");
         }
         setActiveFooter("program-footer");
+        setIngredientsFromHTML(getDataElement("ingredients").getContent());
     }
 
     ///**
@@ -147,17 +149,17 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             String textStroke = new String();
             String savedMeta;
             if ((savedMeta = getMetaData("labels")) != null && !savedMeta.isEmpty()) {
-                String[] labels = savedMeta.split(",");
-                for (int i = 0; i < labels.length; i++) {
+                ArrayList<String> labels = new ArrayList<String>(Arrays.asList(savedMeta.split(",")));
+                for (int i = 0; i < labels.size(); i++) {
                     if (i > 0) {
                         textStroke = textStroke + ", ";
                     }
                     if (activeFooter.equals("export-footer")) {
-                        textStroke = textStroke + labels[i];
+                        textStroke = textStroke + labels.get(i);
                     } else {
                         textStroke = textStroke + "<a href=\"" + "index.html#"
-                                + recipejar.StringProcessor.underscoreSpaces(labels[i].trim()) + "\">"
-                                + labels[i].trim() + "</a>";
+                                + recipejar.StringProcessor.underscoreSpaces(labels.get(i).trim()) + "\">"
+                                + labels.get(i).trim() + "</a>";
                     }
                 }
             } else {
@@ -237,9 +239,9 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             temp.setIngredient(i, this.getIngredient(i));
         }
         String l = "";
-        for (int i = 0; i < this.getLabels().length; i++) {
-            l = l + this.getLabels()[i];
-            if (i < this.getLabels().length - 1) {
+        for (int i = 0; i < this.getLabels().size(); i++) {
+            l = l + this.getLabels().get(i);
+            if (i < this.getLabels().size() - 1) {
                 l = l + ", ";
             }
         }
@@ -255,10 +257,10 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
      * @return
      */
     public boolean isLabeled(String s) {
-        String[] labels = getLabels();
+        ArrayList<String> labels = getLabels();
         if (labels != null) {
-            for (int i = 0; i < labels.length; i++) {
-                if (labels[i].equals(s)) {
+            for (int i = 0; i < labels.size(); i++) {
+                if (labels.get(i).equals(s)) {
                     return true;
                 }
             }
@@ -322,13 +324,13 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
      *
      * @return array of all the labels
      */
-    public String[] getLabels() {
+    public ArrayList<String> getLabels() {
         String allLabels = getMetaData("labels");
         if (allLabels != null && !allLabels.isEmpty()) {
-            String[] labels = allLabels.split(",");
-            String[] trimmed = new String[labels.length];
-            for (int i = 0; i < labels.length; i++) {
-                trimmed[i] = labels[i].trim();
+            ArrayList<String> labels = new ArrayList<String>(Arrays.asList(allLabels.split(",")));
+            ArrayList<String> trimmed = new ArrayList<String>(labels.size());
+            for (int i = 0; i < labels.size(); i++) {
+                trimmed.add(i, labels.get(i).trim());
             }
             return trimmed;
         }
@@ -366,6 +368,9 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
      */
     public Ingredient getIngredient(int i) {
         return ingredients.get(i);
+    }
+    public ArrayList<Ingredient> getIngredients() {
+       return ingredients;
     }
 
     /**
@@ -450,9 +455,9 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
 
     public String getLabelsAsString() {
         String l = "";
-        for (int i = 0; i < this.getLabels().length; i++) {
-            l = l + this.getLabels()[i];
-            if (i < this.getLabels().length - 1) {
+        for (int i = 0; i < this.getLabels().size(); i++) {
+            l = l + this.getLabels().get(i);
+            if (i < this.getLabels().size() - 1) {
                 l = l + ", ";
             }
         }

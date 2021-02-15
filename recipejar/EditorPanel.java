@@ -17,8 +17,12 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import java.io.IOException;
+import recipejar.filetypes.RecipeFile;
 import recipejar.recipe.Recipe;
-import recipejar.IngredientTableModel;
+
+import javax.swing.event.HyperlinkListener;
+import javax.swing.event.HyperlinkEvent;
 //
 ////TODO: Remove these imports and have something else listen on the panel.
 //import recipejar.manager.actions.ApplicationEvent;
@@ -29,16 +33,16 @@ import recipejar.IngredientTableModel;
  *
  * @author  James McConnel
  */
-public class EditorPanel extends JPanel {
+public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
+   Recipe recipeModel;
     // private ApplicationEventSource aes = new ApplicationEventSource();
 
     // public ApplicationEventSource getApplicationEventSource() {
     //    return aes;
     // }
 
-   private IngredientTableModel table = null;
 
    /**
     * Creates new EditorPanel
@@ -50,6 +54,23 @@ public class EditorPanel extends JPanel {
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
    }
 
+
+    /**
+     * Intended as a listener for the IndexPane.
+     */
+   public void hyperlinkUpdate(HyperlinkEvent e){
+       if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
+           try {
+               System.out.print(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription()+"\n");
+               RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
+               recipeModel = new Recipe(f.getTitle(), f.getNotes(), f.getIngredients(), f.getProcedure(), f.getLabels());
+               titleField.setText(recipeModel.getTitle());
+               notesField.setText(recipeModel.getNotes());
+               iListTable1.setModel(recipeModel.getTableModel());
+               procedureField.setText(recipeModel.getProcedure());
+           }catch(IOException ioe){}
+       }
+   }
 
    /**
     *
@@ -68,19 +89,6 @@ public class EditorPanel extends JPanel {
 
       //startListening();
    }
-
-    /**
-     * Returns this file's ingredient table model
-     *
-     * @return
-     */
-    public IngredientTableModel getIngredientTableModel(Recipe r) {
-        if (table == null) {
-            return table = new IngredientTableModel(r);
-        } else {
-            return table;
-        }
-    }
 
 
    /**

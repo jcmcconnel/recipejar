@@ -186,7 +186,7 @@ public class Unit implements Comparable<Unit> {
    /**
     *
     */
-   protected static void readUnitsFromFile(String s){
+   public static void readUnitsFromFile(String s){
       diskFile = new AbstractCharDelineatedFile(s,","){
          @Override
          public void save() {

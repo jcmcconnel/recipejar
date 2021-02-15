@@ -5,6 +5,8 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
 
+import recipejar.filetypes.IndexFile;
+
 public class testFrame extends JFrame {
 
     public rjTextPane readerPane;
@@ -18,14 +20,15 @@ public class testFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
         
-        String databaseLocation = "/home/james/projects/shiny-fortnight/Test/Recipes/";
-        recipejar.filetypes.IndexFile indexSource = new recipejar.filetypes.IndexFile(databaseLocation+"index.html");
-        AlphaTab tabbedPane = new AlphaTab(indexSource);
+        recipejar.recipe.Unit.readUnitsFromFile("/home/james/projects/shiny-fortnight/Test/settings/units.txt");
+        IndexFile.setIndexFileLocation("/home/james/projects/shiny-fortnight/Test/Recipes/");
+
+        AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
         
         readerPane = new rjTextPane();
         ePanel = new EditorPanel();
-        readerPane.setDatabaseLocation(databaseLocation);
         tabbedPane.addHyperlinkListener(readerPane);
+        tabbedPane.addHyperlinkListener(ePanel);
                                   
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, ePanel);
         splitPane.setOneTouchExpandable(true);

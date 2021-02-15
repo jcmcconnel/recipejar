@@ -29,7 +29,7 @@ class testRecipe {
       ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
       ingredients.add(new Ingredient("2", Unit.getUnit("Slices"), "Bread"));
       ingredients.add(new Ingredient("1", Unit.getUnit("Tbsp"), "Peanut Butter"));
-      r = new Recipe("Peanut Butter Sandwiches", "", ingredients, "Spread peanut butter on one slice of bread.\n Top with second slice of bread.");
+      r = new Recipe("Peanut Butter Sandwiches", "", ingredients, "Spread peanut butter on one slice of bread.\n Top with second slice of bread.", new ArrayList());
       System.out.println("As string: ");
       System.out.print(r.toString());
       System.out.println();

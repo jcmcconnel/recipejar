@@ -26,7 +26,6 @@ import javax.swing.text.html.StyleSheet;
 public class rjTextPane extends javax.swing.JPanel implements HyperlinkListener {
 
    private JPopupMenu popup;
-    private String databaseLocation;
 
    /** Creates new form ViewerPanel */
    public rjTextPane() {
@@ -45,17 +44,13 @@ public class rjTextPane extends javax.swing.JPanel implements HyperlinkListener 
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
            try {
                System.out.print(e.getDescription());
-               setPage(new recipejar.filetypes.RecipeFile(databaseLocation+e.getDescription()));
+               setPage(new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription()));
            }catch(IOException ioe){}
        }
    }
    public void setPopup(JPopupMenu popup) {
       this.popup = popup;
    }
-
-    public void setDatabaseLocation(String s){
-        databaseLocation = s;
-    }
 
    public JTextPane getTextPane() {
       return jTextPane1;

@@ -18,7 +18,7 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.table.TableColumn;
-import recipejar.IngredientTableModel;
+import recipejar.recipe.IngredientTableModel;
 
 /**
  *

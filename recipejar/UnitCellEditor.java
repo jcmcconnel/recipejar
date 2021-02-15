@@ -10,7 +10,7 @@ import javax.swing.JComboBox;
  *
  * @author James McConnel
  */
-public class UnitCellEditor extends JComboBox {
+public class UnitCellEditor extends JComboBox<recipejar.recipe.Unit> {
 
    public UnitCellEditor() {
       super();

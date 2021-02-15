@@ -32,12 +32,23 @@ import recipejar.filetypes.RecipeFile;
  */
 public class IndexFile extends AbstractXHTMLBasedFile {
 
+   public static void setIndexFileLocation(String s){
+      databaseFile = new IndexFile(s+"index.html");
+   }
+   public static String getDatabaseLocation(){
+      return databaseFile.getParent();
+   }
+   public static IndexFile getIndexFile(){
+      return databaseFile;
+   }
+
     /**
      * The anchors list is mapped by Section, and then by category heading.  "DEFAULT" is the uncategorized list.
      */
    private EnumMap<Section, HashMap<String, ArrayList<Anchor>>> anchors;
+   private static IndexFile databaseFile;
 
-   public IndexFile(String name){
+   protected IndexFile(String name){
       super(name);
       for (int i = 0; i < Section.values().length; i++) {
          addToken(Section.values()[i].toString());
@@ -174,7 +185,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
     * @param designation The title of the Recipe.
     * @return true if found, false otherwise.
     */
-   public static boolean containsTitle(ArrayList<Anchor> list, String designation) {
+   protected static boolean containsTitle(ArrayList<Anchor> list, String designation) {
       for (int i = 0; i < list.size(); i++) {
          if (list.get(i).getText().equals(designation)) {
             return true;
@@ -268,13 +279,13 @@ public class IndexFile extends AbstractXHTMLBasedFile {
             anchorList.add(new Anchor(newfile));
          }
       }
-      String[] labels = newfile.getLabels();
+      ArrayList<String> labels = newfile.getLabels();
       if (labels != null) {
-         for (int i = 0; i < labels.length; i++) {
-            if (!categories.contains(labels[i])) {
+         for (int i = 0; i < labels.size(); i++) {
+            if (!categories.contains(labels.get(i))) {
                ArrayList<Anchor> category = new ArrayList<Anchor>();
                category.add(new Anchor(newfile));
-               this.putList(Section.parse(labels[i]), labels[i].trim(), category);
+               this.putList(Section.parse(labels.get(i)), labels.get(i).trim(), category);
             }
          }
       }
@@ -286,7 +297,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
     * @param key the name of the category ArrayList to get.
     * @return The vector of anchors mapped to the given key.
     */
-   public ArrayList<Anchor> getList(Section s, String key) {
+   protected ArrayList<Anchor> getList(Section s, String key) {
       return anchors.get(s).get(recipejar.StringProcessor.underscoreSpaces(key));
    }
 
@@ -296,7 +307,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
     * @param key The key to map the list too.
     * @param a The ArrayList to add.
     */
-   public void putList(Section s, String key, ArrayList<Anchor> a) {
+   protected void putList(Section s, String key, ArrayList<Anchor> a) {
       anchors.get(s).put(recipejar.StringProcessor.underscoreSpaces(key), a);
    }
 
