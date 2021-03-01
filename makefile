@@ -9,24 +9,25 @@
 #
 
 
-COMPILER=javac -d build
+SOURCEPATH=src
+COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
 all: libPackage filetypes recipePackage frame
 
-libPackage: recipejar/lib/*.java
-	$(COMPILER) recipejar/lib/*.java
+libPackage: $(SOURCEPATH)/recipejar/lib/*.java
+	$(COMPILER) $(SOURCEPATH)/recipejar/lib/*.java
 
 #Depends on recipePackage
-recipePackage: recipejar/recipe/*.java
-	$(COMPILER) recipejar/recipe/Unit.java recipejar/recipe/*.java
+recipePackage: $(SOURCEPATH)/recipejar/recipe/*.java
+	$(COMPILER) $(SOURCEPATH)/recipejar/recipe/Unit.java $(SOURCEPATH)/recipejar/recipe/*.java
 
-filetypes: recipejar/filetypes/*.java
-	$(COMPILER) recipejar/filetypes/*.java
+filetypes: $(SOURCEPATH)/recipejar/filetypes/*.java
+	$(COMPILER) $(SOURCEPATH)/recipejar/filetypes/*.java
 
-editorpanel: recipejar/EditorPanel.java
-	$(COMPILER) recipejar/EditorPanel.java
+editorpanel: $(SOURCEPATH)/recipejar/EditorPanel.java
+	$(COMPILER) $(SOURCEPATH)/recipejar/EditorPanel.java
 
-frame: recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java recipejar/EditorPanel.java
-	$(COMPILER) recipejar/testFrame.java recipejar/AlphaTab.java recipejar/rjTextPane.java recipejar/EditorPanel.java
+frame: $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
+	$(COMPILER) $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
 
 .PHONY: clean
 
