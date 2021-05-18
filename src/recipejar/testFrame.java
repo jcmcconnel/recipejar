@@ -35,22 +35,29 @@ public class testFrame extends JFrame {
         splitPane.setOneTouchExpandable(true);
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
-        menuBar = new JMenuBar();
-
-        JMenu fileMenu = new JMenu("File");
-
-        AbstractAction action = new AbstractAction("Edit"){
+        kernel.programActions.put("toggle-edit-mode", new AbstractAction("Edit"){
            public void actionPerformed(ActionEvent e){
               if(splitPane.getRightComponent().equals(ePanel)){
                  splitPane.setRightComponent(readerPane);
+                 this.putValue(AbstractAction.NAME, "Edit");
               } else {
                  splitPane.setRightComponent(ePanel);
+                 this.putValue(AbstractAction.NAME, "Close");
               }
            }
-        };
-        fileMenu.add(action);
-        menuBar.add(fileMenu);
-        this.setJMenuBar(menuBar);
+        });
+        kernel.programActions.put("exit-program", new AbstractAction("Exit"){
+           public void actionPerformed(ActionEvent e){
+              System.exit(0);
+           }
+        });
+        this.addWindowListener(new WindowAdapter(){
+           public void windowClosed(WindowEvent e){
+              kernel.programActions.get("exit-program").actionPerformed(new ActionEvent(e.getWindow(), ActionEvent.ACTION_PERFORMED, "Exit"));
+           }
+        });
+
+        this.setJMenuBar(kernel.getJMenuBar());
         pack();
     }
 

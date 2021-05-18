@@ -2,7 +2,6 @@
 #
 # To Do list
 # ----------
-#  Add Menu bar
 #  Turn IndexFile into a singleton.
 #  Remove RecipeFile from direct interaction with text components.
 	#  Components -> Recipe -> RecipeFile
@@ -28,6 +27,9 @@ editorpanel: $(SOURCEPATH)/recipejar/EditorPanel.java
 
 frame: $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
 	$(COMPILER) $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
+
+kernel: $(SOURCEPATH)/recipejar/kernel.java 
+	$(COMPILER) $(SOURCEPATH)/recipejar/kernel.java 
 
 .PHONY: clean
 

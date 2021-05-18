@@ -23,11 +23,6 @@ import recipejar.recipe.Recipe;
 
 import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
-//
-////TODO: Remove these imports and have something else listen on the panel.
-//import recipejar.manager.actions.ApplicationEvent;
-//import recipejar.manager.action.ApplicationEventSource;
-//import recipejar.manager.action.Event_Type;
 
 /**
  *
@@ -37,11 +32,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
    Recipe recipeModel;
-    // private ApplicationEventSource aes = new ApplicationEventSource();
-
-    // public ApplicationEventSource getApplicationEventSource() {
-    //    return aes;
-    // }
 
 
    /**
@@ -152,37 +142,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /***************Getters and Setters**********************/
 
-   /**
-    *
-    * @return
-    *
-   public boolean setOpen(RecipeFile recipeFile) {
-      if (recipeFile == null) {
-         return startNew();
-      }
-      if (!recipeChanged || //Recipe was not edited, so no reason to ask to save.
-              (recipeChanged && JOptionPane.showConfirmDialog(this.getParent(),//Does user want to save?
-              "You have unsaved changes.\nIf you choose \"Yes\" they will be discarded.\n"
-              + "Are you sure you want to leave this recipe?", "Are You Sure?",
-              JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)) {
-         stopListening();
-         //open = recipeFile;
-         //titleField.setText(getOpen().getTitle());
-         titleField.setEditable(true);
-         //labelField.setText(open.getMetaData("labels"));
-         //notesField.setText(rjUtil.convertToASCIILinebreaks(getOpen().getNotes()));
-         notesField.setEditable(true);
-         //procedureField.setText(rjUtil.convertToASCIILinebreaks(getOpen().getProcedure()));
-         procedureField.setEditable(true);
-         saveButton.setEnabled(true);
-         this.fireEditorChangedUpdate(EditEvent.OPEN);
-         recipeChanged = false;
-         startListening();
-         return true;
-      } else {
-         return false;
-      }
-   }*/
 
    public JTextArea getNotesField() {
       return notesField;
@@ -411,6 +370,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       cancelButton.setPreferredSize(new java.awt.Dimension(90, 29));
       cancelButton.addActionListener(new java.awt.event.ActionListener() {
          public void actionPerformed(java.awt.event.ActionEvent evt) {
+            kernel.programActions.get("toggle-edit-mode").actionPerformed(evt);
             fireCancelEvent(evt);
          }
       });
