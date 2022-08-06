@@ -9,27 +9,34 @@
 
 
 SOURCEPATH=src
-COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
-all: libPackage filetypes recipePackage frame
+COMPILER=javac -Xlint:deprecation -sourcepath $(SOURCEPATH) -classpath build -d build
 
-libPackage: $(SOURCEPATH)/recipejar/lib/*.java
-	$(COMPILER) $(SOURCEPATH)/recipejar/lib/*.java
+all: 
+	$(COMPILER) @source_files 
+	jar cfm RecipeJar.jar manifest -C build/recipejar/*.class
+#all: libPackage filetypes recipePackage frame
 
-#Depends on recipePackage
-recipePackage: $(SOURCEPATH)/recipejar/recipe/*.java
-	$(COMPILER) $(SOURCEPATH)/recipejar/recipe/Unit.java $(SOURCEPATH)/recipejar/recipe/*.java
+#libPackage: $(SOURCEPATH)/recipejar/lib/*.java
+#	$(COMPILER) $(SOURCEPATH)/recipejar/lib/*.java
+#
+##Depends on recipePackage
+#recipePackage: $(SOURCEPATH)/recipejar/recipe/*.java
+#	$(COMPILER) $(SOURCEPATH)/recipejar/recipe/Unit.java $(SOURCEPATH)/recipejar/recipe/*.java
+#
+#filetypes: $(SOURCEPATH)/recipejar/filetypes/*.java
+#	$(COMPILER) $(SOURCEPATH)/recipejar/filetypes/*.java
+#
+#editorpanel: $(SOURCEPATH)/recipejar/EditorPanel.java
+#	$(COMPILER) $(SOURCEPATH)/recipejar/EditorPanel.java
+#
+#frame: $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
+#	$(COMPILER) $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
+#
+#kernel: $(SOURCEPATH)/recipejar/kernel.java 
+#	$(COMPILER) $(SOURCEPATH)/recipejar/kernel.java 
+#
 
-filetypes: $(SOURCEPATH)/recipejar/filetypes/*.java
-	$(COMPILER) $(SOURCEPATH)/recipejar/filetypes/*.java
 
-editorpanel: $(SOURCEPATH)/recipejar/EditorPanel.java
-	$(COMPILER) $(SOURCEPATH)/recipejar/EditorPanel.java
-
-frame: $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
-	$(COMPILER) $(SOURCEPATH)/recipejar/testFrame.java $(SOURCEPATH)/recipejar/AlphaTab.java $(SOURCEPATH)/recipejar/rjTextPane.java $(SOURCEPATH)/recipejar/EditorPanel.java
-
-kernel: $(SOURCEPATH)/recipejar/kernel.java 
-	$(COMPILER) $(SOURCEPATH)/recipejar/kernel.java 
 
 .PHONY: clean
 
