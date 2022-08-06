@@ -13,7 +13,7 @@ COMPILER=javac -Xlint:deprecation -sourcepath $(SOURCEPATH) -classpath build -d 
 
 all: 
 	$(COMPILER) @source_files 
-	jar cfm RecipeJar.jar manifest -C build/recipejar/*.class
+	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 #all: libPackage filetypes recipePackage frame
 
 #libPackage: $(SOURCEPATH)/recipejar/lib/*.java
