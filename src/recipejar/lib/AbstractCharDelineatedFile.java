@@ -25,6 +25,7 @@ public abstract class AbstractCharDelineatedFile extends File {
     */
    private ArrayList<String[]> DataLines;
 
+
    public AbstractCharDelineatedFile(String s, String d) {
       super(s);
       delineator = d;
