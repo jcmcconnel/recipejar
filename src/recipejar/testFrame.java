@@ -21,8 +21,6 @@ public class testFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
         
-        recipejar.recipe.Unit.readUnitsFromFile("/home/james/projects/shiny-fortnight/Test/settings/units.txt");
-        IndexFile.setIndexFileLocation("/home/james/projects/shiny-fortnight/Test/Recipes/");
 
         AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
         
@@ -62,6 +60,14 @@ public class testFrame extends JFrame {
     }
 
     public static void main(String[] argv){
+        String unitsFile = "/home/james/projects/recipejar/Test/settings/units.txt";
+        String indexFile = "/home/james/projects/recipejar/Test/settings/units.txt";
+        if(argv.length > 1){
+        } else {}
+
+        recipejar.recipe.Unit.readUnitsFromFile(unitsFile);
+        IndexFile.setIndexFileLocation("/home/james/projects/recipejar/Test/Recipes/");
+
         testFrame f = new testFrame("test frame");
         f.setVisible(true);
     }

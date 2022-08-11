@@ -4,7 +4,7 @@
 # ----------
 #  Turn IndexFile into a singleton.
 #  Remove RecipeFile from direct interaction with text components.
-	#  Components -> Recipe -> RecipeFile
+#	#  Components -> Recipe -> RecipeFile
 #
 
 
