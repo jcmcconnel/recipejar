@@ -42,4 +42,3 @@ Sticks,Stick,TBSPS(8)
 Tbsps,Tbsp,TSPS(3)|STICKS(0.125)|CUPS(0.0625)|OZ(2)|ML(14.79)
 tsps,tsp,TBSP(0.3333333)|ML(4.93)
 yd,yd,MI(0.000568181818)|FT(3)
-something,some,5|mi

@@ -61,10 +61,7 @@ public class testFrame extends JFrame {
 
     public static void main(String[] argv){
         File configDir = new File("%HOME/.RecipeJar");
-        String unitsFile = "/home/james/projects/recipejar/Test/settings/units.txt";
-        String indexFile = "/home/james/projects/recipejar/Test/Recipes";
         if(argv.length > 1){
-            //for(int i=0; i < argv.length; i++) System.out.println(argv[i]);
             if(argv[0].contains("-d")){
                 configDir = new File(argv[1]);
             }
