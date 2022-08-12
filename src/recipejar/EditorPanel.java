@@ -370,7 +370,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       cancelButton.setPreferredSize(new java.awt.Dimension(90, 29));
       cancelButton.addActionListener(new java.awt.event.ActionListener() {
          public void actionPerformed(java.awt.event.ActionEvent evt) {
-            kernel.programActions.get("toggle-edit-mode").actionPerformed(evt);
+            Kernel.programActions.get("toggle-edit-mode").actionPerformed(evt);
             fireCancelEvent(evt);
          }
       });

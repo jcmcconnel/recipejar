@@ -16,18 +16,26 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.HashMap;
-public class kernel {
+public class Kernel {
 
 
    protected static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
 
-   public static JMenuBar getJMenuBar(){
-        JMenu fileMenu = new JMenu("File");
-        fileMenu.add(kernel.programActions.get("toggle-edit-mode"));
-        fileMenu.add(kernel.programActions.get("exit-program"));
-        menuBar.add(fileMenu);
+    //public static JMenuBar getJMenuBar(){
+    //     JMenu fileMenu = new JMenu("File");
+    //     fileMenu.add(kernel.programActions.get("toggle-edit-mode"));
+    //     fileMenu.add(kernel.programActions.get("exit-program"));
+    //     menuBar.add(fileMenu);
+    //     return menuBar;
+    //}
+
+    public static JMenuBar getJMenuBar(JMenu[] menus){
+        JMenuBar menuBar = new JMenuBar();
+        for(int i=0; i<menus.length; i++){
+            menuBar.add(menus[i]); 
+        }
         return menuBar;
-   }
+    }
 
 }

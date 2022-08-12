@@ -1,5 +1,5 @@
 /*
- * rjTextPane.java
+ * CustomTextPane.java
  *
  * Created on September 20, 2008, 8:30 PM
  */
@@ -23,12 +23,12 @@ import javax.swing.text.html.StyleSheet;
  *
  * @author  James McConnel
  */
-public class rjTextPane extends javax.swing.JPanel implements HyperlinkListener {
+public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListener {
 
    private JPopupMenu popup;
 
    /** Creates new form ViewerPanel */
-   public rjTextPane() {
+   public CustomTextPane() {
       initComponents();
       jTextPane1.setContentType("text/html");
 
@@ -64,7 +64,7 @@ public class rjTextPane extends javax.swing.JPanel implements HyperlinkListener 
       try {
          jTextPane1.setPage("file://" + f.getAbsolutePath()); //.setText(f.toString());
       } catch (IOException ex) {
-         Logger.getLogger(rjTextPane.class.getName()).log(Level.SEVERE, null, ex);
+         Logger.getLogger(CustomTextPane.class.getName()).log(Level.SEVERE, null, ex);
       }
       jTextPane1.setCaretPosition(0);
    }

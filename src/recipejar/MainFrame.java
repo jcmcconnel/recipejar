@@ -7,16 +7,16 @@ import java.io.File;
 
 import recipejar.filetypes.IndexFile;
 
-public class testFrame extends JFrame {
+public class MainFrame extends JFrame {
 
-    public rjTextPane readerPane;
+    public CustomTextPane readerPane;
     public EditorPanel  ePanel;
     public JMenuBar menuBar;
     
     /**
      * Frame initializer.
      */
-    public testFrame(String name){
+    public MainFrame(String name){
         super(name);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
@@ -24,7 +24,7 @@ public class testFrame extends JFrame {
 
         AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
         
-        readerPane = new rjTextPane();
+        readerPane = new CustomTextPane();
         ePanel = new EditorPanel();
         tabbedPane.addHyperlinkListener(readerPane);
         tabbedPane.addHyperlinkListener(ePanel);
@@ -33,7 +33,10 @@ public class testFrame extends JFrame {
         splitPane.setOneTouchExpandable(true);
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
-        kernel.programActions.put("toggle-edit-mode", new AbstractAction("Edit"){
+        /*** Action Definitions ***/
+        JMenu fileMenu = new JMenu("File");
+        // Edit Mode
+        Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Edit"){
            public void actionPerformed(ActionEvent e){
               if(splitPane.getRightComponent().equals(ePanel)){
                  splitPane.setRightComponent(readerPane);
@@ -44,18 +47,27 @@ public class testFrame extends JFrame {
               }
            }
         });
-        kernel.programActions.put("exit-program", new AbstractAction("Exit"){
+        fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
+
+        // Exit 
+        Kernel.programActions.put("exit-program", new AbstractAction("Exit"){
            public void actionPerformed(ActionEvent e){
               System.exit(0);
            }
         });
+        fileMenu.add(Kernel.programActions.get("exit-program"));
+        /*** End Menubar ***/
+
+        // Close window button
         this.addWindowListener(new WindowAdapter(){
            public void windowClosed(WindowEvent e){
-              kernel.programActions.get("exit-program").actionPerformed(new ActionEvent(e.getWindow(), ActionEvent.ACTION_PERFORMED, "Exit"));
+              Kernel.programActions.get("exit-program").actionPerformed(new ActionEvent(e.getWindow(), ActionEvent.ACTION_PERFORMED, "Exit"));
            }
         });
 
-        this.setJMenuBar(kernel.getJMenuBar());
+        JMenu[] menus = new JMenu[1];
+        menus[0] = fileMenu;
+        this.setJMenuBar(Kernel.getJMenuBar(menus));
         pack();
     }
 
@@ -70,7 +82,7 @@ public class testFrame extends JFrame {
         recipejar.recipe.Unit.readUnitsFromFile(configDir.getAbsolutePath()+"/settings/units.txt");
         IndexFile.setIndexFileLocation(configDir.getAbsolutePath()+"/Recipes/");
 
-        testFrame f = new testFrame("test frame");
+        MainFrame f = new MainFrame("test frame");
         f.setVisible(true);
     }
 }
