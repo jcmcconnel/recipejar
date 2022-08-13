@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import recipejar.filetypes.IndexFile;
 
@@ -33,6 +34,8 @@ public class MainFrame extends JFrame {
         splitPane.setOneTouchExpandable(true);
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
+        UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
+
         /*** Action Definitions ***/
         JMenu fileMenu = new JMenu("File");
         // Edit Mode
@@ -56,6 +59,13 @@ public class MainFrame extends JFrame {
            }
         });
         fileMenu.add(Kernel.programActions.get("exit-program"));
+
+        JMenu toolsMenu = new JMenu("Tools");
+        Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter"){
+                public void actionPerformed(ActionEvent e){
+                    converterDialog.setVisible(!converterDialog.isVisible());
+                }});
+        toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
         /*** End Menubar ***/
 
         // Close window button
@@ -65,8 +75,9 @@ public class MainFrame extends JFrame {
            }
         });
 
-        JMenu[] menus = new JMenu[1];
+        JMenu[] menus = new JMenu[2];
         menus[0] = fileMenu;
+        menus[1] = toolsMenu;
         this.setJMenuBar(Kernel.getJMenuBar(menus));
         pack();
     }
@@ -79,7 +90,13 @@ public class MainFrame extends JFrame {
             }
         } 
 
-        recipejar.recipe.Unit.readUnitsFromFile(configDir.getAbsolutePath()+"/settings/units.txt");
+        try {
+			recipejar.recipe.Unit.readUnitsFromFile(configDir.getAbsolutePath()+"/settings/units.txt");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
         IndexFile.setIndexFileLocation(configDir.getAbsolutePath()+"/Recipes/");
 
         MainFrame f = new MainFrame("test frame");

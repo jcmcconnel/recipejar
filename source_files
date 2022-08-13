@@ -15,6 +15,7 @@ src/recipejar/filetypes/IndexFile.java
 src/recipejar/filetypes/RecipeFile.java
 
 src/recipejar/EditorPanel.java
+src/recipejar/UnitConverterDialog.java
 src/recipejar/MainFrame.java 
 src/recipejar/AlphaTab.java 
 src/recipejar/CustomTextPane.java 

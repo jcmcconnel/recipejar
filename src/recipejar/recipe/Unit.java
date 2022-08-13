@@ -164,6 +164,11 @@ public class Unit implements Comparable<Unit> {
    public int getConversionUnitCount() {
       return this.conversionUnits.size();
    }
+   
+   public boolean hasConversionUnits() {
+	   if(this.conversionUnits == null) return false;
+	   return true;
+   }
 
    public Set<String> getConversionUnitKeySet() {
       return this.conversionUnits.keySet();
@@ -186,7 +191,7 @@ public class Unit implements Comparable<Unit> {
    /**
     *
     */
-   public static void readUnitsFromFile(String s){
+   public static void readUnitsFromFile(String s) throws FileNotFoundException{
       diskFile = new AbstractCharDelineatedFile(s,","){
          @Override
          public void save() {
@@ -229,11 +234,7 @@ public class Unit implements Comparable<Unit> {
 
       Units = new ArrayList<Unit>();
       Reader in = null;
-      try {
          in = new FileReader(diskFile);
-      } catch (FileNotFoundException ex) {
-         in = new StringReader("Cups,Cup\nTbsp,Tbsps\ntsp,tsps\ncount\n");
-      }
       try {
          int c = in.read();
          while (c != -1) {
@@ -294,6 +295,13 @@ public class Unit implements Comparable<Unit> {
       return null;
    }
 
+    public static String[] getConvertableUnitLabels(){
+        String[] output = new String[Units.size()];
+        for(int i=0; i<Units.size(); i++){
+            output[i] = Units.get(i).toString();
+        }
+        return output;
+    }
    public static int getUnitCount() {
       return Units.size();
    }
@@ -404,6 +412,12 @@ public class Unit implements Comparable<Unit> {
       }
    }
 
+   /**
+    * 
+    * @param qty
+    * @param factor
+    * @return
+    */
    public static String convert(String qty, String factor) {
       if (qty.contains(".")) {
          return convert(qty, factor, false);
@@ -411,6 +425,13 @@ public class Unit implements Comparable<Unit> {
          return convert(qty, factor, true);
       }
    }
+   /**
+    * 
+    * @param qty
+    * @param from
+    * @param to
+    * @return
+    */
    public static String convert(String qty, Unit from, Unit to) {
      String factor = from.getConversionFactor(to); 
      if(factor != null){
