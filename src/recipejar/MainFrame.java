@@ -5,6 +5,7 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 
 import recipejar.filetypes.IndexFile;
 
@@ -37,13 +38,15 @@ public class MainFrame extends JFrame {
         UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
 
         /*** Action Definitions ***/
+        ArrayList<JMenu> menus = new ArrayList<JMenu>();
+
         JMenu fileMenu = new JMenu("File");
         // Edit Mode
-        Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Edit"){
+        Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Open"){
            public void actionPerformed(ActionEvent e){
               if(splitPane.getRightComponent().equals(ePanel)){
                  splitPane.setRightComponent(readerPane);
-                 this.putValue(AbstractAction.NAME, "Edit");
+                 this.putValue(AbstractAction.NAME, "Open");
               } else {
                  splitPane.setRightComponent(ePanel);
                  this.putValue(AbstractAction.NAME, "Close");
@@ -51,6 +54,7 @@ public class MainFrame extends JFrame {
            }
         });
         fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
+        menus.add(fileMenu);
 
         // Exit 
         Kernel.programActions.put("exit-program", new AbstractAction("Exit"){
@@ -66,6 +70,14 @@ public class MainFrame extends JFrame {
                     converterDialog.setVisible(!converterDialog.isVisible());
                 }});
         toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
+        menus.add(toolsMenu);
+
+        JMenu helpMenu = new JMenu("Help");
+        Kernel.programActions.put("about-dialog", new AbstractAction("About"){
+           public void actionPerformed(ActionEvent e){
+           }});
+        helpMenu.add(Kernel.programActions.get("about-dialog"));
+        menus.add(helpMenu);
         /*** End Menubar ***/
 
         // Close window button
@@ -75,10 +87,9 @@ public class MainFrame extends JFrame {
            }
         });
 
-        JMenu[] menus = new JMenu[2];
-        menus[0] = fileMenu;
-        menus[1] = toolsMenu;
-        this.setJMenuBar(Kernel.getJMenuBar(menus));
+        JMenu[] menuArray = new JMenu[menus.size()];
+        menuArray = menus.toArray(menuArray);
+        this.setJMenuBar(Kernel.getJMenuBar(menuArray));
         pack();
     }
 

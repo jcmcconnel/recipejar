@@ -25,3 +25,6 @@ clean:
 
 test:
 	cd build && java recipejar.mainFrame
+
+test-jar:
+	java -jar RecipeJar.jar -d Test
