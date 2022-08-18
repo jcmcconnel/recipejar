@@ -35,7 +35,7 @@ public class UnitConverterDialog extends javax.swing.JDialog {
 		if (toComboBoxModels.containsKey(u)) {
 			return toComboBoxModels.get(u);
 		} else {
-			
+
 			if (Unit.getUnit(u).hasConversionUnits()) {
 				DefaultComboBoxModel m = new DefaultComboBoxModel(Unit.getUnit(u).getConversionUnitKeySet().toArray());
 				toComboBoxModels.put(u, m);
