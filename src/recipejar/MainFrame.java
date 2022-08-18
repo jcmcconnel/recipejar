@@ -1,3 +1,7 @@
+/*********************************
+ * Main frame for the Recipe Jar *
+ * James McConnel
+ */
 package recipejar;
 
 import java.awt.*;
@@ -20,10 +24,13 @@ public class MainFrame extends JFrame {
      */
     public MainFrame(String name){
         super(name);
+
+        // Frame configuration
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
         
 
+        //Component initialization
         AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
         
         readerPane = new CustomTextPane();
@@ -35,6 +42,7 @@ public class MainFrame extends JFrame {
         splitPane.setOneTouchExpandable(true);
         this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
+        
         UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
 
         /*** Action Definitions ***/
@@ -75,6 +83,7 @@ public class MainFrame extends JFrame {
         JMenu helpMenu = new JMenu("Help");
         Kernel.programActions.put("about-dialog", new AbstractAction("About"){
            public void actionPerformed(ActionEvent e){
+               JOptionPane.showMessageDialog(helpMenu, "Welcome to RecipeJar!");
            }});
         helpMenu.add(Kernel.programActions.get("about-dialog"));
         menus.add(helpMenu);
@@ -93,6 +102,7 @@ public class MainFrame extends JFrame {
         pack();
     }
 
+    /********** Main ***********/
     public static void main(String[] argv){
         File configDir = new File("%HOME/.RecipeJar");
         if(argv.length > 1){
