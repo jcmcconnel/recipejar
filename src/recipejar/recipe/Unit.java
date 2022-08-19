@@ -78,7 +78,7 @@ public class Unit implements Comparable<Unit> {
             int endKey = convUnts[i].lastIndexOf("(");
             String key = convUnts[i].substring(0, endKey);
             String factor = convUnts[i].substring(endKey + 1, convUnts[i].length() - 1);
-            conversionUnits.put(key.toUpperCase(), factor);
+            conversionUnits.put(key, factor);
          }
       }
    }
@@ -146,8 +146,8 @@ public class Unit implements Comparable<Unit> {
    }
 
    public String getConversionFactor(Unit u){
-      String factor = conversionUnits.get(u.getPlural().toUpperCase());
-      if(factor == null) factor = conversionUnits.get(u.getSingular().toUpperCase());
+      String factor = conversionUnits.get(u.getPlural());
+      if(factor == null) factor = conversionUnits.get(u.getSingular());
       return factor;
    }
 
@@ -156,8 +156,8 @@ public class Unit implements Comparable<Unit> {
     * @return A String giving the formula for conversion.
     */
    public String getConversionFactor(String s) {
-      String factor = conversionUnits.get(getUnit(s).getPlural().toUpperCase());
-      if(factor == null) factor = conversionUnits.get(getUnit(s).getSingular().toUpperCase());
+      String factor = conversionUnits.get(getUnit(s).getPlural());
+      if(factor == null) factor = conversionUnits.get(getUnit(s).getSingular());
       return factor;
    }
 

@@ -9,7 +9,7 @@
 
 
 SOURCEPATH=src
-COMPILER=javac -Xlint:deprecation -sourcepath $(SOURCEPATH) -classpath build -d build
+COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
 
 all: 
 	$(COMPILER) @source_files 
