@@ -62,6 +62,16 @@ public class MainFrame extends JFrame {
 		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
 		menus.add(fileMenu);
 
+      // New 
+		Kernel.programActions.put("new", new AbstractAction("New") {
+			public void actionPerformed(ActionEvent e) {
+            Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
+            ePanel.
+			}
+		});
+		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
+		menus.add(fileMenu);
+
 		// Exit
 		Kernel.programActions.put("exit-program", new AbstractAction("Exit") {
 			public void actionPerformed(ActionEvent e) {
@@ -105,23 +115,23 @@ public class MainFrame extends JFrame {
 
 	/********** Main ***********/
 	public static void main(String[] argv) {
-		File configDir = new File("%HOME/.RecipeJar");
+		Kernel.configDir = new File("%HOME/.RecipeJar");
 		if (argv.length > 1) {
 			if (argv[0].contains("-d")) {
-				configDir = new File(argv[1]);
+				Kernel.configDir = new File(argv[1]);
 			}
 		}
 
 		try {
-			recipejar.recipe.Unit.readUnitsFromFile(configDir.getAbsolutePath() + "/settings/units.txt");
+			recipejar.recipe.Unit.readUnitsFromFile(Kernel.configDir.getAbsolutePath() + "/settings/units.txt");
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return;
 		}
-		IndexFile.setIndexFileLocation(configDir.getAbsolutePath() + "/Recipes/");
+		IndexFile.setIndexFileLocation(Kernel.configDir.getAbsolutePath() + "/Recipes/");
+      RecipeFile.recipeTemplate = new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html");
 
-		MainFrame f = new MainFrame("test frame");
+		MainFrame f = new MainFrame("RecipeJar");
 		f.setVisible(true);
 	}
 }

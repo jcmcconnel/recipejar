@@ -21,14 +21,8 @@ public class Kernel {
 
    protected static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
+   protected static File configDir;
 
-    //public static JMenuBar getJMenuBar(){
-    //     JMenu fileMenu = new JMenu("File");
-    //     fileMenu.add(kernel.programActions.get("toggle-edit-mode"));
-    //     fileMenu.add(kernel.programActions.get("exit-program"));
-    //     menuBar.add(fileMenu);
-    //     return menuBar;
-    //}
 
     public static JMenuBar getJMenuBar(JMenu[] menus){
         JMenuBar menuBar = new JMenuBar();

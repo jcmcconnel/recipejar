@@ -29,6 +29,7 @@ import recipejar.recipe.Ingredient;
  */
 public class RecipeFile extends AbstractXHTMLBasedFile {
 
+   protected static RecipeFile recipeTemplate;
     ///////////////////////////////////
     //////Non-static members///////////
     ///////////////////////////////////
@@ -351,15 +352,6 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     }
 
     /////////////Ingredient Methods////////////
-    public void swapIngredients(int a, int b) {
-        if ((a >= 0 && a < ingredients.size()) && (b >= 0 && b < ingredients.size())) {
-            Ingredient ia = ingredients.get(a);
-            Ingredient ib = ingredients.get(b);
-
-            ingredients.set(b, ia);
-            ingredients.set(a, ib);
-        }
-    }
 
     /**
      *

@@ -39,6 +39,7 @@ public class IngredientTableModel extends AbstractTableModel {
 
    @Override
    public int getRowCount() {
+      // The plus one is to allow for adding an ingredient.
       return recipe.getNumberOfIngredients() + 1;
    }
 

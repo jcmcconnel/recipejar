@@ -1,5 +1,5 @@
 /*
- * RecipeFile.java
+ * Recipe.java
  *
  * Created on October 18, 2007, 2:55 PM
  *
