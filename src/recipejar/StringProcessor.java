@@ -18,38 +18,6 @@ import javax.swing.KeyStroke;
  */
 public class StringProcessor {
 
-   /*
-    * TODO
-    * Consider options for these first two funtions, they are not string related.
-    */
-
-   /**
-    *
-    * @param k
-    * @return
-    */
-   public static boolean isAllowableAccelerator(KeyStroke k) {
-      if (isOS("mac os x")) {
-         if (k.getModifiers() == KeyEvent.META_DOWN_MASK) {
-            if (k.getKeyCode() == KeyEvent.VK_H || k.getKeyCode() == KeyEvent.VK_COMMA
-                    || k.getKeyCode() == KeyEvent.VK_Q) {
-               return false;
-            }
-         } else if (k.getModifiers() == (KeyEvent.META_DOWN_MASK + KeyEvent.ALT_DOWN_MASK)) {
-            if (k.getKeyCode() == KeyEvent.VK_H) {
-               return false;
-            }
-         }
-      } else {
-         return true;
-      }
-      return true;
-   }
-
-   public static boolean isOS(String s) {
-      return (System.getProperty("os.name").toLowerCase().indexOf(s) != -1);
-   }
-
    public static String underscoreSpaces(String cat) {
       StringWriter s = new StringWriter();
       for (int i = 0; i < cat.length(); i++) {

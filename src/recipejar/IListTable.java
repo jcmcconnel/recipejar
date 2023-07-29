@@ -70,7 +70,7 @@ public class IListTable extends JTable {
       nameCol.setPreferredWidth(260);
       nameCol.setCellEditor(new DefaultCellEditor(textEditor));
 
-      if (!recipejar.StringProcessor.isOS("mac")) {
+      if (!recipejar.Kernel.isOS("mac")) {
          this.setShowGrid(true);
          this.setGridColor(Color.BLACK);
       }
@@ -85,7 +85,7 @@ public class IListTable extends JTable {
     */
    @Override
    public javax.swing.table.TableCellRenderer getCellRenderer(int row, int column) {
-      if (recipejar.StringProcessor.isOS("mac")) {
+      if (recipejar.Kernel.isOS("mac")) {
          if (coloredRenderer == null) {
             coloredRenderer = new javax.swing.table.DefaultTableCellRenderer();
             coloredRenderer.setBackground(new Color(241, 245, 250));

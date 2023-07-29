@@ -29,7 +29,11 @@ import recipejar.recipe.Ingredient;
  */
 public class RecipeFile extends AbstractXHTMLBasedFile {
 
-   protected static RecipeFile recipeTemplate;
+    protected static RecipeFile recipeTemplate;
+    public static RecipeFile setTemplate(RecipeFile r) {
+       recipeTemplate = r;
+    }
+    public static RecipeFile getTemplate() { return recipeTemplate; }
     ///////////////////////////////////
     //////Non-static members///////////
     ///////////////////////////////////

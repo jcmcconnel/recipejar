@@ -18,13 +18,13 @@ all:
 
 
 .PHONY: clean
-
 clean:
 	rm -r build
 
-
+.PHONY: test
 test:
-	cd build && java recipejar.mainFrame
+	cd build && java recipejar.MainFrame -d ../Test
 
+.PHONY: test-jar
 test-jar:
 	java -jar RecipeJar.jar -d Test

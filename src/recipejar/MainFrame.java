@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
-import recipejar.filetypes.IndexFile;
+import recipejar.filetypes.*;
 
 public class MainFrame extends JFrame {
 
@@ -66,7 +66,6 @@ public class MainFrame extends JFrame {
 		Kernel.programActions.put("new", new AbstractAction("New") {
 			public void actionPerformed(ActionEvent e) {
             Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
-            ePanel.
 			}
 		});
 		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
@@ -81,6 +80,11 @@ public class MainFrame extends JFrame {
 		fileMenu.add(Kernel.programActions.get("exit-program"));
 
 		JMenu toolsMenu = new JMenu("Tools");
+      Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
+         public void actionPerformed(ActionEvent e) {
+
+         }
+      });
 		Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
 			public void actionPerformed(ActionEvent e) {
 				converterDialog.setVisible(!converterDialog.isVisible());
@@ -129,7 +133,7 @@ public class MainFrame extends JFrame {
 			return;
 		}
 		IndexFile.setIndexFileLocation(Kernel.configDir.getAbsolutePath() + "/Recipes/");
-      RecipeFile.recipeTemplate = new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html");
+      RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html"));
 
 		MainFrame f = new MainFrame("RecipeJar");
 		f.setVisible(true);
