@@ -95,6 +95,7 @@ public enum ProgramVariables {
                   c = in.read();
                }
             } catch (IOException ex) {
+            } catch (NullPointerException e) {
             }
          }
 

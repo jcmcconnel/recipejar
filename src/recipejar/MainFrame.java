@@ -45,7 +45,7 @@ public class MainFrame extends JFrame {
 
 		UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
 
-		/*** Action Definitions ***/
+		/** Action Definitions **/
 		ArrayList<JMenu> menus = new ArrayList<JMenu>();
 
 		JMenu fileMenu = new JMenu("File");
@@ -90,6 +90,7 @@ public class MainFrame extends JFrame {
             prefDialog.setVisible(true);
          }
       });
+      toolsMenu.add(Kernel.programActions.get("preferences-dialog"));
 		Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
 			public void actionPerformed(ActionEvent e) {
 				converterDialog.setVisible(!converterDialog.isVisible());
@@ -139,7 +140,7 @@ public class MainFrame extends JFrame {
 		}
 		IndexFile.setIndexFileLocation(Kernel.configDir.getAbsolutePath() + "/Recipes/");
       try {
-         RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html"));
+         RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "/settings/template.html"));
       } catch (IOException e) {
       } catch (NullPointerException e) {
       }

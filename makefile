@@ -2,7 +2,7 @@
 #
 # To Do list
 # ----------
-#  Turn IndexFile into a singleton.
+#  Turn IndexFile into a singleton (?)
 #  Remove RecipeFile from direct interaction with text components.
 #	#  Components -> Recipe -> RecipeFile
 #
@@ -13,6 +13,7 @@ COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
 
 all: 
 	$(COMPILER) @source_files 
+	cp src/*.* build
 	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 
 
