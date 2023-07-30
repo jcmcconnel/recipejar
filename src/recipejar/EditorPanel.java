@@ -33,6 +33,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
    Recipe recipeModel;
+   Boolean recipeChanged;
 
 
    /**
@@ -184,6 +185,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          return true; //!open.getTitle().equals(titleField.getText());
       }
    }
+   */
 
    public boolean isRecipeChanged() {
       return recipeChanged;

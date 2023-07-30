@@ -32,6 +32,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     protected static RecipeFile recipeTemplate;
     public static RecipeFile setTemplate(RecipeFile r) {
        recipeTemplate = r;
+       return recipeTemplate;
     }
     public static RecipeFile getTemplate() { return recipeTemplate; }
     ///////////////////////////////////

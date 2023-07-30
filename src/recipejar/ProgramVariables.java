@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package recipejar.data;
+package recipejar;
 
 import java.io.EOFException;
 import java.io.File;
@@ -13,12 +13,13 @@ import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import javax.swing.JOptionPane;
 import recipejar.StringProcessor;
+import recipejar.Kernel;
 
 /**
  * Beta
  * @author James McConnel
  */
-public enum StateOptions {
+public enum ProgramVariables {
 
    //Program state
    CURRENT_MODE("state/mode"),
@@ -64,17 +65,17 @@ public enum StateOptions {
    //Other
    HELP_URL("files/help_url");
 
-    public static void unpackToRegistry() {
-        for(int i=0; i<StateOptions.values().length; i++){
-            StateOptions.values()[i].set(StateOptions.getDefault(StateOptions.values()[i]));
-        }
-    }
+   public static void unpackToRegistry() {
+       for(int i=0; i<ProgramVariables.values().length; i++){
+           ProgramVariables.values()[i].set(ProgramVariables.getDefault(ProgramVariables.values()[i]));
+       }
+   }
    private String key;
    private static String defaultPrefs;
    public static final String CONFIG_SRC = "config.ini";
    private final static String PROGRAM_NODE = "recipejar";
 
-   private StateOptions(String s) {
+   private ProgramVariables(String s) {
       key = s;
    }
 
@@ -82,7 +83,7 @@ public enum StateOptions {
     * 
     * Uses the config.ini file packed in the jar file to provide default values
     */
-   private static String getDefault(StateOptions k) {
+   private static String getDefault(ProgramVariables k) {
       try {
          if (defaultPrefs == null) {
             try {
@@ -112,7 +113,7 @@ public enum StateOptions {
    }
    
    public static String buildAbsoluteFileNameFrom(String s) {
-      return DIR_DB.toString() + removeBadChars(s.trim()) + ".html";
+      return DIR_DB.toString() + StringProcessor.removeBadChars(s.trim()) + ".html";
    }
 
     /**
@@ -131,7 +132,7 @@ public enum StateOptions {
        //The call to Matcher forces the system to treat the escape char as a literal.
       String t = s.replaceAll("/", Matcher.quoteReplacement(File.separator));
       t = t.replaceAll(Matcher.quoteReplacement("\\"), Matcher.quoteReplacement(File.separator));
-      if(isOS("mac")){
+      if(Kernel.isOS("mac")){
           t = t.replaceAll(":", File.separator); 
       }
       return t;
@@ -143,9 +144,9 @@ public enum StateOptions {
 
       switch (this) {
          case LAF:
-            return Preferences.userRoot().node(PROGRAM_NODE).get(key, LAFType.SYSTEM.toString());
+            return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.LAFType.SYSTEM.toString());
          case CURRENT_MODE:
-            return Preferences.userRoot().node(PROGRAM_NODE).get(key, UIMode.INITIAL_STATE.name());
+            return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.UIMode.INITIAL_STATE.name());
          case TAB:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, getDefault(this));
 
@@ -208,7 +209,7 @@ public enum StateOptions {
       Preferences.userRoot().node(PROGRAM_NODE).put(key, s);
    }
 
-   public void set(LAFType l) {
+   public void set(recipejar.lib.LAFType l) {
       if (this.equals(LAF)) {
          set(l.toString());
       }
@@ -222,11 +223,11 @@ public enum StateOptions {
     * @return The path to the program files
     */
    public static String getDefaultWorkingPath() {
-      if (isOS("mac os x")) {
+      if (Kernel.isOS("mac os x")) {
          return (System.getProperty("user.home") + "/Library/Application Support/RecipeJar/");
-      } else if (isOS("windows")) {
+      } else if (Kernel.isOS("windows")) {
          return (System.getProperty("user.home") + "\\.RecipeJar\\");
-      } else {    // if (isOS("linux")) {
+      } else {    // if (Kernel.isOS("linux")) {
          return (System.getProperty("user.home") + "/.RecipeJar/");
       }
    }

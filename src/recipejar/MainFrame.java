@@ -9,6 +9,7 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import recipejar.filetypes.*;
@@ -17,7 +18,7 @@ public class MainFrame extends JFrame {
 
 	public CustomTextPane readerPane;
 	public EditorPanel ePanel;
-	public JMenuBar menuBar;
+   public recipejar.PreferencesDialog prefDialog;
 
 	/**
 	 * Frame initializer.
@@ -25,6 +26,7 @@ public class MainFrame extends JFrame {
 	public MainFrame(String name) {
 		super(name);
 
+      JFrame topLevelFrame = this;
 		// Frame configuration
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setLocationRelativeTo(null);
@@ -82,7 +84,10 @@ public class MainFrame extends JFrame {
 		JMenu toolsMenu = new JMenu("Tools");
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {
-
+            if(prefDialog == null) {
+               prefDialog = new recipejar.PreferencesDialog(topLevelFrame, true);
+            }
+            prefDialog.setVisible(true);
          }
       });
 		Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
@@ -133,7 +138,11 @@ public class MainFrame extends JFrame {
 			return;
 		}
 		IndexFile.setIndexFileLocation(Kernel.configDir.getAbsolutePath() + "/Recipes/");
-      RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html"));
+      try {
+         RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "settings/template.html"));
+      } catch (IOException e) {
+      } catch (NullPointerException e) {
+      }
 
 		MainFrame f = new MainFrame("RecipeJar");
 		f.setVisible(true);
