@@ -16,7 +16,10 @@ all:
 	cp src/*.* build
 	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 
-
+mainframe: 
+	$(COMPILER) src/recipejar/MainFrame.java
+	cp src/*.* build
+	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 
 .PHONY: clean
 clean:

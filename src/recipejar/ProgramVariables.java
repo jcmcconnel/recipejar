@@ -94,8 +94,10 @@ public enum ProgramVariables {
                   defaultPrefs = defaultPrefs + (char) c;
                   c = in.read();
                }
-            } catch (IOException ex) {
+            } catch (IOException e) {
+               JOptionPane.showMessageDialog(null, "Error: config.ini, "+e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
             } catch (NullPointerException e) {
+               JOptionPane.showMessageDialog(null, "Error: config.ini, "+e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
             }
          }
 

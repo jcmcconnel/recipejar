@@ -131,16 +131,20 @@ public class MainFrame extends JFrame {
 				Kernel.configDir = new File(argv[1]);
 			}
 		}
+      System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
+      ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
+      System.out.println(ProgramVariables.DIR_DB.toString());
+      System.out.println(ProgramVariables.FILE_INDEX.toString());
 
 		try {
-			recipejar.recipe.Unit.readUnitsFromFile(Kernel.configDir.getAbsolutePath() + "/settings/units.txt");
+			recipejar.recipe.Unit.readUnitsFromFile(ProgramVariables.FILE_UNIT.toString());
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			return;
 		}
-		IndexFile.setIndexFileLocation(Kernel.configDir.getAbsolutePath() + "/Recipes/");
+		IndexFile.setIndexFileLocation(ProgramVariables.DIR_DB.toString());
       try {
-         RecipeFile.setTemplate(new RecipeFile(Kernel.configDir.getAbsolutePath() + "/settings/template.html"));
+         RecipeFile.setTemplate(new RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString()));
       } catch (IOException e) {
       } catch (NullPointerException e) {
       }
