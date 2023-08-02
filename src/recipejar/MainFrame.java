@@ -133,8 +133,14 @@ public class MainFrame extends JFrame {
 		}
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
-      System.out.println(ProgramVariables.DIR_DB.toString());
-      System.out.println(ProgramVariables.FILE_INDEX.toString());
+      System.out.println(ProgramVariables.LAF.toString());
+      try {
+        UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
+      } 
+      catch(UnsupportedLookAndFeelException e){}
+      catch(ClassNotFoundException e){}
+      catch(InstantiationException e){}
+      catch(IllegalAccessException e){}
 
 		try {
 			recipejar.recipe.Unit.readUnitsFromFile(ProgramVariables.FILE_UNIT.toString());
