@@ -48,6 +48,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
           
       } catch (java.io.IOException ex) {
       }
+
    }
 
    /** This method is called from within the constructor to
@@ -102,6 +103,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       filePrefPanel6 = new FilePrefPanel();
       jPanel6 = new javax.swing.JPanel();
       filePrefPanel2 = new FilePrefPanel();
+      fileChooser = new javax.swing.JFileChooser();
 
       setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
       setModal(true);
@@ -280,6 +282,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       );
 
       filePrefPanel1.setBoundPref(ProgramVariables.DIR_PROGRAM);
+      filePrefPanel1.setFileChooser(fileChooser);
 
       jPanel7.setBorder(javax.swing.BorderFactory.createTitledBorder("Welcome Message"));
 
@@ -295,6 +298,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       );
 
       filePrefPanel3.setBoundPref(ProgramVariables.FILE_WELCOME);
+      filePrefPanel3.setFileChooser(fileChooser);
 
       javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
       jPanel1.setLayout(jPanel1Layout);
@@ -439,6 +443,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       );
 
       filePrefPanel7.setBoundPref(ProgramVariables.FILE_MACRO);
+      filePrefPanel7.setFileChooser(fileChooser);
 
       MacroTextArea.setColumns(20);
       MacroTextArea.setRows(5);
@@ -479,7 +484,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addComponent(filePrefPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
       );
 
-      filePrefPanel1.setBoundPref(ProgramVariables.FILE_UNIT);
+      filePrefPanel8.setBoundPref(ProgramVariables.FILE_UNIT);
+      filePrefPanel8.setFileChooser(fileChooser);
 
       UnitsTextArea.setColumns(20);
       UnitsTextArea.setRows(5);
@@ -520,7 +526,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addComponent(filePrefPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
       );
 
-      filePrefPanel1.setBoundPref(ProgramVariables.CSS_RECIPE);
+      filePrefPanel4.setBoundPref(ProgramVariables.CSS_RECIPE);
+      filePrefPanel4.setFileChooser(fileChooser);
 
       jPanel9.setBorder(javax.swing.BorderFactory.createTitledBorder("Index Style Sheet"));
 
@@ -535,7 +542,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addComponent(filePrefPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
       );
 
-      filePrefPanel1.setBoundPref(ProgramVariables.CSS_INDEX);
+      filePrefPanel5.setBoundPref(ProgramVariables.CSS_INDEX);
+      filePrefPanel5.setFileChooser(fileChooser);
 
       jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder("Index Template"));
 
@@ -550,7 +558,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addComponent(filePrefPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
       );
 
-      filePrefPanel1.setBoundPref(ProgramVariables.TEMPLATE_INDEX);
+      filePrefPanel6.setBoundPref(ProgramVariables.TEMPLATE_INDEX);
+      filePrefPanel6.setFileChooser(fileChooser);
 
       jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder("Recipe Template"));
 
@@ -565,7 +574,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addComponent(filePrefPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
       );
 
-      filePrefPanel1.setBoundPref(ProgramVariables.TEMPLATE_RECIPE);
+      filePrefPanel2.setBoundPref(ProgramVariables.TEMPLATE_RECIPE);
+      filePrefPanel2.setFileChooser(fileChooser);
 
       javax.swing.GroupLayout jPanel20Layout = new javax.swing.GroupLayout(jPanel20);
       jPanel20.setLayout(jPanel20Layout);
@@ -740,6 +750,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
    private javax.swing.JScrollPane jScrollPane2;
    private javax.swing.JTabbedPane jTabbedPane1;
    private javax.swing.JTextField phoneField;
+   private javax.swing.JFileChooser fileChooser;
    // End of variables declaration//GEN-END:variables
 
    private void loadField(javax.swing.JTextArea field, FileReader in) throws IOException {
