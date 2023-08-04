@@ -16,6 +16,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.awt.Dimension;
 import recipejar.lib.LAFType;
 import recipejar.FilePrefPanel;
 
@@ -107,12 +108,12 @@ public class PreferencesDialog extends javax.swing.JDialog {
 
       setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
       setModal(true);
-      setPreferredSize(new java.awt.Dimension(360, 350));
+      //setPreferredSize(new java.awt.Dimension(360, 350));
       setResizable(false);
 
       jTabbedPane1.setName("Preferences"); // NOI18N
       jTabbedPane1.setOpaque(true);
-      jTabbedPane1.setPreferredSize(new java.awt.Dimension(360, 285));
+      //jTabbedPane1.setPreferredSize(new java.awt.Dimension(360, 285));
       jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
          public void stateChanged(javax.swing.event.ChangeEvent evt) {
             resizeDialog(evt);
@@ -203,7 +204,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
             .addContainerGap())
       );
 
-      jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("Java Look and Feel"));
+      jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("Look and Feel"));
 
       buttonGroup1.add(jRadioButton1);
       jRadioButton1.setText("System");
@@ -307,7 +308,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addGroup(jPanel1Layout.createSequentialGroup()
             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                .addGroup(jPanel1Layout.createSequentialGroup()
-                  .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                  .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, 220, javax.swing.GroupLayout.PREFERRED_SIZE)
                   .addGap(3, 3, 3)
                   .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                .addComponent(jPanel11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -642,27 +643,26 @@ public class PreferencesDialog extends javax.swing.JDialog {
       ProgramVariables.LAF.set(LAFType.valueOf(evt.getActionCommand().trim().toUpperCase()));
    }
 
-   private void resizeDialog(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_resizeDialog
+   private void resizeDialog(javax.swing.event.ChangeEvent evt) {
       switch (((javax.swing.JTabbedPane) evt.getSource()).getSelectedIndex()) {
          case 0: //settings
-//            this.setSize(new Dimension(356, 301));
-            //this.setSize(new Dimension(400, 350));
-           // jPanel1.setSize(new Dimension(369, 299));
-            break;
-         case 1: //Macros
-         case 2: //Units
-//            this.setSize(new Dimension(527, 439));
-            //jTabbedPane1.setPreferredSize(new Dimension(540, 460));
-            break;
-         case 3: //user
-    //        this.setSize(new Dimension(403, 272));
-            break;
+         case 1: //user
          case 4: //files
-      //      this.setSize(new Dimension(403, 282));
+            this.setSize(new Dimension(421, 422));
+            jTabbedPane1.setSize(new Dimension(345, 325));
+            //jPanel1.setSize(new Dimension(340, 280));
             break;
+         case 2: //Macros
+         case 3: //Units
+            this.setSize(new Dimension(700, 700));
+            jTabbedPane1.setSize(new Dimension(700, 700));
          default:
       }
-   }//GEN-LAST:event_resizeDialog
+      System.out.println(jTabbedPane1.getSelectedIndex());
+      System.out.println(this.getSize().toString());
+      System.out.println(jTabbedPane1.getSize().toString());
+      System.out.println(jPanel1.getSize().toString());
+   }
 
    private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearchSettingsChange
       if (evt.getSource().equals(inAll)) {
@@ -751,7 +751,6 @@ public class PreferencesDialog extends javax.swing.JDialog {
    private javax.swing.JTabbedPane jTabbedPane1;
    private javax.swing.JTextField phoneField;
    private javax.swing.JFileChooser fileChooser;
-   // End of variables declaration//GEN-END:variables
 
    private void loadField(javax.swing.JTextArea field, FileReader in) throws IOException {
       String fileText = new String();

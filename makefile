@@ -16,8 +16,13 @@ all:
 	cp src/*.* build
 	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 
-mainframe: 
+mainframe: src/recipejar/MainFrame.java
 	$(COMPILER) src/recipejar/MainFrame.java
+	cp src/*.* build
+	jar cfm RecipeJar.jar manifest -C build/ recipejar/
+	
+prefs: src/recipejar/PreferencesDialog.java
+	$(COMPILER) src/recipejar/PreferencesDialog.java
 	cp src/*.* build
 	jar cfm RecipeJar.jar manifest -C build/ recipejar/
 

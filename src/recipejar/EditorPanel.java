@@ -188,7 +188,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    */
 
    public boolean isRecipeChanged() {
-      return recipeChanged;
+      //TODO Stub
+      return false;
    }
 
    /*******************non public******************/

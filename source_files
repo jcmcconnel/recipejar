@@ -20,3 +20,6 @@ src/recipejar/MainFrame.java
 src/recipejar/AlphaTab.java 
 src/recipejar/CustomTextPane.java 
 src/recipejar/Kernel.java 
+src/recipejar/FilePrefPanel.java
+src/recipejar/PreferencesDialog.java
+src/recipejar/ProgramVariables.java

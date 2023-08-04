@@ -62,16 +62,15 @@ public class MainFrame extends JFrame {
 			}
 		});
 		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
-		menus.add(fileMenu);
 
       // New 
 		Kernel.programActions.put("new", new AbstractAction("New") {
 			public void actionPerformed(ActionEvent e) {
+            ePanel.startNew();
             Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
 			}
 		});
-		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
-		menus.add(fileMenu);
+		fileMenu.add(Kernel.programActions.get("new"));
 
 		// Exit
 		Kernel.programActions.put("exit-program", new AbstractAction("Exit") {
@@ -80,6 +79,7 @@ public class MainFrame extends JFrame {
 			}
 		});
 		fileMenu.add(Kernel.programActions.get("exit-program"));
+		menus.add(fileMenu);
 
 		JMenu toolsMenu = new JMenu("Tools");
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){

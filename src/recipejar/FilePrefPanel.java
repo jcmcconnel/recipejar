@@ -103,7 +103,6 @@ public class FilePrefPanel extends javax.swing.JPanel {
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 onBrowse(evt);
-                System.out.println("action performed Browse Attempted");
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -113,21 +112,26 @@ public class FilePrefPanel extends javax.swing.JPanel {
     }
 
     private void onBrowse(java.awt.event.ActionEvent evt) {
+       System.out.println("Browsing");
        if (fc != null) {
           fc.setMultiSelectionEnabled(false);
-          fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-          fc.setSelectedFile(new File(ProgramVariables.DIR_RESOURCE.toString() + jTextField1.getText()));
+          if(boundPref == ProgramVariables.DIR_PROGRAM){
+             fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+          } else {
+             fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          }
+          System.out.println(boundPref.toString());
+          File test = new File(boundPref.toString());
+          if(test.exists()) System.out.println("Exists: "+test.toString());
+          fc.setSelectedFile(test);
           fc.addActionListener(ac);
           fc.showOpenDialog(this.getRootPane());
        }
-       System.out.println("Browse Attempted");
     }
 
-    private void onFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_onFocusLost
+    private void onFocusLost(java.awt.event.FocusEvent evt) {
        checkFileIntegrity();
-    }//GEN-LAST:event_onFocusLost
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    }
     private javax.swing.JButton jButton1;
     private javax.swing.JTextField jTextField1;
-    // End of variables declaration//GEN-END:variables
 }
