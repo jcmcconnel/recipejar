@@ -1,7 +1,7 @@
 //James McConnel 5/6/2020
 //Plan:
 //
-package recipejar.recipe;
+package recipejar.test;
 
 import java.util.Random;
 import java.io.FileNotFoundException;

@@ -112,7 +112,6 @@ public class FilePrefPanel extends javax.swing.JPanel {
     }
 
     private void onBrowse(java.awt.event.ActionEvent evt) {
-       System.out.println("Browsing");
        if (fc != null) {
           fc.setMultiSelectionEnabled(false);
           if(boundPref == ProgramVariables.DIR_PROGRAM){
@@ -120,9 +119,7 @@ public class FilePrefPanel extends javax.swing.JPanel {
           } else {
              fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
           }
-          System.out.println(boundPref.toString());
           File test = new File(boundPref.toString());
-          if(test.exists()) System.out.println("Exists: "+test.toString());
           fc.setSelectedFile(test);
           fc.addActionListener(ac);
           fc.showOpenDialog(this.getRootPane());

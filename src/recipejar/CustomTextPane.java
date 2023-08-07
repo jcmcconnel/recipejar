@@ -1,5 +1,6 @@
 /*
  * CustomTextPane.java
+ * Intended primarily as display pane for the readonly view. (07Aug2023)
  *
  * Created on September 20, 2008, 8:30 PM
  */
@@ -60,9 +61,9 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
       jTextPane1.addHyperlinkListener(listener);
    }
 
-   public void setPage(File f) {
+   public void setPage(recipejar.filetypes.RecipeFile f) {
       try {
-         jTextPane1.setPage("file://" + f.getAbsolutePath()); //.setText(f.toString());
+         jTextPane1.setPage("file://" + f.getAbsolutePath()); 
       } catch (IOException ex) {
          Logger.getLogger(CustomTextPane.class.getName()).log(Level.SEVERE, null, ex);
       }

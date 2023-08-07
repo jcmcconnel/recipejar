@@ -133,7 +133,6 @@ public class MainFrame extends JFrame {
 		}
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
-      System.out.println(ProgramVariables.LAF.toString());
       try {
         UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
       } 

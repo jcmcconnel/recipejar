@@ -53,7 +53,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
            try {
-               System.out.print(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription()+"\n");
                RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
                recipeModel = new Recipe(f.getTitle(), f.getNotes(), f.getIngredients(), f.getProcedure(), f.getLabels());
                titleField.setText(recipeModel.getTitle());
