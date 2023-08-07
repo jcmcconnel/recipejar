@@ -7,15 +7,18 @@ import java.util.Random;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
+import recipejar.recipe.Unit;
+import recipejar.recipe.Ingredient;
+
 class testRecipe {
-	public static Recipe r;
+	public static recipejar.recipe.Recipe r;
 
 	public static void main(String args[]) {
 		try {
 			Unit.readUnitsFromFile("units.txt");
 			System.out.println("Units file read...");
 			if (args.length == 0 || args[0].equals("help")) {
-				System.out.println("Usage: java recipejar.recipe.testRecipe [Operation]");
+				System.out.println("Usage: java recipejar.test.testRecipe [Operation]");
 				System.out.println("Operations:");
 				System.out.println("      convert [Number] [Unit] [Unit]");
 				System.out.println("      add-unit [Singular] [Plural]");
@@ -33,7 +36,7 @@ class testRecipe {
 			ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
 			ingredients.add(new Ingredient("2", Unit.getUnit("Slices"), "Bread"));
 			ingredients.add(new Ingredient("1", Unit.getUnit("Tbsp"), "Peanut Butter"));
-			r = new Recipe("Peanut Butter Sandwiches", "", ingredients,
+			r = new recipejar.recipe.Recipe("Peanut Butter Sandwiches", "", ingredients,
 					"Spread peanut butter on one slice of bread.\n Top with second slice of bread.", new ArrayList());
 			System.out.println("As string: ");
 			System.out.print(r.toString());

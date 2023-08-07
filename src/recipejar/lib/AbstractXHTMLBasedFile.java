@@ -169,6 +169,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
 
    /**
     * Writes the String given by the toString() function to this file on disk.
+    * Along with updated metadata.
     *
     * @see #toString() toString()
     * @throws java.io.IOException
@@ -199,6 +200,40 @@ public abstract class AbstractXHTMLBasedFile extends File {
       out.close();
       cleanUpAfterSave();
    }
+   
+   /**
+    * Writes the String given by the toString() function to the given file on disk.
+    * Along with updated metadata.
+    *
+    * @see #toString() toString()
+    * @throws java.io.IOException
+    */
+   public void export(File f) throws IOException {
+      prepforSave();
+      Element e;
+      if (!f.exists()) {
+         e = new Element("meta");
+         e.setAttribute("name", "created");
+         e.setAttribute("content", Calendar.getInstance().getTime().toString());
+         MetaData.add(e);
+         f.createNewFile();
+      } else if (getMetaData("created") == null) {
+         e = new Element("meta");
+         e.setAttribute("name", "created");
+         e.setAttribute("content", "Sometime before, " + Calendar.getInstance().getTime().toString());
+         MetaData.add(e);
+      }
+      if ((e = getMetaElement("last saved")) == null) {
+         e = new Element("meta");
+         e.setAttribute("name", "last saved");
+         MetaData.add(e);
+      }
+      e.setAttribute("content", Calendar.getInstance().getTime().toString());
+      FileWriter out = new FileWriter(f);
+      out.write(toString());
+      out.close();
+      cleanUpAfterSave();
+   }
 
    /**
     * An exact String representation of this file.  This is exactly
@@ -213,7 +248,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
       s.write(doctype + "\n<html>");
       s.write(buildHead());
       s.write(buildBody());
-      s.write("</html>");
+      s.write("</html>\n");
       return s.toString();
    }
 
@@ -419,11 +454,11 @@ public abstract class AbstractXHTMLBasedFile extends File {
    protected String buildHead() {
       StringWriter writer = new StringWriter();
       writer.write("\n  <head>\n    ");
-      if (MetaData != null) {
-         for (int i = 0; i < MetaData.size(); i++) {
-            writer.write(processMacros(MetaData.get(i).toString()) + "\n    ");
-         }
-      }
+      //if (MetaData != null) {
+      //   for (int i = 0; i < MetaData.size(); i++) {
+      //      writer.write(processMacros(MetaData.get(i).toString()) + "\n    ");
+      //   }
+      //}
       if (DataElements.containsKey("title")) {
          writer.write(DataElements.get("title").toString() + "\n    ");
       }

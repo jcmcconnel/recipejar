@@ -8,7 +8,6 @@ src/recipejar/lib/MacroTextAction.java
 src/recipejar/recipe/Ingredient.java
 src/recipejar/recipe/IngredientTableModel.java
 src/recipejar/recipe/Recipe.java
-src/recipejar/recipe/testRecipe.java
 src/recipejar/recipe/Unit.java
 
 src/recipejar/filetypes/IndexFile.java
@@ -23,3 +22,5 @@ src/recipejar/Kernel.java
 src/recipejar/FilePrefPanel.java
 src/recipejar/PreferencesDialog.java
 src/recipejar/ProgramVariables.java
+
+src/recipejar/test/testRecipe.java
