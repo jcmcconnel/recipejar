@@ -247,7 +247,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel2Layout.setHorizontalGroup(
          jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addGroup(jPanel2Layout.createSequentialGroup()
-            .addContainerGap()
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                .addComponent(jRadioButton1)
                .addComponent(jRadioButton2)
@@ -258,15 +258,17 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel2Layout.setVerticalGroup(
          jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-            .addContainerGap()
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            //.addContainerGap()
             .addComponent(jRadioButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(jRadioButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(jRadioButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(jRadioButton4)
-            .addContainerGap())
+            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            //.addContainerGap())
       );
 
       jPanel11.setBorder(javax.swing.BorderFactory.createTitledBorder("Program Directory"));
@@ -436,7 +438,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel10.setLayout(jPanel10Layout);
       jPanel10Layout.setHorizontalGroup(
          jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-         .addComponent(filePrefPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)
+         .addComponent(filePrefPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
       );
       jPanel10Layout.setVerticalGroup(
          jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -460,14 +462,14 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel3Layout.setHorizontalGroup(
          jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addComponent(jPanel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-         .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 339, Short.MAX_VALUE)
+         .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
       );
       jPanel3Layout.setVerticalGroup(
          jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addGroup(jPanel3Layout.createSequentialGroup()
             .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 214, Short.MAX_VALUE))
+            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
       );
 
       jTabbedPane1.addTab("Macros", jPanel3);
@@ -478,7 +480,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel12.setLayout(jPanel12Layout);
       jPanel12Layout.setHorizontalGroup(
          jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-         .addComponent(filePrefPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)
+         .addComponent(filePrefPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
       );
       jPanel12Layout.setVerticalGroup(
          jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -502,14 +504,14 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jPanel4Layout.setHorizontalGroup(
          jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addComponent(jPanel12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-         .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 339, Short.MAX_VALUE)
+         .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
       );
       jPanel4Layout.setVerticalGroup(
          jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
          .addGroup(jPanel4Layout.createSequentialGroup()
             .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 214, Short.MAX_VALUE))
+            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
       );
 
       jTabbedPane1.addTab("Units", jPanel4);
@@ -644,24 +646,28 @@ public class PreferencesDialog extends javax.swing.JDialog {
    }
 
    private void resizeDialog(javax.swing.event.ChangeEvent evt) {
+      this.setMinimumSize(new Dimension(421, 422));
       switch (((javax.swing.JTabbedPane) evt.getSource()).getSelectedIndex()) {
          case 0: //settings
          case 1: //user
-         case 4: //files
-            this.setSize(new Dimension(421, 422));
-            jTabbedPane1.setSize(new Dimension(345, 325));
+            //this.setMinimumSize(new Dimension(421, 422));
+            //jTabbedPane1.setSize(new Dimension(345, 325));
             //jPanel1.setSize(new Dimension(340, 280));
             break;
          case 2: //Macros
          case 3: //Units
-            this.setSize(new Dimension(700, 700));
-            jTabbedPane1.setSize(new Dimension(700, 700));
+            //this.setMinimumSize(new Dimension(700, 700));
+            //jTabbedPane1.setSize(new Dimension(700, 700));
+            //jPanel4.setSize(new Dimension(500, 350));
+            break;
+         case 4: //files
+            //this.setMinimumSize(new Dimension(421, 422));
+            //jTabbedPane1.setSize(new Dimension(345, 325));
+            //jPanel1.setSize(new Dimension(340, 280));
+            break;
          default:
       }
-      System.out.println(jTabbedPane1.getSelectedIndex());
-      System.out.println(this.getSize().toString());
-      System.out.println(jTabbedPane1.getSize().toString());
-      System.out.println(jPanel1.getSize().toString());
+      this.pack();
    }
 
    private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearchSettingsChange
