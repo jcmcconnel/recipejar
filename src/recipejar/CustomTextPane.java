@@ -63,13 +63,8 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
            try {
-               System.out.print(e.getDescription()+"\n");
                recipejar.filetypes.RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
-               System.out.println("--------------");
-               System.out.print(f.toString());
-               System.out.println("--------------");
-               jTextPane1.setText(f.toString());
-               //setPage(f);
+               setPage(f);
            }catch(IOException ioe){}
        }
    }
@@ -86,11 +81,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
    }
 
    public void setPage(recipejar.filetypes.RecipeFile f) {
-      //jTextPane1.setText(f.toString());
-      //jTextPane1.setPage("file://" + f.getAbsolutePath()); 
-      //jTextPane1.setText(f.toString());
-      //this.setupDocument(f.toString());
-      jTextPane1.setText(f.toString());
+      jTextPane1.setText(f.toTextPaneFriendlyString());
       jTextPane1.setCaretPosition(0);
    }
 

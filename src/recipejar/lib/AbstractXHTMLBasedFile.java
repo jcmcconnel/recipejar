@@ -253,6 +253,20 @@ public abstract class AbstractXHTMLBasedFile extends File {
    }
 
    /**
+    * A String representation of this file compatible with a JTextPane
+    *
+    * @return A String representation of this file.
+    */
+   public String toTextPaneFriendlyString() {
+      StringWriter s = new StringWriter();
+      s.write(doctype + "\n<html>");
+      s.write(buildHeadForTextPane());
+      s.write(buildBody());
+      s.write("</html>\n");
+      return s.toString();
+   }
+
+   /**
     * Adds tokens to the parsing system.
     * @param s
     */
@@ -452,6 +466,34 @@ public abstract class AbstractXHTMLBasedFile extends File {
     * @return A String containing the body.
     */
    protected String buildHead() {
+      StringWriter writer = new StringWriter();
+      writer.write("\n  <head>\n    ");
+      if (MetaData != null) {
+         for (int i = 0; i < MetaData.size(); i++) {
+            writer.write(processMacros(MetaData.get(i).toString()) + "\n    ");
+         }
+      }
+      if (DataElements.containsKey("title")) {
+         writer.write(DataElements.get("title").toString() + "\n    ");
+      }
+      if (DataElements.containsKey("style")) {
+         writer.write(DataElements.get("style").toString() + "\n    ");
+      }
+      writer.write("\n  </head>");
+      return writer.toString();
+   }
+
+   /**
+    * Builds and returns a String which contains the &lt;head&gt; element (inclusive) of this
+    * file.  In other words the String returned by this function begins (ignoring whitespace)
+    * with the &lt;head&gt; tag and ends (also ignoring whitespace) with the &lt;/head&gt; tag.
+    * To put it another way, buildHead().trim() will always begin with &lt;head&gt; and
+    * end with &lt;/head&gt;.
+    * 
+    * 
+    * @return A String containing the body.
+    */
+   protected String buildHeadForTextPane() {
       StringWriter writer = new StringWriter();
       writer.write("\n  <head>\n    ");
       //if (MetaData != null) {
