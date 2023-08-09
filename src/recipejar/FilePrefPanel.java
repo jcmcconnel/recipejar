@@ -24,10 +24,11 @@ import recipejar.ProgramVariables;
 public class FilePrefPanel extends javax.swing.JPanel {
 
    private static JFileChooser fc;
+   private int lastReturnedOptionValue;
    private ActionListener ac = new ActionListener() {
 
       public void actionPerformed(ActionEvent e) {
-         if (e.getID() == JFileChooser.APPROVE_OPTION) {
+         if (lastReturnedOptionValue == JFileChooser.APPROVE_OPTION) {
             File f = fc.getSelectedFile();
             ProgramVariables loc;
             if (f.getAbsolutePath().contains(ProgramVariables.DIR_PROGRAM.toString())) {
@@ -119,10 +120,9 @@ public class FilePrefPanel extends javax.swing.JPanel {
           } else {
              fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
           }
-          File test = new File(boundPref.toString());
-          fc.setSelectedFile(test);
+          fc.setSelectedFile(new File(boundPref.toString()));
           fc.addActionListener(ac);
-          fc.showOpenDialog(this.getRootPane());
+          lastReturnedOptionValue = fc.showOpenDialog(this.getRootPane());
        }
     }
 

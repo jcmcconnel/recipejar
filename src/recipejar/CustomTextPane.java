@@ -27,7 +27,7 @@ import javax.swing.text.html.StyleSheet;
 public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListener {
 
    private JPopupMenu popup;
-   private StyleSheet css = new StyleSheet();
+   private StyleSheet css;
 
    /** Creates new form ViewerPanel */
    public CustomTextPane() {
@@ -36,26 +36,10 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
       jTextPane1.setContentType("text/html");
 
       jTextPane1.setEditable(false);
+      setStyle(new File(ProgramVariables.CSS_RECIPE.toString()));
       setPreferredSize(new java.awt.Dimension(500, 200));
       popup = null;
    }
-    private void setupDocument(String s) {
-        if (css != null) {
-            jTextPane1.setContentType("text/html");
-            HTMLDocument doc = (HTMLDocument) jTextPane1.getEditorKit().createDefaultDocument();
-            doc.getStyleSheet().addStyleSheet(css);
-            jTextPane1.setDocument(doc);
-        }
-        try{
-         System.out.println(s+"\n");
-
-         jTextPane1.setContentType("text/html");
-         jTextPane1.setText(s);
-        } catch(java.lang.NullPointerException e) {
-            if(jTextPane1 == null) System.out.print("pane");   
-            if(this == null) System.out.print("file");   
-        }
-    }
 
     /**
      * Intended as a listener for the IndexPane.
