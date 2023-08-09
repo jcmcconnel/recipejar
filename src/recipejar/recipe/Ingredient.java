@@ -26,94 +26,39 @@ public class Ingredient {
     * @return the new Ingredient
     **/
    public static Ingredient parse(String s) {
+
       String[] data = new String[3];
+
       data[0] = new String();
-      int quantity = s.indexOf("<span class=\"qty\">");
-      if (quantity == -1) {
-         for (int i = 0; i < s.length(); i++) {
-            char c = s.trim().charAt(i);
-            if (Character.isDigit(c) || Character.isSpaceChar(c) || c == '/' || c == '-' || c == '.') {
-               data[0] = data[0] + c;
-            } else {
-               s = s.substring(i);
-               break;
-            }
-         }
-      } else {
-         quantity = s.indexOf(">", quantity) + 1;
-         data[0] = s.substring(quantity, s.indexOf("</span>", quantity));
-         s = s.substring(s.indexOf("</span>", quantity) + 7);
+      String qtyToken = "<span class=\"qty\">";
+      int quantity = s.indexOf(qtyToken)+qtyToken.length();
+      int endQuantity = s.indexOf("</span>", quantity);
+      if (quantity != -1) {
+         data[0] = s.substring(quantity, endQuantity);
+         s = s.substring(endQuantity+7);
       }
 
       data[1] = new String();
-      int unit = s.indexOf("<span class=\"unit\">");
-      if (unit == -1) {
-         //Not unit if there aren't at least two more words in the data.
-         if (s.trim().contains(" ") && !data[0].isEmpty()) {
-            String u = new String();
-            for (int i = 0; i < s.trim().length(); i++) {
-               char c = s.trim().charAt(i);
-               if (!Character.isSpaceChar(c)) {
-                  u = u + c;
-               } else {
-                  break;
-               }
-            }
-            if (!u.isEmpty()) {
-               //If unit does exist
-               if (Unit.getUnit(u) != null) {
-                  data[1] = u;
-                  s = s.substring(u.length());
-               }
-            }
-         }
-      } else {
-         unit = s.indexOf(">", unit) + 1;
-         String data1String = s.substring(unit, s.indexOf("</span>", unit));
-         s = s.substring(s.indexOf("</span>", unit) + 7);
-         if (Unit.getUnit(data1String) != null) {
-            data[1] = data1String;
-         } else {
-            //add unit text to the name field
-            s = s.substring(0, s.indexOf("<span class=\"name\">") + 19) + data1String + s.substring(s.indexOf("<span class=\"name\">") + 19);
-         }
+      String unitToken = "<span class=\"unit\">";
+      int unit = s.indexOf(unitToken)+unitToken.length();
+      int endUnit = s.indexOf("</span");
+      if (unit != -1) {
+         data[1] = s.substring(unit, endUnit);
+         s = s.substring(endUnit+7);
+         //If unit does exist
+         //if (Unit.getUnit(data[1]) != null) {
+         //}
       }
-
+      
       data[2] = new String();
-      int name = s.indexOf("<span class=\"name\">");
-      if (name == -1) {
-         data[2] = s.trim();
-      } else {
-         name = s.indexOf(">", name) + 1;
-         if (data[1].isEmpty()) {
-            //The Unit field is empty
-            String u = new String();
-            for (int i = 0; i < s.substring(name).trim().length(); i++) {
-               char c = s.substring(name).trim().charAt(i);
-               if (!Character.isSpaceChar(c)) {
-                  u = u + c;
-               } else {
-                  break;
-               }
-            }
-            if (!u.isEmpty()) {
-               //If unit does not exist
-               if (Unit.getUnit(u) != null) {
-                  data[1] = u;
-                  while (Character.isSpaceChar(s.charAt(name))) {
-                     name++;
-                  }
-                  name = name + u.length();
-               }
-            }
-         }
-         data[2] = s.substring(name, s.indexOf("</span>", name));
-         //All the data was put the last cell.
-         if (data[0].isEmpty() && data[1].isEmpty()
-                 && Character.isDigit(data[2].trim().charAt(0))) {
-            return parse(data[2]);
-         }
+      String nameToken = "<span class=\"name\">";
+      int name = s.indexOf(nameToken)+nameToken.length();
+      int endName = s.indexOf("</span>");
+      if (name != -1) {
+         data[2] = s.substring(name, endName);
+         s = s.substring(endName+7);
       }
+      
       return new Ingredient(data[0], new Unit(data[1]), data[2]);
    }
 

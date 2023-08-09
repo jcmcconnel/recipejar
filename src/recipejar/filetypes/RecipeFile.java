@@ -412,8 +412,8 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         }
         StringWriter s = new StringWriter();
         s.write("\n      <ul>\n");
-        for (int i = 0; i < ingredients.size() - 1; i++) {
-            s.write(ingredients.get(i).toString());
+        for (int i = 0; i < ingredients.size(); i++) {
+            s.write(ingredients.get(i).toXHTMLString());
         }
         s.write("      </ul>");
         return s.toString();
