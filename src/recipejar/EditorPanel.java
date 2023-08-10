@@ -63,7 +63,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
        }
    }
 
-
    /**
     *
     *

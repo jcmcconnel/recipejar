@@ -59,7 +59,7 @@ public class Ingredient {
          s = s.substring(endName+7);
       }
       
-      return new Ingredient(data[0], new Unit(data[1]), data[2]);
+      return new Ingredient(data[0], Unit.getUnit(data[1]), data[2]);
    }
 
    public String getName() {

@@ -104,6 +104,7 @@ public class UnitConverterDialog extends javax.swing.JDialog {
 		});
 
 		fromUnts.setModel(new javax.swing.DefaultComboBoxModel(Unit.getConvertableUnitLabels()));
+      fromUnts.setSelectedIndex(0);
 		fromUnts.addKeyListener(new java.awt.event.KeyAdapter() {
 			public void keyPressed(java.awt.event.KeyEvent evt) {
 				convertableUntsKeyPressed(evt);

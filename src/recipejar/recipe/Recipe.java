@@ -77,7 +77,7 @@ public class Recipe {
      * @return
      */
     public String getNotes() {
-       return notes;
+       return recipejar.StringProcessor.convertToASCIILinebreaks(notes);
     }
 
     /**
@@ -85,7 +85,7 @@ public class Recipe {
      * @param newNotes
      */
     public void setNotes(String newNotes) {
-       notes = newNotes;
+       notes = recipejar.StringProcessor.convertToXMLLineBreaks(newNotes);
     }
 
     /**
@@ -93,7 +93,7 @@ public class Recipe {
      * @return
      */
     public String getProcedure() {
-       return procedure;
+       return recipejar.StringProcessor.convertToASCIILinebreaks(procedure);
     }
 
     /**
@@ -101,7 +101,7 @@ public class Recipe {
      * @param newProcedure
      */
     public void setProcedure(String newProcedure) {
-       procedure = newProcedure;
+       procedure = recipejar.StringProcessor.convertToXMLLineBreaks(newProcedure);
     }
 
     /**
@@ -110,10 +110,11 @@ public class Recipe {
      * @return array of all the labels
      */
     public ArrayList<String> getLabels() {
-       return null;
+       return labels;
     }
 
     public void addLabel(String s) {
+       labels.add(s);
     }
 
     /**
