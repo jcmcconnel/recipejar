@@ -5,8 +5,11 @@ package recipejar.test;
 
 import java.util.Random;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
+import javax.swing.text.BadLocationException;
 
+import recipejar.filetypes.RecipeFile;
 import recipejar.recipe.Unit;
 import recipejar.recipe.Ingredient;
 
@@ -33,19 +36,23 @@ class testRecipe {
 						+ Unit.convert(args[1], Unit.getUnit(args[2]), Unit.getUnit(args[3])) + " " + args[3]);
 
 			}
-			ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
-			ingredients.add(new Ingredient("2", Unit.getUnit("Slices"), "Bread"));
-			ingredients.add(new Ingredient("1", Unit.getUnit("Tbsp"), "Peanut Butter"));
-			r = new recipejar.recipe.Recipe("Peanut Butter Sandwiches", "", ingredients,
-					"Spread peanut butter on one slice of bread.\n Top with second slice of bread.", new ArrayList());
+
+         r = new recipejar.recipe.Recipe(new RecipeFile("../Test/settings/recipe.template"));
 			System.out.println("As string: ");
 			System.out.print(r.toString());
 			System.out.println();
 			System.out.println("As XHTML: ");
 			System.out.print(r.toXHTMLString());
 
-		} catch(FileNotFoundException ex){
+		} 
+      catch(FileNotFoundException ex){
 			System.out.println("File not found exception");
 		}
+      catch(BadLocationException ex){
+			System.out.println("Bad location");
+		}
+      catch (IOException ioe) {
+			System.out.println("IO Exception");
+      }
 	}
 }

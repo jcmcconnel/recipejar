@@ -21,22 +21,22 @@ import java.io.File;
 public class Kernel {
 
 
+   protected static File configDir;
    protected static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
-   protected static File configDir;
+   protected static JFrame topLevelFrame;
 
+   public static JMenuBar getJMenuBar(JMenu[] menus){
+       JMenuBar menuBar = new JMenuBar();
+       for(int i=0; i<menus.length; i++){
+           menuBar.add(menus[i]); 
+       }
+       return menuBar;
+   }
 
-    public static JMenuBar getJMenuBar(JMenu[] menus){
-        JMenuBar menuBar = new JMenuBar();
-        for(int i=0; i<menus.length; i++){
-            menuBar.add(menus[i]); 
-        }
-        return menuBar;
-    }
-
-    /**
-     * General functions
-     */
+   /**
+    * General functions
+    */
 
    /**
     *

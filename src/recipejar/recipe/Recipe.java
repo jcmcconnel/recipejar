@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.io.StringWriter;
 import recipejar.recipe.IngredientTableModel;
+import recipejar.filetypes.RecipeFile;
+import javax.swing.text.Document;
+import javax.swing.text.PlainDocument;
+import javax.swing.text.BadLocationException;
 
 
 /**
@@ -27,22 +31,35 @@ public class Recipe {
     //////Non-static members///////////
     ///////////////////////////////////
     //Private
-    private String title;
-    private String notes;
+    private String originalTitle;
+    private Document titleModel;
+
+    private String originalNotes;
+    private Document notesModel;
+
     private ArrayList<Ingredient> ingredients;
     private IngredientTableModel tmodel;
-    private String procedure;
+
+    private String originalProcedure;
+    private Document procedureModel;
+
     private ArrayList<String> labels;
 
     ////////Public///////////
     //Constructors
-    public Recipe(String t, String n, ArrayList<Ingredient> i, String p, ArrayList<String> l){
-       title = t;
-       notes = n;
-       ingredients = i;
+    public Recipe(RecipeFile f) throws BadLocationException {
+       originalTitle = f.getTitle();
+       titleModel = new PlainDocument();
+       titleModel.insertString(0, originalTitle, null);
+       originalNotes = recipejar.StringProcessor.convertToASCIILinebreaks(f.getNotes());
+       notesModel = new PlainDocument();
+       notesModel.insertString(0, originalNotes, null);
+       ingredients = f.getIngredients();
        tmodel = new IngredientTableModel(this);
-       procedure = p;
-       labels = l;
+       originalProcedure = recipejar.StringProcessor.convertToASCIILinebreaks(f.getProcedure());
+       procedureModel = new PlainDocument();
+       procedureModel.insertString(0, originalProcedure, null);
+       labels = f.getLabels();
     }
 
 
@@ -68,41 +85,49 @@ public class Recipe {
      *
      * @return
      */
-    public String getTitle() {
-       return title;
+    public Document getTitleModel() {
+       return titleModel;
+    }
+    public boolean hasTitleChanged() {
+       try {
+          return !originalTitle.equals(titleModel.getText(0, titleModel.getLength()));
+       }
+       catch (BadLocationException ble) {
+          return true;
+       }
     }
 
     /**
      *
      * @return
      */
-    public String getNotes() {
-       return recipejar.StringProcessor.convertToASCIILinebreaks(notes);
+    public Document getNotesModel() {
+       return notesModel;
     }
 
     /**
      *
      * @param newNotes
      */
-    public void setNotes(String newNotes) {
-       notes = recipejar.StringProcessor.convertToXMLLineBreaks(newNotes);
-    }
+    //public void setNotes(String newNotes) {
+    //   originalNotes = recipejar.StringProcessor.convertToXMLLineBreaks(newNotes);
+    //}
 
     /**
      *
      * @return
      */
-    public String getProcedure() {
-       return recipejar.StringProcessor.convertToASCIILinebreaks(procedure);
+    public Document getProcedureModel() {
+       return procedureModel;
     }
 
     /**
      *
      * @param newProcedure
      */
-    public void setProcedure(String newProcedure) {
-       procedure = recipejar.StringProcessor.convertToXMLLineBreaks(newProcedure);
-    }
+    //public void setProcedure(String newProcedure) {
+    //   originalProcedure = recipejar.StringProcessor.convertToXMLLineBreaks(newProcedure);
+    //}
 
     /**
      * Returns all the labels this recipe has, as a string array.
@@ -179,27 +204,27 @@ public class Recipe {
     @Override
     public String toString(){
        String out = new String();
-       out = title + "\n";
-       out = out + notes +"\n";
+       out = originalTitle + "\n";
+       out = out + originalNotes +"\n";
        Iterator<Ingredient> i = ingredients.iterator();
        while(i.hasNext()){
           out = out + i.next().toString()+"\n";
        }
-       out = out + procedure + "\n";
+       out = out + originalProcedure + "\n";
        return out;
     }
 
     public String toXHTMLString(){
        StringWriter out = new StringWriter();
-       out.write("<h1>"+title+"</h1>\n");
-       out.write("<div id=\"notes\">" + notes +"</div>\n");
+       out.write("<h1>"+originalTitle+"</h1>\n");
+       out.write("<div id=\"notes\">" + originalNotes +"</div>\n");
        Iterator<Ingredient> i = ingredients.iterator();
        out.write("<div id=\"ingredients\"><ul>\n");
        while(i.hasNext()){
            out.write(i.next().toXHTMLString()+"\n");
        }
        out.write("</ul></div>\n");
-       out.write("<div id=\"procedure\">" + procedure + "</div>\n");
+       out.write("<div id=\"procedure\">" + originalProcedure + "</div>\n");
        return out.toString();
     }
 }

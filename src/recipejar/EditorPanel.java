@@ -8,19 +8,24 @@ package recipejar;
  
 import java.awt.event.KeyListener;
 import javax.swing.JButton;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import java.awt.event.ActionEvent;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import recipejar.filetypes.RecipeFile;
 import recipejar.recipe.Recipe;
+import javax.swing.text.BadLocationException;
 
 import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
@@ -32,9 +37,13 @@ import javax.swing.event.HyperlinkEvent;
 public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
-   Recipe recipeModel;
-   Boolean recipeChanged;
+   private Recipe recipeModel;
+   private RecipeFile diskFile;
+   private Boolean recipeChanged;
 
+    private DocumentListener titleListener;
+    private DocumentListener notesListener;
+    private DocumentListener procedureListener;
 
    /**
     * Creates new EditorPanel
@@ -44,6 +53,16 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       initComponents();
       jScrollPane3.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+      Kernel.programActions.put("save", new AbstractAction("Save") {
+         public void actionPerformed(ActionEvent e) {
+            try{
+               save();
+            }
+            catch (FileNotFoundException fne) {}
+            catch (IOException ioe) {}
+         }
+      });
+      setSaveAction(Kernel.programActions.get("save"));
    }
 
 
@@ -53,13 +72,15 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
            try {
-               RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
-               recipeModel = new Recipe(f.getTitle(), f.getNotes(), f.getIngredients(), f.getProcedure(), f.getLabels());
-               titleField.setText(recipeModel.getTitle());
-               notesField.setText(recipeModel.getNotes());
+               diskFile = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
+               recipeModel = new Recipe(diskFile);
+               titleField.setDocument(recipeModel.getTitleModel());
+               notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
-               procedureField.setText(recipeModel.getProcedure());
-           }catch(IOException ioe){}
+               procedureField.setDocument(recipeModel.getProcedureModel());
+           } 
+           catch(IOException ioe){}
+           catch(BadLocationException ble){}
        }
    }
 
@@ -87,30 +108,32 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     * @return
     * @throws java.io.FileNotFoundException
     * @throws java.io.IOException
-    *
+    **/
    public boolean save() throws FileNotFoundException, IOException {
-   if (isTitleChanged()) { //Saving a new recipe.
+      if (diskFile.exists()) {
+         System.out.println("attempted to save existing");
+         return false;
+      }
+      if (isTitleChanged()) { //Saving a new recipe.
 
-   if (rjUtil.isBadTitle(titleField.getText())) {
-   JOptionPane.showMessageDialog((JPanel) this, "Please enter a valid title for your recipe.");
-   return false;
-   } else {
-   ApplicationScope.getInstance().setCurrentlyOpenRecipe(
-   new RecipeFile(rjUtil.buildAbsoluteFileNameFrom(titleField.getText())));
-   open.setTitle(titleField.getText().trim());
-   }
-   }
-   open.setLabels(this.labelField.getText());
-   open.setNotes(rjUtil.convertToXMLLineBreaks(rjUtil.fixInformalAnchors(notesField.getText())));
+         if (StringProcessor.isBadTitle(titleField.getText())) {
+            JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
+            return false;
+         } else {
+            diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
+            diskFile.setTitle(titleField.getText().trim());
+         }
+      }
+      diskFile.setLabels(this.labelField.getText());
+      diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesField.getText())));
 
-   open.setProcedure(rjUtil.convertToXMLLineBreaks(rjUtil.fixInformalAnchors(procedureField.getText())));
+      diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureField.getText())));
 
-   updateMetaData();
+      //updateMetaData();
 
-   open.save();
-   recipeChanged = false;
-   this.fireEditorChangedUpdate(EditEvent.SAVE);
-   return true;
+      diskFile.save();
+      recipeChanged = false;
+      return true;
    }
 
    /**
@@ -133,7 +156,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          this.labelField.setText("");
          saveButton.setEnabled(true);
 
-         //this.fireEditorChangedUpdate(EditEvent.NEW);
          //startListening();
          return true;
       } else {
@@ -156,12 +178,11 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     *
     * @return
     */
-   public JButton getCancelButton() {
-      return this.cancelButton;
+   public void setSaveAction(Action a) {
+      saveButton.setAction(a);
    }
-
-   public JButton getSaveButton() {
-      return saveButton;
+   public void setCancelAction(Action a) {
+      cancelButton.setAction(a);
    }
 
    public void setNotesPopup(JPopupMenu notesPopup) {
@@ -170,20 +191,19 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    public void setProcedurePopup(JPopupMenu procedurePopup) {
    }
 
-   /****************Other********************
+   /****************Other********************/
 
    public boolean isTitleChanged() {
-      if (true) {//open == null) {
+      if (recipeModel == null) {
          if (titleField.getText().isEmpty()) {
             return false;
          } else {
             return true;
          }
       } else {
-         return true; //!open.getTitle().equals(titleField.getText());
+         return recipeModel.hasTitleChanged();
       }
    }
-   */
 
    public boolean isRecipeChanged() {
       //TODO Stub
@@ -363,22 +383,9 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       buttonsPanel.setMinimumSize(new java.awt.Dimension(200, 30));
       buttonsPanel.setPreferredSize(new java.awt.Dimension(200, 30));
 
-      cancelButton.setText("Cancel");
       cancelButton.setPreferredSize(new java.awt.Dimension(90, 29));
-      cancelButton.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            Kernel.programActions.get("toggle-edit-mode").actionPerformed(evt);
-            fireCancelEvent(evt);
-         }
-      });
 
-      saveButton.setText("Save");
       saveButton.setPreferredSize(new java.awt.Dimension(90, 29));
-      saveButton.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            fireSaveEvent(evt);
-         }
-      });
 
       javax.swing.GroupLayout buttonsPanelLayout = new javax.swing.GroupLayout(buttonsPanel);
       buttonsPanel.setLayout(buttonsPanelLayout);
@@ -432,21 +439,13 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       add(jPanel1, gridBagConstraints);
    }
 
-private void showPopup(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_showPopup
+private void showPopup(java.awt.event.MouseEvent evt) {
     //if (evt.isPopupTrigger()) {
     //   aes.fireApplicationEvent(new ApplicationEvent(Event_Type.POPUP, evt));
     //}
-}//GEN-LAST:event_showPopup
+}
 
-private void fireCancelEvent(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fireCancelEvent
-    //aes.fireApplicationEvent(new ApplicationEvent(Event_Type.EDIT_CANCEL, evt));
-}//GEN-LAST:event_fireCancelEvent
 
-private void fireSaveEvent(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fireSaveEvent
-    //aes.fireApplicationEvent(new ApplicationEvent(Event_Type.SAVE, evt));
-}//GEN-LAST:event_fireSaveEvent
-
-   // Variables declaration - do not modify//GEN-BEGIN:variables
    private javax.swing.JPanel buttonsPanel;
    private javax.swing.JButton cancelButton;
    private recipejar.IListTable iListTable1;
@@ -463,7 +462,6 @@ private void fireSaveEvent(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fi
    private javax.swing.JButton saveButton;
    private javax.swing.JTextField titleField;
    private javax.swing.JPanel titlePanel;
-   // End of variables declaration//GEN-END:variables
 /*
    private void updateMetaData() {
    if (ApplicationScope.getInstance().getState().getValue("AUTHOR") != null) {

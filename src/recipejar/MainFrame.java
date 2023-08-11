@@ -26,7 +26,7 @@ public class MainFrame extends JFrame {
 	public MainFrame(String name) {
 		super(name);
 
-      JFrame topLevelFrame = this;
+      Kernel.topLevelFrame = this;
 		// Frame configuration
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setLocationRelativeTo(null);
@@ -55,12 +55,15 @@ public class MainFrame extends JFrame {
 				if (splitPane.getRightComponent().equals(ePanel)) {
 					splitPane.setRightComponent(readerPane);
 					this.putValue(AbstractAction.NAME, "Open");
+               Kernel.programActions.get("save").setEnabled(false);
 				} else {
 					splitPane.setRightComponent(ePanel);
 					this.putValue(AbstractAction.NAME, "Close");
+               Kernel.programActions.get("save").setEnabled(true);
 				}
 			}
 		});
+      ePanel.setCancelAction(Kernel.programActions.get("toggle-edit-mode"));
 		fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
 
       // New 
@@ -71,6 +74,11 @@ public class MainFrame extends JFrame {
 			}
 		});
 		fileMenu.add(Kernel.programActions.get("new"));
+
+      //Save
+      //Implemented in EditorPanel
+      Kernel.programActions.get("save").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("save"));
 
 		// Exit
 		Kernel.programActions.put("exit-program", new AbstractAction("Exit") {
@@ -85,14 +93,16 @@ public class MainFrame extends JFrame {
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {
             if(prefDialog == null) {
-               prefDialog = new recipejar.PreferencesDialog(topLevelFrame, true);
+               prefDialog = new recipejar.PreferencesDialog(Kernel.topLevelFrame, true);
             }
+            prefDialog.setLocationRelativeTo(Kernel.topLevelFrame);
             prefDialog.setVisible(true);
          }
       });
       toolsMenu.add(Kernel.programActions.get("preferences-dialog"));
 		Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
 			public void actionPerformed(ActionEvent e) {
+            converterDialog.setLocationRelativeTo(Kernel.topLevelFrame);
 				converterDialog.setVisible(!converterDialog.isVisible());
 			}
 		});
@@ -102,7 +112,7 @@ public class MainFrame extends JFrame {
 		JMenu helpMenu = new JMenu("Help");
 		Kernel.programActions.put("about-dialog", new AbstractAction("About") {
 			public void actionPerformed(ActionEvent e) {
-				JOptionPane.showMessageDialog(helpMenu, "Welcome to RecipeJar!");
+				JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Welcome to RecipeJar!");
 			}
 		});
 		helpMenu.add(Kernel.programActions.get("about-dialog"));
