@@ -52,6 +52,18 @@ public class Unit implements Comparable<Unit> {
       conversionUnits = new HashMap<String,String>();
    }
 
+   public Unit(String p, String s, HashMap<String, String> c) {
+      plural = p;
+      singular = s;
+      conversionUnits = c;
+   }
+
+   public Unit(String p, String s, String c) {
+      plural = p;
+      singular = s;
+      conversionUnits = parseConversionUnits(c);
+   }
+
    /**
     * Reads from a string of the form: [Plural Form],[Singular Form],[Convertable Unit Plural form]([Factor])|[Converatable Unit Plural form]([Factor])|...
     */
@@ -66,20 +78,24 @@ public class Unit implements Comparable<Unit> {
       } else if (parts.length == 3) {
          plural = parts[0];
          singular = parts[1];
-         conversionUnits = new HashMap<String, String>();
-         String[] convUnts;
-         if (parts[2].contains("|")) {
-            convUnts = parts[2].split("\\|");
-         } else {
-            convUnts = new String[1];
-            convUnts[0] = parts[2];
-         }
-         for (int i = 0; i < convUnts.length; i++) {
-            int endKey = convUnts[i].lastIndexOf("(");
-            String key = convUnts[i].substring(0, endKey);
-            String factor = convUnts[i].substring(endKey + 1, convUnts[i].length() - 1);
-            conversionUnits.put(key, factor);
-         }
+         parseConversionUnits(parts[2]);
+      }
+   }
+
+   private void parseConversionUnits(String s) {
+      conversionUnits = new HashMap<String, String>();
+      String[] convUnts;
+      if (s.contains("|")) {
+         convUnts = s.split("\\|");
+      } else {
+         convUnts = new String[1];
+         convUnts[0] = s;
+      }
+      for (int i = 0; i < convUnts.length; i++) {
+         int endKey = convUnts[i].lastIndexOf("(");
+         String key = convUnts[i].substring(0, endKey);
+         String factor = convUnts[i].substring(endKey + 1, convUnts[i].length() - 1);
+         conversionUnits.put(key, factor);
       }
    }
 
@@ -233,31 +249,12 @@ public class Unit implements Comparable<Unit> {
       };
 
       Units = new ArrayList<Unit>();
-      Reader in = null;
-         in = new FileReader(diskFile);
-      try {
-         int c = in.read();
-         while (c != -1) {
-            if (c == ';') {
-               while (c != '\n' && c != -1) {
-                  c = in.read();
-               }
-            }
-            StringWriter u = new StringWriter();
-            //the \r is important!
-            while (c != '\n' && c != '\r' && c != -1) {
-               u.write(c);
-               c = in.read();
-            }
-            if (!u.toString().isEmpty()) {
-               Units.add(new Unit(u.toString().trim()));
-            }
-            c = in.read();
-         }
-         Units.add(new Unit());
-      } catch (IOException ex) {
-         Units.add(new Unit());
+      for(int i=0; i<diskFile.getDataLength(); i++){
+         Unit newUnit = new Unit(diskFile.getLine(i)[0], diskFile.getLine(i)[1]);
+         if(diskFile.getLine(i).length == 3) newUnit.parseConversionUnits(diskFile.getLine(i)[2]);
+         Units.add(newUnit);
       }
+
       Collections.sort(Units);
    }
 

@@ -244,14 +244,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         for (int i = 0; i < this.getIngredientListSize(); i++) {
             temp.setIngredient(i, this.getIngredient(i));
         }
-        String l = "";
-        for (int i = 0; i < this.getLabels().size(); i++) {
-            l = l + this.getLabels().get(i);
-            if (i < this.getLabels().size() - 1) {
-                l = l + ", ";
-            }
-        }
-        temp.setLabels(l);
+        temp.setLabels(this.getLabelsAsText());
         temp.save();
         temp.setActiveFooter("program-footer");
     }
@@ -325,6 +318,16 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         }
     }
 
+    public String getLabelsAsText() {
+       String l = "";
+       for (int i = 0; i < this.getLabels().size(); i++) {
+           l = l + this.getLabels().get(i);
+           if (i < this.getLabels().size() - 1) {
+               l = l + ", ";
+           }
+       }
+       return l;
+    }
     /**
      * Returns all the labels this recipe has, as a string array.
      *

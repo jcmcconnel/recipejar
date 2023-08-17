@@ -14,14 +14,17 @@ import java.util.Iterator;
 import java.io.StringWriter;
 import recipejar.recipe.IngredientTableModel;
 import recipejar.filetypes.RecipeFile;
+import recipejar.StringProcessor;
+import recipejar.ProgramVariables;
+import recipejar.Kernel;
 import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.BadLocationException;
+import java.io.IOException;
 
 
 /**
- * The purpose of this class is to provide fundamental capabilities for an HTML
- * based recipe.
+ * The purpose of this class is to serve as a recipe model for the editor panel.
  *
  * @author Owner
  */
@@ -31,6 +34,8 @@ public class Recipe {
     //////Non-static members///////////
     ///////////////////////////////////
     //Private
+    private RecipeFile diskFile;
+   
     private String originalTitle;
     private Document titleModel;
 
@@ -48,6 +53,7 @@ public class Recipe {
     ////////Public///////////
     //Constructors
     public Recipe(RecipeFile f) throws BadLocationException {
+       diskFile = f;
        originalTitle = f.getTitle();
        titleModel = new PlainDocument();
        titleModel.insertString(0, originalTitle, null);
@@ -62,6 +68,44 @@ public class Recipe {
        labels = f.getLabels();
     }
 
+    public String getLabelsAsText() {
+       String l = "";
+       for (int i = 0; i < this.getLabels().size(); i++) {
+           l = l + this.getLabels().get(i);
+           if (i < this.getLabels().size() - 1) {
+               l = l + ", ";
+           }
+       }
+       return l;
+    }
+    /**
+     * Save the model to the backing file.
+     **/
+    public void writeToDisk() throws BadLocationException, IOException{
+      if (diskFile.exists()) {
+         System.out.println("attempted to save existing");
+         //return false;
+      }
+      if (hasTitleChanged()) { //Saving a new recipe.
+         if (StringProcessor.isBadTitle(titleModel.getText(0, titleModel.getLength()))) {
+            //JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
+            //return false;
+         } else {
+            diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleModel.getText(0, titleModel.getLength())));
+            diskFile.setTitle(titleModel.getText(0, titleModel.getLength()).trim());
+         }
+      }
+      diskFile.setLabels(this.getLabelsAsText());
+      diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesModel.getText(0, notesModel.getLength()))));
+
+      diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureModel.getText(0, procedureModel.getLength()))));
+
+      //updateMetaData();
+
+      diskFile.save();
+      //recipeChanged = false;
+      //return true;
+    }
 
     /**
      * Returns true if this recipe has this label.
