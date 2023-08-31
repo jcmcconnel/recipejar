@@ -55,7 +55,6 @@ public class UnitConverterDialog extends javax.swing.JDialog {
 	private ActionListener fromListnr = new ActionListener() {
 
 		public void actionPerformed(ActionEvent e) {
-         System.out.print(Unit.getConvertableUnitLabels()[0]);
 			toUnts.setModel(getComboBoxModelFor(fromUnts.getSelectedItem().toString()));
 		}
 	};
@@ -104,13 +103,6 @@ public class UnitConverterDialog extends javax.swing.JDialog {
 			}
 		});
 
-      //////////////////////////////////////////////////////////
-            String[] keys = Unit.getConvertableUnitLabels();
-            String[] modelLabels = new String[keys.length-1];
-            for(int i=0; i<keys.length; i++){
-               System.out.println("|"+keys[i]+"|");
-            }
-      //////////////////////////////////////////////////////////////
 
 		fromUnts.setModel(new javax.swing.DefaultComboBoxModel(Unit.getConvertableUnitLabels()));
       fromUnts.setSelectedIndex(0);

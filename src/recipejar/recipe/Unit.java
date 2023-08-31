@@ -61,7 +61,7 @@ public class Unit implements Comparable<Unit> {
    public Unit(String p, String s, String c) {
       plural = p;
       singular = s;
-      conversionUnits = parseConversionUnits(c);
+      parseConversionUnits(c);
    }
 
    /**
@@ -94,7 +94,8 @@ public class Unit implements Comparable<Unit> {
       for (int i = 0; i < convUnts.length; i++) {
          int endKey = convUnts[i].lastIndexOf("(");
          String key = convUnts[i].substring(0, endKey);
-         String factor = convUnts[i].substring(endKey + 1, convUnts[i].length() - 1);
+         int closeFactor = convUnts[i].lastIndexOf(")");
+         String factor = convUnts[i].substring(endKey + 1, closeFactor);
          conversionUnits.put(key, factor);
       }
    }
@@ -330,7 +331,7 @@ public class Unit implements Comparable<Unit> {
       if(f == 0.125) output += "1/8";
       if(f == 0.0625) output += "1/16";
       if(!output.isEmpty()) return output;
-      return new DecimalFormat("0.##").format(f);
+      return new DecimalFormat("0.###").format(f);
    }
 
 
@@ -372,7 +373,8 @@ public class Unit implements Comparable<Unit> {
       if (qty.isEmpty()) {
          x = 0;
       } else {//Parse out the value of qty
-         if (qty.trim().contains("-")) {
+         if (qty.trim().split("-")[0].length() > 0) {
+            System.out.print("range detected");
             //A range
             return (convert(qty.substring(0, qty.indexOf("-")).trim(), factor, outputFraction) + "-"
                     + convert(qty.substring(qty.indexOf("-") + 1).trim(), factor, outputFraction));
@@ -402,7 +404,7 @@ public class Unit implements Comparable<Unit> {
          if (outputFraction) {
             return decimalToFraction(result);
          } else {
-            return (new DecimalFormat("0.##")).format(result);
+            return (new DecimalFormat("0.###")).format(result).toString();
          }
       } catch (NumberFormatException numberFormatException) {
          return qty;//Cannot parse number
