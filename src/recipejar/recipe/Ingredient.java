@@ -41,19 +41,16 @@ public class Ingredient {
       data[1] = new String();
       String unitToken = "<span class=\"unit\">";
       int unit = s.indexOf(unitToken)+unitToken.length();
-      int endUnit = s.indexOf("</span");
+      int endUnit = s.indexOf("</span>", unit);
       if (unit != -1) {
          data[1] = s.substring(unit, endUnit);
          s = s.substring(endUnit+7);
-         //If unit does exist
-         //if (Unit.getUnit(data[1]) != null) {
-         //}
       }
       
       data[2] = new String();
       String nameToken = "<span class=\"name\">";
       int name = s.indexOf(nameToken)+nameToken.length();
-      int endName = s.indexOf("</span>");
+      int endName = s.indexOf("</span>", name);
       if (name != -1) {
          data[2] = s.substring(name, endName);
          s = s.substring(endName+7);
@@ -71,7 +68,8 @@ public class Ingredient {
    }
 
    public String getQuantity() {
-      return quantity;
+      if(quantity != null) return quantity;
+      else return "";
    }
 
    /**
@@ -83,29 +81,31 @@ public class Ingredient {
     */
    public final void setQuantity(String quantity) {
       String temp;
-      if (quantity.trim().contains("-")) {
-         //A range
-         temp = quantity.substring(quantity.indexOf("-") + 1).trim();
-      } else {
-         temp = quantity.trim().toUpperCase();
-      }
-      if (temp.equals("1") || temp.equals("ONE")) {
-         unit.setSingular(true);
-      } else if (!temp.contains(" ") && temp.contains("/")) {
-         //A fraction; if does contain a " " then fraction is greater than 1 and therefore plural
-         try {
-            int num = Integer.parseInt(temp.substring(0, temp.indexOf("/")));
-            int denom = Integer.parseInt(temp.substring(temp.indexOf("/") + 1));
-            if (num <= denom) {
-               unit.setSingular(true);
-            }
-         } catch (NumberFormatException numberFormatException) {
-            //Integer not parsable.
+      if(unit != null) {
+         if (quantity.trim().contains("-")) {
+            //A range
+            temp = quantity.substring(quantity.indexOf("-") + 1).trim();
+         } else {
+            temp = quantity.trim().toUpperCase();
          }
-      } else {
-         unit.setSingular(false);
+         if (temp.equals("1") || temp.equals("ONE")) {
+            unit.setSingular(true);
+         } else if (!temp.contains(" ") && temp.contains("/")) {
+            //A fraction; if does contain a " " then fraction is greater than 1 and therefore plural
+            try {
+               int num = Integer.parseInt(temp.substring(0, temp.indexOf("/")));
+               int denom = Integer.parseInt(temp.substring(temp.indexOf("/") + 1));
+               if (num <= denom) {
+                  unit.setSingular(true);
+               }
+            } catch (NumberFormatException numberFormatException) {
+               //Integer not parsable.
+            }
+         } else {
+            unit.setSingular(false);
+         }
       }
-      this.quantity = quantity;
+      if(quantity != null) this.quantity = quantity;
    }
 
    /**
@@ -126,7 +126,8 @@ public class Ingredient {
             return getQuantity();
          case 1:
             //return the unit that should be listed in the table; plural.
-            return unit.toString();
+            if(unit == null) return "";
+            else return unit.toString();
          case 2:
             return getName();
          default:
@@ -142,7 +143,7 @@ public class Ingredient {
       StringWriter s = new StringWriter();
       s.write("         <li>");
       s.write("<span class=\"qty\">" + getQuantity() + "</span> ");
-      s.write("<span class=\"unit\">" + getUnit() + "</span> ");
+      if(unit != null) s.write("<span class=\"unit\">" + getUnit().toString() + "</span> ");
       s.write("<span class=\"name\">" + getName() + "</span>");
       s.write("</li>\n");
       return s.toString();

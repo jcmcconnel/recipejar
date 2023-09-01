@@ -110,6 +110,7 @@ public class Unit implements Comparable<Unit> {
 
    @Override
    public String toString() {
+      if(this == null) return "";
       if (useSingular) {
          return singular;
       } else {
