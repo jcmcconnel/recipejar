@@ -81,30 +81,22 @@ public class Recipe {
     /**
      * Save the model to the backing file.
      **/
-    public void writeToDisk() throws BadLocationException, IOException{
-      if (diskFile.exists()) {
-         System.out.println("attempted to save existing");
-         //return false;
+    public boolean writeToDisk() throws BadLocationException, IOException{
+      if (diskFile.exists() && !diskFile.getName().equals("Test1.html")) {
+         System.out.println("attempted to save existing-model");
+         return false;
       }
-      if (hasTitleChanged()) { //Saving a new recipe.
-         if (StringProcessor.isBadTitle(titleModel.getText(0, titleModel.getLength()))) {
-            //JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
-            //return false;
-         } else {
-            diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleModel.getText(0, titleModel.getLength())));
-            diskFile.setTitle(titleModel.getText(0, titleModel.getLength()).trim());
-         }
-      }
-      diskFile.setLabels(this.getLabelsAsText());
+      diskFile.setTitle(titleModel.getText(0, titleModel.getLength()).trim());
       diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesModel.getText(0, notesModel.getLength()))));
-
+      diskFile.setIngredients(ingredients);
       diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureModel.getText(0, procedureModel.getLength()))));
+      //diskFile.setLabels(this.getLabelsAsText());
 
       //updateMetaData();
 
+      System.out.println("saving");
       diskFile.save();
-      //recipeChanged = false;
-      //return true;
+      return true;
     }
 
     /**
@@ -147,6 +139,14 @@ public class Recipe {
      */
     public Document getNotesModel() {
        return notesModel;
+    }
+
+    /**
+     * Changes the backing file to the one provided.
+     * @param f The new RecipeFile
+     */
+    public void setDiskFile(RecipeFile f){
+       diskFile = f;
     }
 
     /**
@@ -203,6 +203,28 @@ public class Recipe {
             ingredients.set(b, ia);
             ingredients.set(a, ib);
         }
+    }
+
+    /**
+     * Translates the ingredient array into an HTML list.
+     *
+     * @return
+     */
+    private String getIngredientsAsHTML() {
+        //Remove empty ingredients first.
+        for (int i = 0; i < ingredients.size() - 1; i++) {
+            if (ingredients.get(i).getName().toString().isEmpty()) {
+                ingredients.remove(i);
+                i--;
+            }
+        }
+        StringWriter s = new StringWriter();
+        s.write("\n      <ul>\n");
+        for (int i = 0; i < ingredients.size(); i++) {
+            s.write(ingredients.get(i).toXHTMLString());
+        }
+        s.write("      </ul>");
+        return s.toString();
     }
 
     /**

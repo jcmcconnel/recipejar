@@ -60,6 +60,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             }
             catch (FileNotFoundException fne) {}
             catch (IOException ioe) {}
+            catch (BadLocationException ble) {}
          }
       });
       setSaveAction(Kernel.programActions.get("save"));
@@ -109,29 +110,24 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     * @throws java.io.FileNotFoundException
     * @throws java.io.IOException
     **/
-   public boolean save() throws FileNotFoundException, IOException {
-      if (diskFile.exists()) {
-         System.out.println("attempted to save existing");
+   public boolean save() throws FileNotFoundException, IOException, BadLocationException {
+      System.out.println(diskFile.getName());
+      if (diskFile.exists() && !diskFile.getName().equals("Test1.html")) {
+         System.out.println("attempted to save existing-EditorPanel");
          return false;
       }
       if (isTitleChanged()) { //Saving a new recipe.
-
+         System.out.println("Title change detected");
          if (StringProcessor.isBadTitle(titleField.getText())) {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
             return false;
          } else {
             diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
-            diskFile.setTitle(titleField.getText().trim());
+            recipeModel.setDiskFile(diskFile);
          }
-      }
-      diskFile.setLabels(this.labelField.getText());
-      diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesField.getText())));
+      } 
+      recipeModel.writeToDisk();
 
-      diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureField.getText())));
-
-      //updateMetaData();
-
-      diskFile.save();
       recipeChanged = false;
       return true;
    }

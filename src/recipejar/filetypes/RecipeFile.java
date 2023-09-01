@@ -372,6 +372,13 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     public ArrayList<Ingredient> getIngredients() {
        return ingredients;
     }
+    /**
+     * Sets the ingredients array
+     * @param l The given list
+     */
+    public void setIngredients(ArrayList<Ingredient> l){
+       ingredients = l;
+    }
 
     /**
      * Replaces Ingredient at index i, with Ingredient I.
