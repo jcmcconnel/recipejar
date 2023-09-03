@@ -17,6 +17,8 @@ import recipejar.filetypes.RecipeFile;
 import recipejar.StringProcessor;
 import recipejar.ProgramVariables;
 import recipejar.Kernel;
+import javax.swing.event.TableModelListener;
+import javax.swing.event.TableModelEvent;
 import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.BadLocationException;
@@ -28,7 +30,7 @@ import java.io.IOException;
  *
  * @author Owner
  */
-public class Recipe {
+public class Recipe implements TableModelListener {
 
     ///////////////////////////////////
     //////Non-static members///////////
@@ -42,6 +44,7 @@ public class Recipe {
     private String originalNotes;
     private Document notesModel;
 
+    private ArrayList<Ingredient> originalIngredients;
     private ArrayList<Ingredient> ingredients;
     private IngredientTableModel tmodel;
 
@@ -60,14 +63,26 @@ public class Recipe {
        originalNotes = recipejar.StringProcessor.convertToASCIILinebreaks(f.getNotes());
        notesModel = new PlainDocument();
        notesModel.insertString(0, originalNotes, null);
-       ingredients = f.getIngredients();
+       originalIngredients = f.getIngredients();
+       ingredients = new ArrayList(originalIngredients.size());
+       for(Ingredient i : originalIngredients) ingredients.add(new Ingredient(i)); 
        tmodel = new IngredientTableModel(this);
+       tmodel.addTableModelListener(this);
        originalProcedure = recipejar.StringProcessor.convertToASCIILinebreaks(f.getProcedure());
        procedureModel = new PlainDocument();
        procedureModel.insertString(0, originalProcedure, null);
        labels = f.getLabels();
     }
 
+    /**
+     */
+    @Override
+    public void tableChanged(TableModelEvent e){
+       System.out.println("Table Changed");
+    }
+
+    /**
+     */
     public String getLabelsAsText() {
        String l = "";
        for (int i = 0; i < this.getLabels().size(); i++) {
@@ -78,6 +93,7 @@ public class Recipe {
        }
        return l;
     }
+
     /**
      * Save the model to the backing file.
      **/
@@ -264,6 +280,7 @@ public class Recipe {
     }
 
     public IngredientTableModel getTableModel(){
+       System.out.println(tmodel.getColumnName(0));
        return tmodel;
     }
 

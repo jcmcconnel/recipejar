@@ -17,8 +17,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.io.IOException;
@@ -29,6 +27,8 @@ import javax.swing.text.BadLocationException;
 
 import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
+
+import javax.swing.DefaultCellEditor;
 
 /**
  *
@@ -78,6 +78,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
                titleField.setDocument(recipeModel.getTitleModel());
                notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
+               System.out.println(((DefaultCellEditor) iListTable1.getCellEditor(0, 2)).getComponent().getClass());
                procedureField.setDocument(recipeModel.getProcedureModel());
            } 
            catch(IOException ioe){}

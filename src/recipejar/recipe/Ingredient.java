@@ -11,10 +11,15 @@ public class Ingredient {
    private String name = null;
 
    public Ingredient(String qty, Unit unt, String n) {
-      super();
       unit = unt;
       name = n;
       setQuantity(qty);
+   }
+
+   public Ingredient(Ingredient i){
+      unit = i.unit;
+      name = new String(i.name);
+      quantity = new String(i.quantity);
    }
 
    /**
