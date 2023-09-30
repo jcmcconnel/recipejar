@@ -89,6 +89,9 @@ public class MainFrame extends JFrame {
 		fileMenu.add(Kernel.programActions.get("exit-program"));
 		menus.add(fileMenu);
 
+                JMenu editMenu = new JMenu("Edit"); 
+                editMenu.add(ePanel.getTextActionsMenu());
+                menus.add(editMenu);
 		JMenu toolsMenu = new JMenu("Tools");
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {

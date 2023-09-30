@@ -28,6 +28,6 @@ Italics, I, I,DEFAULT,<em>[SELECTION]</em>
 Underline, U, U,DEFAULT,<span style="text-decoration: underline;">[Selection]</span>
 Color, C, C,ALT-SHIFT,<span style="color: [COLOR:Select Text Color];">[Selection]</span>
 Paragraph, P, P, ALT-DEFAULT,<p>[SELECTION]</p>
-<html>&deg;F</html>, F, F, ALT-DEFAULT,&deg;F
-<html>&deg;C</html>, C, C, ALT-DEFAULT,&deg;C
+;<html>&deg;F</html>, F, F, ALT-DEFAULT,&deg;F
+;<html>&deg;C</html>, C, C, ALT-DEFAULT,&deg;C
 Link,K,K,DEFAULT,<a href="[INPUT:Address]">[SELECTION]</a>

@@ -10,6 +10,7 @@ import java.awt.event.KeyListener;
 import javax.swing.JButton;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.JMenu;
 import java.awt.event.ActionEvent;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -19,11 +20,17 @@ import javax.swing.JTextField;
 import javax.swing.JOptionPane;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.util.Collections;
+import java.util.ArrayList;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import recipejar.filetypes.RecipeFile;
+import recipejar.lib.AbstractCharDelineatedFile;
 import recipejar.recipe.Recipe;
+import recipejar.lib.MacroTextAction;
 import javax.swing.text.BadLocationException;
+import java.io.FileReader;
+import java.io.FileWriter;
 
 import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
@@ -37,13 +44,17 @@ import javax.swing.DefaultCellEditor;
 public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
-   private Recipe recipeModel;
-   private RecipeFile diskFile;
-   private Boolean recipeChanged;
+    private Recipe recipeModel;
+    private RecipeFile diskFile;
+    private Boolean recipeChanged;
 
     private DocumentListener titleListener;
     private DocumentListener notesListener;
     private DocumentListener procedureListener;
+
+    private AbstractCharDelineatedFile macroTextActionsFile;
+    private ArrayList<MacroTextAction> macroActions;
+    private JMenu textActionsMenu;
 
    /**
     * Creates new EditorPanel
@@ -64,6 +75,11 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          }
       });
       setSaveAction(Kernel.programActions.get("save"));
+      try {
+         textActionsMenu = new JMenu("Macros");
+         readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
+      } catch(FileNotFoundException fnf) {
+      }
    }
 
 
@@ -509,4 +525,85 @@ private void showPopup(java.awt.event.MouseEvent evt) {
       return this.iListTable1;
    }
 
+   public void readMacrosFromFile(String s) throws FileNotFoundException{
+      macroTextActionsFile = new AbstractCharDelineatedFile(s,","){
+         @Override
+         public void save() {
+            FileWriter out = null;
+            try {
+               out = new FileWriter(macroTextActionsFile);
+
+               //;You can write your own macros! The following are examples/default macros
+               //;which will insert some text.  This can be useful for adding things like
+               //;html formatting.
+               //
+               //;To write a macro you need 5 things:
+               //;NAME, MNEMONIC, ACCELERATOR, MASK, SOME TEXT
+               //
+               //;The NAME is what your macro will be called in the menu.  
+               //;A MNEMONIC is the letter you will press if navigating the menu with the keyboard.
+               //;An ACCELERATOR along with a Mask is the shortcut key.
+               //;The TEXT is what you want the macro to insert.  
+               //
+               //;Acceptable values for the mask are (all in uppercase):
+               //;DEFAULT, CTRL, ALT or OPTION, SHIFT, and COMMAND or CMD
+               //;DEFAULT equates to CTRL on windows and COMMAND or CMD on a Mac.
+               //
+               //;By adding [SELECTION] into the text string, the currently selected text will be inserted,
+               //;or the command [COLOR] will open a color picker dialog, and [INPUT] inserts input from the user.
+               //
+               //;For more information on how to write your own
+               //;custom macros please visit: http://sites.google.com/site/recipejar/Home/macros
+               //
+               //;Any line beginning with a ";" is a comment and will be ignored by the program.
+
+               //for (int i = 0; i < Units.size(); i++) {
+               //   if (Units.get(i).getPlural() != null && !Units.get(i).getPlural().isEmpty()) {
+               //      out.write(Units.get(i).getPlural());
+               //      if (Units.get(i).getSingular() != null && !Units.get(i).getSingular().isEmpty()) {
+               //         out.write("," + Units.get(i).getSingular());
+               //      }
+               //      System.out.println(Units.get(i));
+               //      if(Units.get(i).isConvertable()){
+               //         Iterator<String> j = Units.get(i).conversionUnits.keySet().iterator();
+               //         if(j.hasNext()) out.write(",");
+               //         while(j.hasNext()){
+               //            String name = j.next();
+               //            out.write(name+"("+Units.get(i).conversionUnits.get(name)+")");
+               //            if(j.hasNext()) out.write("|");
+               //         }
+               //      }
+               //      out.write("\n");
+               //   }
+               //}
+               out.close();
+            } catch (IOException ex) {
+               //do nothing
+            }
+         }
+      };
+
+      macroActions = new ArrayList<MacroTextAction>();
+      for(int i=0; i<macroTextActionsFile.getDataLength(); i++){
+          for(int j=0; j<macroTextActionsFile.getLine(i).length; j++) {
+            System.out.print(macroTextActionsFile.getLine(i)[j]);
+          }
+          System.out.println("*");
+          MacroTextAction newMacro = new MacroTextAction(
+                                                         macroTextActionsFile.getLine(i)[0],
+                                                         macroTextActionsFile.getLine(i)[1].charAt(0),
+                                                         macroTextActionsFile.getLine(i)[2].charAt(0),
+                                                         macroTextActionsFile.getLine(i)[3],
+                                                         macroTextActionsFile.getLine(i)[4]
+                                                         );
+         //if(macroTextActionsFile.getLine(i).length == 3) newUnit.parseConversionUnits(diskFile.getLine(i)[2]);
+         macroActions.add(newMacro);
+         textActionsMenu.add(newMacro);
+      }
+
+      //Collections.sort(macroActions);
+   }
+    public JMenu getTextActionsMenu() {
+        return textActionsMenu;
+    }
 }

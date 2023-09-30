@@ -1,6 +1,5 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+  An action that can process and insert text according to a certain definition.
  */
 package recipejar.lib;
 

@@ -1,15 +1,11 @@
 # "Unless the Lord builds the house, they labor in vain who build it" Psalm 127:1
 #
-# To Do list
-# ----------
-#  Turn IndexFile into a singleton (?)
-#  Remove RecipeFile from direct interaction with text components.
-#	#  Components -> Recipe -> RecipeFile
 #
 
 
 SOURCEPATH=src
 COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
+BUILDPATH=build
 
 all: 
 	$(COMPILER) @source_files 
@@ -20,7 +16,7 @@ mainframe: src/recipejar/MainFrame.java
 	$(COMPILER) src/recipejar/MainFrame.java
 	cp src/*.* build
 	jar cfm RecipeJar.jar manifest -C build/ recipejar/
-	
+
 prefs: src/recipejar/PreferencesDialog.java
 	$(COMPILER) src/recipejar/PreferencesDialog.java
 	cp src/*.* build
@@ -28,7 +24,10 @@ prefs: src/recipejar/PreferencesDialog.java
 
 .PHONY: clean
 clean:
+ifneq ("$(wildcard $(BUILDPATH))","")
+	@echo test
 	rm -r build
+endif
 
 .PHONY: test
 test:
