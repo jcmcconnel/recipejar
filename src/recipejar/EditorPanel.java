@@ -597,6 +597,8 @@ private void showPopup(java.awt.event.MouseEvent evt) {
                                                          macroTextActionsFile.getLine(i)[4]
                                                          );
          //if(macroTextActionsFile.getLine(i).length == 3) newUnit.parseConversionUnits(diskFile.getLine(i)[2]);
+         newMacro.addField(notesField);
+         newMacro.addField(procedureField);
          macroActions.add(newMacro);
          textActionsMenu.add(newMacro);
       }
