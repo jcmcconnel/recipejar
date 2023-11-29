@@ -60,6 +60,7 @@ public class IngredientTableModel extends AbstractTableModel {
 
    @Override
    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+      if(aValue == null) return;
       if (rowIndex == recipe.getNumberOfIngredients()) {
          if (columnIndex == 2) {
             recipe.addIngredient(new Ingredient(rowBuffer[0], Unit.getUnit(rowBuffer[1]), 
@@ -78,7 +79,7 @@ public class IngredientTableModel extends AbstractTableModel {
          if (columnIndex == 0) {
             i.setQuantity(aValue.toString());
          } else if (columnIndex == 1) {
-            i.setUnit(Unit.getUnit(aValue.toString()));
+             i.setUnit(Unit.getUnit(aValue.toString()));
          } else if (columnIndex == 2) {
             i.setName(recipejar.StringProcessor.fixInformalAnchors(aValue.toString()));
          }

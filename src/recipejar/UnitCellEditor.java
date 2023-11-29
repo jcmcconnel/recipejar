@@ -14,6 +14,9 @@ public class UnitCellEditor extends JComboBox<recipejar.recipe.Unit> {
 
    public UnitCellEditor() {
       super();
+      for (int i = 0; i < recipejar.recipe.Unit.getUnitCount(); i++) {
+         addItem(recipejar.recipe.Unit.getUnit(i));
+      }
    }
 
    public void reload() {

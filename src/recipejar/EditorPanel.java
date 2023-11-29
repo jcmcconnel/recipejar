@@ -94,7 +94,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
                titleField.setDocument(recipeModel.getTitleModel());
                notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
-               System.out.println(((DefaultCellEditor) iListTable1.getCellEditor(0, 2)).getComponent().getClass());
+               //System.out.println(((DefaultCellEditor) iListTable1.getCellEditor(0, 2)).getComponent().getClass());
                procedureField.setDocument(recipeModel.getProcedureModel());
            } 
            catch(IOException ioe){}
@@ -585,10 +585,10 @@ private void showPopup(java.awt.event.MouseEvent evt) {
 
       macroActions = new ArrayList<MacroTextAction>();
       for(int i=0; i<macroTextActionsFile.getDataLength(); i++){
-          for(int j=0; j<macroTextActionsFile.getLine(i).length; j++) {
-            System.out.print(macroTextActionsFile.getLine(i)[j]);
-          }
-          System.out.println("*");
+          //for(int j=0; j<macroTextActionsFile.getLine(i).length; j++) {
+          //  System.out.print(macroTextActionsFile.getLine(i)[j]);
+          //}
+          //System.out.println("*");
           MacroTextAction newMacro = new MacroTextAction(
                                                          macroTextActionsFile.getLine(i)[0],
                                                          macroTextActionsFile.getLine(i)[1].charAt(0),
