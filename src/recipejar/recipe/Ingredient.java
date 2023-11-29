@@ -93,22 +93,6 @@ public class Ingredient {
          } else {
             temp = quantity.trim().toUpperCase();
          }
-         if (temp.equals("1") || temp.equals("ONE")) {
-            unit.setSingular(true);
-         } else if (!temp.contains(" ") && temp.contains("/")) {
-            //A fraction; if does contain a " " then fraction is greater than 1 and therefore plural
-            try {
-               int num = Integer.parseInt(temp.substring(0, temp.indexOf("/")));
-               int denom = Integer.parseInt(temp.substring(temp.indexOf("/") + 1));
-               if (num <= denom) {
-                  unit.setSingular(true);
-               }
-            } catch (NumberFormatException numberFormatException) {
-               //Integer not parsable.
-            }
-         } else {
-            unit.setSingular(false);
-         }
       }
       if(quantity != null) this.quantity = quantity;
    }
@@ -118,6 +102,7 @@ public class Ingredient {
     * @return The unit.
     */
    public Unit getUnit() {
+       //unit.setSingular();
       return unit;
    }
 
@@ -132,7 +117,7 @@ public class Ingredient {
          case 1:
             //return the unit that should be listed in the table; plural.
             if(unit == null) return "";
-            else return unit.toString();
+            else return unit.toString(quantity);
          case 2:
             return getName();
          default:
@@ -148,7 +133,7 @@ public class Ingredient {
       StringWriter s = new StringWriter();
       s.write("         <li>");
       s.write("<span class=\"qty\">" + getQuantity() + "</span> ");
-      if(unit != null) s.write("<span class=\"unit\">" + getUnit().toString() + "</span> ");
+      if(unit != null) s.write("<span class=\"unit\">" + getUnit().toString(quantity) +"</span> ");
       s.write("<span class=\"name\">" + getName() + "</span>");
       s.write("</li>\n");
       return s.toString();
@@ -162,7 +147,7 @@ public class Ingredient {
    public String toString() {
       StringWriter s = new StringWriter();
       s.write(getQuantity()+" ");
-      s.write(getUnit() + " ");
+      s.write(getUnit().toString(quantity) + " ");
       s.write(getName() + " ");
       return s.toString();
    }

@@ -117,6 +117,25 @@ public class Unit implements Comparable<Unit> {
          return plural;
       }
    }
+   public String toString(String qty) {
+      if(this == null) return "";
+      if (qty.equals("1") || qty.equals("ONE")) {
+         return singular;
+      } else if (!qty.contains(" ") && qty.contains("/")) {
+         //A fraction; if does contain a " " then fraction is greater than 1 and therefore plural
+         try {
+            int num = Integer.parseInt(qty.substring(0, qty.indexOf("/")));
+            int denom = Integer.parseInt(qty.substring(qty.indexOf("/") + 1));
+            if (num <= denom) {
+               return singular;
+            }
+         } catch (NumberFormatException numberFormatException) {
+            //Integer not parsable.
+            return plural;
+         }
+      }
+      return plural;
+   }
 
    @Override
    public int compareTo(Unit o) {
@@ -196,8 +215,9 @@ public class Unit implements Comparable<Unit> {
       useSingular = b;
    }
 
-
-
+   public Boolean isSingular() {
+      return useSingular;
+   }
 
    
    /** *********************************************************************

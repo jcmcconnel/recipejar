@@ -229,8 +229,6 @@ public class IListTable extends JTable {
       int c = getSelectedColumn();
       int r = getSelectedRow();
       if (c == 1) {//the Unit column
-          //System.out.println("This is causing a null pointer exc");
-          //if(unitEditor == null) System.out.println("null unit editor");
           System.out.println(getValueAt(r, c).toString().equals(unitEditor.getSelectedItem().toString()));
           if (!getValueAt(r, c).toString().equals(unitEditor.getSelectedItem().toString())) {
              int i = recipejar.recipe.Unit.indexOf(getValueAt(r, c).toString());
