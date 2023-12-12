@@ -98,7 +98,11 @@ public class Recipe implements TableModelListener {
      * Save the model to the backing file.
      **/
     public boolean writeToDisk() throws BadLocationException, IOException{
-      if (diskFile.exists() && !diskFile.getName().equals("Test1.html")) {
+      if (diskFile.exists() && !(
+                                 diskFile.getName().equals("Test1.html") ||
+                                 diskFile.getName().equals("Test3.html")
+                                 )
+          ) {
          System.out.println("attempted to save existing-model");
          return false;
       }

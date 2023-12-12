@@ -10,3 +10,6 @@ If you are interested in some of my personal family recipes, you can find that d
 You can use it to view the recipes just fine, but editing and creating new isn't ready yet.
 
 # TO DO
+  - [ ] Read-only view does not update after edit
+  - [ ] Too much debugging output to the console
+  

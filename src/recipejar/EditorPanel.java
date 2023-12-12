@@ -141,9 +141,9 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          } else {
             diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
             recipeModel.setDiskFile(diskFile);
+            recipeModel.writeToDisk();
          }
-      } 
-      recipeModel.writeToDisk();
+      } else recipeModel.writeToDisk();
 
       recipeChanged = false;
       return true;
