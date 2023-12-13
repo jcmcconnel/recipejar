@@ -49,6 +49,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
            try {
                recipejar.filetypes.RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
                setPage(f);
+               Kernel.programActions.get("delete").setEnabled(true);
            }catch(IOException ioe){}
        }
    }

@@ -94,19 +94,20 @@ public class Recipe implements TableModelListener {
        return l;
     }
 
-    /**
-     * Save the model to the backing file.
-     **/
-    public boolean writeToDisk() throws BadLocationException, IOException{
+   /**
+   * Save the model to the backing file.
+   **/
+   public boolean writeToDisk() throws BadLocationException, IOException{
       if (diskFile.exists() && !(
-                                 diskFile.getName().equals("Test1.html") ||
-                                 diskFile.getName().equals("Test3.html")
-                                 )
-          ) {
+               diskFile.getName().equals("Test1.html") ||
+               diskFile.getName().equals("Test3.html")
+            )
+         ) {
          System.out.println("attempted to save existing-model");
          return false;
       }
       diskFile.setTitle(titleModel.getText(0, titleModel.getLength()).trim());
+      diskFile.setHeader("<h1>"+titleModel.getText(0, titleModel.getLength()).trim()+"</h1>");
       diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesModel.getText(0, notesModel.getLength()))));
       diskFile.setIngredients(ingredients);
       diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureModel.getText(0, procedureModel.getLength()))));
@@ -284,7 +285,6 @@ public class Recipe implements TableModelListener {
     }
 
     public IngredientTableModel getTableModel(){
-       System.out.println(tmodel.getColumnName(0));
        return tmodel;
     }
 

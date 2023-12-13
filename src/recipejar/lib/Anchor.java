@@ -21,6 +21,12 @@ public class Anchor implements Comparable<Anchor> {
       text = newfile.getName();
    }
 
+   public Anchor(recipejar.filetypes.RecipeFile newfile) {
+      source = newfile;
+      link = newfile.getName();
+      text = newfile.getTitle();
+   }
+
    public Anchor(String l, String t) {
        link = l;
        text = t;

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 import recipejar.filetypes.RecipeFile;
+import recipejar.filetypes.IndexFile;
 import recipejar.lib.AbstractCharDelineatedFile;
 import recipejar.recipe.Recipe;
 import recipejar.lib.MacroTextAction;
@@ -64,17 +65,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       initComponents();
       jScrollPane3.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-      Kernel.programActions.put("save", new AbstractAction("Save") {
-         public void actionPerformed(ActionEvent e) {
-            try{
-               save();
-            }
-            catch (FileNotFoundException fne) {}
-            catch (IOException ioe) {}
-            catch (BadLocationException ble) {}
-         }
-      });
-      setSaveAction(Kernel.programActions.get("save"));
       try {
          textActionsMenu = new JMenu("Macros");
          readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
@@ -128,11 +118,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     * @throws java.io.IOException
     **/
    public boolean save() throws FileNotFoundException, IOException, BadLocationException {
-      System.out.println(diskFile.getName());
-      if (diskFile.exists() && !diskFile.getName().equals("Test1.html")) {
-         System.out.println("attempted to save existing-EditorPanel");
-         return false;
-      }
       if (isTitleChanged()) { //Saving a new recipe.
          System.out.println("Title change detected");
          if (StringProcessor.isBadTitle(titleField.getText())) {
@@ -142,6 +127,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
             recipeModel.setDiskFile(diskFile);
             recipeModel.writeToDisk();
+            IndexFile.getIndexFile().add(diskFile);
          }
       } else recipeModel.writeToDisk();
 
@@ -605,7 +591,11 @@ private void showPopup(java.awt.event.MouseEvent evt) {
 
       //Collections.sort(macroActions);
    }
-    public JMenu getTextActionsMenu() {
-        return textActionsMenu;
-    }
+   public JMenu getTextActionsMenu() {
+      return textActionsMenu;
+   }
+
+   public RecipeFile getDiskFile() {
+      return diskFile;
+   }
 }

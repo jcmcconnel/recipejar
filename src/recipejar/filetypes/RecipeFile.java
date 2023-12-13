@@ -70,7 +70,8 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             this.load();
             setIngredientsFromHTML(getDataElement("ingredients").getContent());
         } else {
-            System.out.print("Recipe does not exist: "+getAbsolutePath());
+            System.out.println("Recipe does not exist");
+            System.out.println("Creating new fil: "+getAbsolutePath());
             this.createNewFile();
         }
         setActiveFooter("program-footer");
@@ -102,42 +103,42 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     protected String buildBody() {
         StringWriter out = new StringWriter();
         out.write("\n   <body>\n");
-        if (this.dataElementExists("header")) {
-            out.write("    " + processMacros(this.getDataElement("header").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("header")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("header").toString()) + "\n");
         }
 
-        if (this.dataElementExists("notes-header")) {
-            out.write("    " + processMacros(this.getDataElement("notes-header").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("notes-header")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("notes-header").toString()) + "\n");
         }
         out.write("    <div id=\"" + Section.NOTES.toString() + "\">");
         out.write(this.getNotes());
         out.write("    </div>\n");
-        if (this.dataElementExists("notes-footer")) {
-            out.write("    " + processMacros(this.getDataElement("notes-footer").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("notes-footer")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("notes-footer").toString()) + "\n");
         }
 
-        if (this.dataElementExists("ingredients-header")) {
-            out.write("    " + processMacros(this.getDataElement("ingredients-header").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("ingredients-header")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("ingredients-header").toString()) + "\n");
         }
         out.write("    <div id=\"" + Section.INGREDIENTS.toString() + "\">");
         out.write(this.getIngredientsAsHTML());
         out.write("\n    </div>\n");
-        if (this.dataElementExists("ingredients-footer")) {
-            out.write("    " + processMacros(this.getDataElement("ingredients-footer").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("ingredients-footer")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("ingredients-footer").toString()) + "\n");
         }
 
-        if (this.dataElementExists("procedure-header")) {
-            out.write("    " + processMacros(this.getDataElement("procedure-header").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("procedure-header")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-header").toString()) + "\n");
         }
         out.write("    <div id=\"" + Section.PROCEDURE.toString() + "\">");
         out.write(this.getProcedure());
         out.write("    </div>\n");
-        if (this.dataElementExists("procedure-footer")) {
-            out.write("    " + processMacros(this.getDataElement("procedure-footer").toString()) + "\n");
+        if (recipeTemplate.dataElementExists("procedure-footer")) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-footer").toString()) + "\n");
         }
 
-        if (this.dataElementExists(activeFooter)) {
-            out.write("    " + processMacros(this.getDataElement(activeFooter).toString()) + "\n");
+        if (recipeTemplate.dataElementExists(activeFooter)) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
         }
         out.write("  </body>\n");
         return out.toString();
@@ -269,55 +270,80 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     }
 
     /////Getters and Setters/////
-    /**
-     *
-     * @return
-     */
-    public String getNotes() {
-        if (!dataElementExists("notes")) {
+   /**
+   *
+   * @return
+   */
+   public String getHeader() {
+      if (!dataElementExists("header")) {
+            setHeader("");
+      }
+      return recipejar.StringProcessor.removeCarriageReturns(getDataElement("header").getContent());
+   }
+
+   /**
+   *
+   * @param newHeader
+   */
+   public void setHeader(String newHeader) {
+      if (!dataElementExists("header")) {
+         HashMap<String, String> m = new HashMap<String, String>();
+         m.put("id", "header");
+         Element e = setDataElement("div", m, newHeader);
+      } else {
+         getDataElement("header").setContent(newHeader);
+      }
+   }
+
+   /**
+   *
+   * @return
+   */
+   public String getNotes() {
+      if (!dataElementExists("notes")) {
             setNotes("");
-        }
-        return recipejar.StringProcessor.removeCarriageReturns(getDataElement("notes").getContent());
-    }
+      }
+      return recipejar.StringProcessor.removeCarriageReturns(getDataElement("notes").getContent());
+   }
 
-    /**
-     *
-     * @param newNotes
-     */
-    public void setNotes(String newNotes) {
-        if (!dataElementExists("notes")) {
-            HashMap<String, String> m = new HashMap<String, String>();
-            m.put("id", "notes");
-            Element e = setDataElement("div", m, newNotes);
-        } else {
-            getDataElement("notes").setContent(newNotes);
-        }
-    }
+   /**
+   *
+   * @param newNotes
+   */
+   public void setNotes(String newNotes) {
+      if (!dataElementExists("notes")) {
+         HashMap<String, String> m = new HashMap<String, String>();
+         m.put("id", "notes");
+         Element e = setDataElement("div", m, newNotes);
+      } else {
+         getDataElement("notes").setContent(newNotes);
+      }
+   }
 
-    /**
-     *
-     * @return
-     */
-    public String getProcedure() {
-        if (!dataElementExists("procedure")) {
-            setProcedure("");
-        }
-        return recipejar.StringProcessor.removeCarriageReturns(getDataElement("procedure").getContent());
-    }
+   /**
+   *
+   * @return
+   */
+   public String getProcedure() {
+      if (!dataElementExists("procedure")) {
+         setProcedure("");
+      }
+      return recipejar.StringProcessor.removeCarriageReturns(getDataElement("procedure").getContent());
+   }
 
-    /**
-     *
-     * @param newProcedure
-     */
-    public void setProcedure(String newProcedure) {
-        if (!dataElementExists("procedure")) {
-            HashMap<String, String> m = new HashMap<String, String>();
-            m.put("id", "procedure");
-            Element e = setDataElement("div", m, newProcedure);
-        } else {
-            getDataElement("procedure").setContent(newProcedure);
-        }
-    }
+   /**
+   *
+   * @param newProcedure
+   */
+   public void setProcedure(String newProcedure) {
+      if (!dataElementExists("procedure")) {
+         HashMap<String, String> m = new HashMap<String, String>();
+         m.put("id", "procedure");
+         Element e = setDataElement("div", m, newProcedure);
+      } else {
+         getDataElement("procedure").setContent(newProcedure);
+      }
+   }
 
     public String getLabelsAsText() {
        String l = "";
