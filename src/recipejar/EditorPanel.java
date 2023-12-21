@@ -84,7 +84,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
                titleField.setDocument(recipeModel.getTitleModel());
                notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
-               //System.out.println(((DefaultCellEditor) iListTable1.getCellEditor(0, 2)).getComponent().getClass());
                procedureField.setDocument(recipeModel.getProcedureModel());
            } 
            catch(IOException ioe){}
@@ -144,18 +143,19 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
               "You have unsaved changes.\n"
               + "Are you sure you want to leave this recipe?\n"
               + "Any unsaved changes will be discarded.") == JOptionPane.YES_OPTION)) {
-         //stopListening();
-         // open = null;
-         titleField.setText("");
-         titleField.setEditable(true);
-         notesField.setText(StringProcessor.convertToASCIILinebreaks(RecipeFile.getTemplate().getNotes()));
-         notesField.setEditable(true);
-         procedureField.setText(StringProcessor.convertToASCIILinebreaks(RecipeFile.getTemplate().getProcedure()));
-         procedureField.setEditable(true);
-         this.labelField.setText("");
-         saveButton.setEnabled(true);
+         try {
+            diskFile = new recipejar.filetypes.RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString());
+            recipeModel = new Recipe(diskFile);
+            titleField.setDocument(recipeModel.getTitleModel());
+            notesField.setDocument(recipeModel.getNotesModel());
+            iListTable1.setModel(recipeModel.getTableModel());
+            procedureField.setDocument(recipeModel.getProcedureModel());
+         } 
+         catch(IOException ioe){}
+         catch(BadLocationException ble){}
 
-         //startListening();
+         Kernel.programActions.get("save").setEnabled(false);
+
          return true;
       } else {
          return false;

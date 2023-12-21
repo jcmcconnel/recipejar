@@ -223,7 +223,7 @@ public class IListTable extends JTable {
             }
          }
       }
-   }//GEN-LAST:event_shortcutHandler
+   }
 
    private void onMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_onMousePressed
       int c = getSelectedColumn();
@@ -246,19 +246,16 @@ public class IListTable extends JTable {
          }
 
       }
-   }//GEN-LAST:event_onMousePressed
+   }
 
    private void onMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_onMouseReleased
       int c = getSelectedColumn();
       int r = getSelectedRow();
       if (c == 1) {
          if (!unitEditor.isPopupVisible()) {
-            editCellAt(r, c);
-                  unitEditor.showPopup();
+             editCellAt(r, c);
+             unitEditor.showPopup();
          }
       }
-   }//GEN-LAST:event_onMouseReleased
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    // End of variables declaration//GEN-END:variables
+   }
 }

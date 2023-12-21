@@ -62,7 +62,6 @@ public class MainFrame extends JFrame {
             } else {
                splitPane.setRightComponent(ePanel);
                this.putValue(AbstractAction.NAME, "Close");
-               Kernel.programActions.get("save").setEnabled(true);
                Kernel.programActions.get("delete").setEnabled(false);
             }
          }
@@ -83,8 +82,8 @@ public class MainFrame extends JFrame {
       // New 
       Kernel.programActions.put("new", new AbstractAction("New") {
          public void actionPerformed(ActionEvent e) {
-            ePanel.startNew();
             Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
+            ePanel.startNew();
          }
       });
       fileMenu.add(Kernel.programActions.get("new"));
