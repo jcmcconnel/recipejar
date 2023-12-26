@@ -20,6 +20,8 @@ import recipejar.Kernel;
 import javax.swing.event.TableModelListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.text.Document;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.PlainDocument;
 import javax.swing.text.BadLocationException;
 import java.io.IOException;
@@ -30,7 +32,7 @@ import java.io.IOException;
  *
  * @author Owner
  */
-public class Recipe implements TableModelListener {
+public class Recipe implements TableModelListener, DocumentListener {
 
     ///////////////////////////////////
     //////Non-static members///////////
@@ -53,6 +55,8 @@ public class Recipe implements TableModelListener {
 
     private ArrayList<String> labels;
 
+    private boolean tmodelChanged;
+
     ////////Public///////////
     //Constructors
     public Recipe(RecipeFile f) throws BadLocationException {
@@ -72,14 +76,40 @@ public class Recipe implements TableModelListener {
        procedureModel = new PlainDocument();
        procedureModel.insertString(0, originalProcedure, null);
        labels = f.getLabels();
+
+       tmodelChanged = false;
+
+       titleModel.addDocumentListener(this);
+       notesModel.addDocumentListener(this);
+       procedureModel.addDocumentListener(this);
     }
 
-    /**
-     */
-    @Override
-    public void tableChanged(TableModelEvent e){
-       System.out.println("Table Changed");
-    }
+   /**
+   */
+   @Override
+   public void tableChanged(TableModelEvent e){
+      System.out.println("Table Changed");
+      tmodelChanged = true;
+      Kernel.programActions.get("save").setEnabled(true);
+   }
+
+   @Override
+   public void changedUpdate(DocumentEvent e) {
+      System.out.println("Recipe Model Document Changed");
+      Kernel.programActions.get("save").setEnabled(true);
+   }
+
+   @Override
+   public void removeUpdate(DocumentEvent e) {
+      System.out.println("Recipe Model Document Changed-removed");
+      Kernel.programActions.get("save").setEnabled(true);
+   }
+
+   @Override
+   public void insertUpdate(DocumentEvent e) {
+      System.out.println("Recipe Model Document Changed-insert");
+      Kernel.programActions.get("save").setEnabled(true);
+   }
 
     /**
      */
@@ -153,6 +183,30 @@ public class Recipe implements TableModelListener {
           return true;
        }
     }
+
+   public boolean hasNotesChanged() {
+       try {
+         return !originalNotes.equals(notesModel.getText(0, notesModel.getLength()));
+       }
+       catch (BadLocationException ble) {
+          return true;
+       }
+   }
+   public boolean hasProcedureChanged() {
+       try {
+         return !originalProcedure.equals(procedureModel.getText(0, procedureModel.getLength()));
+       }
+       catch (BadLocationException ble) {
+          return true;
+       }
+   }
+   public boolean hasRecipeChanged() {
+      try{
+         return hasTitleChanged() || hasNotesChanged() || hasProcedureChanged() || tmodelChanged;
+      }catch (NullPointerException npe) {
+         return true;
+      }
+   }
 
     /**
      *

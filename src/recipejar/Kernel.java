@@ -22,7 +22,7 @@ public class Kernel {
 
 
    protected static File configDir;
-   protected static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
+   public static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
    protected static JFrame topLevelFrame;
 

@@ -18,8 +18,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -48,10 +46,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     private Recipe recipeModel;
     private RecipeFile diskFile;
     private Boolean recipeChanged;
-
-    private DocumentListener titleListener;
-    private DocumentListener notesListener;
-    private DocumentListener procedureListener;
 
     private AbstractCharDelineatedFile macroTextActionsFile;
     private ArrayList<MacroTextAction> macroActions;
@@ -96,7 +90,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     *
     */
    public void clear() {
-      //stopListening();
       titleField.setText("Open a Recipe, or click \"New\".");
       titleField.setEditable(false);
       notesField.setText("");
@@ -106,16 +99,15 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       procedureField.setEditable(false);
       saveButton.setEnabled(false);
 
-      //startListening();
    }
 
 
    /**
-    *
-    * @return
-    * @throws java.io.FileNotFoundException
-    * @throws java.io.IOException
-    **/
+   *
+   * @return
+   * @throws java.io.FileNotFoundException
+   * @throws java.io.IOException
+   **/
    public boolean save() throws FileNotFoundException, IOException, BadLocationException {
       if (isTitleChanged()) { //Saving a new recipe.
          System.out.println("Title change detected");
@@ -123,7 +115,11 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
             return false;
          } else {
-            diskFile = new RecipeFile(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
+            if(diskFile.getPath().equals(ProgramVariables.TEMPLATE_RECIPE.toString())){
+               System.out.println("Saving new");
+            }
+            diskFile = RecipeFile.newFromTemplate(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
+            System.out.println("Name of file to be saved: "+diskFile.getName());
             recipeModel.setDiskFile(diskFile);
             recipeModel.writeToDisk();
             IndexFile.getIndexFile().add(diskFile);
@@ -135,14 +131,16 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    }
 
    /**
-    *
-    * @return
-    */
+      *
+      * @return
+      */
    public boolean startNew() {
-      if (!isRecipeChanged() || (isRecipeChanged() && JOptionPane.showConfirmDialog(this.getParent(),
-              "You have unsaved changes.\n"
-              + "Are you sure you want to leave this recipe?\n"
-              + "Any unsaved changes will be discarded.") == JOptionPane.YES_OPTION)) {
+      System.out.println("Starting new");
+      if (recipeModel == null || !recipeModel.hasRecipeChanged() ||
+          (recipeModel.hasRecipeChanged() && JOptionPane.showConfirmDialog(this.getParent(),
+               "You have unsaved changes.\n"
+               + "Are you sure you want to leave this recipe?\n"
+               + "Any unsaved changes will be discarded.") == JOptionPane.YES_OPTION)) {
          try {
             diskFile = new recipejar.filetypes.RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString());
             recipeModel = new Recipe(diskFile);
@@ -204,36 +202,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       }
    }
 
-   public boolean isRecipeChanged() {
-      //TODO Stub
-      return false;
-   }
-
    /*******************non public******************/
    
-  // /**
-  //  * Adds this as a document listener on all the fields.
-  //  */
-  // private void startListening() {
-  //    this.titleField.getDocument().addDocumentListener(this);
-  //    this.notesField.getDocument().addDocumentListener(this);
-  //    this.iListTable1.getModel().addTableModelListener(this);
-  //    this.procedureField.getDocument().addDocumentListener(this);
-  //    this.labelField.getDocument().addDocumentListener(this);
-  // }
-
-  // /**
-  //  * Removes this as a DocumentListener on all the fields.
-  //  * This is so that DocumentEvents fired not as a result of
-  //  * user input are ignored.
-  //  */
-  // private void stopListening() {
-  //    this.titleField.getDocument().removeDocumentListener(this);
-  //    this.notesField.getDocument().removeDocumentListener(this);
-  //    //TODO this.ingredientList1.getTable().getModel().removeTableModelListener(this);
-  //    this.procedureField.getDocument().removeDocumentListener(this);
-  //    this.labelField.getDocument().removeDocumentListener(this);
-  // }
 
    /***************Interface implementations************************/
    /**

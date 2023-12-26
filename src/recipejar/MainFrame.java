@@ -92,16 +92,13 @@ public class MainFrame extends JFrame {
       Kernel.programActions.put("save", new AbstractAction("Save") {
          public void actionPerformed(ActionEvent e) {
             try{
-               System.out.println(ePanel.getDiskFile().getName());
-               if (ePanel.getDiskFile().exists() && !ePanel.getDiskFile().getName().equals("Test1.html")) {
-                  System.out.println("attempted to save existing");
-               } else {
-                  ePanel.save();
-                  readerPane.setPage(ePanel.getDiskFile());
-               }
+               ePanel.save();
+               readerPane.setPage(ePanel.getDiskFile());
             }
             catch (FileNotFoundException fne) {}
-            catch (IOException ioe) {}
+            catch (IOException ioe) {
+               System.out.println("there has been an error saving: Mainframe");
+            }
             catch (BadLocationException ble) {}
          }
       });

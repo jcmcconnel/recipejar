@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import java.nio.file.Files;
+
 import recipejar.lib.AbstractXHTMLBasedFile;
 import recipejar.lib.Element;
 import recipejar.recipe.Ingredient;
@@ -229,6 +231,14 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     public RecipeFile(File f) throws IOException {
         super(f);
         initialize();
+    }
+
+    public static RecipeFile newFromTemplate(String newFilePathName) throws IOException {
+        System.out.println(recipejar.ProgramVariables.TEMPLATE_RECIPE.toString());
+        System.out.println(newFilePathName);
+        Files.copy(new File(recipejar.ProgramVariables.TEMPLATE_RECIPE.toString()).toPath(),
+                   new File(newFilePathName).toPath());
+        return new RecipeFile(newFilePathName);
     }
 
     //General
