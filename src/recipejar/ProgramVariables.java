@@ -63,7 +63,9 @@ public enum ProgramVariables {
    CSS_INDEX("css/index"),
    CSS_RECIPE("css/recipe"),
    //Other
-   HELP_URL("files/help_url");
+   HELP_URL("files/help_url"),
+   //Major.Minor.Increment
+   VERSION("info/version");
 
    public static void unpackToRegistry() {
        for(int i=0; i<ProgramVariables.values().length; i++){
@@ -203,6 +205,8 @@ public enum ProgramVariables {
          //Other
          case HELP_URL:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, getDefault(this));
+         case VERSION:
+             return getDefault(this);
          default:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, null);
       }

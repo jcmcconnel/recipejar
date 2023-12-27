@@ -128,14 +128,6 @@ public class Recipe implements TableModelListener, DocumentListener {
    * Save the model to the backing file.
    **/
    public boolean writeToDisk() throws BadLocationException, IOException{
-      if (diskFile.exists() && !(
-               diskFile.getName().equals("Test1.html") ||
-               diskFile.getName().equals("Test3.html")
-            )
-         ) {
-         System.out.println("attempted to save existing-model");
-         return false;
-      }
       diskFile.setTitle(titleModel.getText(0, titleModel.getLength()).trim());
       diskFile.setHeader("<h1>"+titleModel.getText(0, titleModel.getLength()).trim()+"</h1>");
       diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesModel.getText(0, notesModel.getLength()))));

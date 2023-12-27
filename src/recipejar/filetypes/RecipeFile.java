@@ -139,6 +139,8 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-footer").toString()) + "\n");
         }
 
+        System.out.println("active footer: "+activeFooter);
+        System.out.println(processMacros(recipeTemplate.getDataElement(activeFooter).toString()));
         if (recipeTemplate.dataElementExists(activeFooter)) {
             out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
         }

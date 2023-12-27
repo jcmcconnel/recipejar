@@ -350,18 +350,21 @@ public abstract class AbstractXHTMLBasedFile extends File {
                      textStroke.write("Unknown.");
                   }
                } else if (s.toString().toUpperCase().equals("[VERSION]")) {
-                  try {
-                     InputStream inAbout = ClassLoader.getSystemResourceAsStream("about.txt");
-                     String temp = new String();
-                     int d = inAbout.read();
-                     while (d != '\n' && d != '\r') {
-                        temp = temp + (char) d;
-                        d = inAbout.read();
-                     }
-                     textStroke.write(temp);
-                  } catch (IOException ex) {
-                     textStroke.write("RecipeJar");
-                  }
+                  //try {
+                     //InputStream inAbout = ClassLoader.getSystemResourceAsStream("about.txt");
+                     //String temp = new String();
+                     //int d = inAbout.read();
+                     //while (d != '\n' && d != '\r') {
+                     //   temp = temp + (char) d;
+                     //   d = inAbout.read();
+                     //}
+                     //textStroke.write(temp);
+                   System.out.println("attempting to source version number");
+                   System.out.println(recipejar.ProgramVariables.VERSION.toString());
+                   textStroke.write(recipejar.ProgramVariables.VERSION.toString());
+                     //} catch (IOException ex) {
+                     //   textStroke.write("RecipeJar");
+                     //}
                } else {
                   textStroke.write(getMacroText(s.toString()));
                }

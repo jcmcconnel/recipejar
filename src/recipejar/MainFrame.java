@@ -98,6 +98,8 @@ public class MainFrame extends JFrame {
             catch (FileNotFoundException fne) {}
             catch (IOException ioe) {
                System.out.println("there has been an error saving: Mainframe");
+               System.out.println(ioe.getCause());
+               System.out.println(ioe.getMessage());
             }
             catch (BadLocationException ble) {}
          }
