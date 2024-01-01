@@ -72,8 +72,12 @@ public class MainFrame extends JFrame {
       // Delete 
       Kernel.programActions.put("delete", new AbstractAction("Delete") {
          public void actionPerformed(ActionEvent e) {
-             System.out.println("Attempted to delete");
-             //IndexFile.getIndexFile().remove(ePanel.getDiskFile());
+            System.out.println("Attempted to delete");
+            IndexFile.getIndexFile().remove(ePanel.getDiskFile());
+            ePanel.getDiskFile().delete();
+            ePanel.clear();
+            tabbedPane.reload();
+            readerPane.setPage("");
          }
       });
       Kernel.programActions.get("delete").setEnabled(false);
@@ -94,6 +98,8 @@ public class MainFrame extends JFrame {
             try{
                ePanel.save();
                readerPane.setPage(ePanel.getDiskFile());
+               tabbedPane.reload();
+               Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
             }
             catch (FileNotFoundException fne) {}
             catch (IOException ioe) {

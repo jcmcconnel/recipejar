@@ -146,6 +146,10 @@ public class AlphaTab extends JTabbedPane {
         setupDocument(this.getSelectedTextPane());
     }
 
+    public void reload() {
+       setupDocument(this.getSelectedTextPane());
+    }
+
     public final javax.swing.JTextPane getSelectedTextPane() {
         switch (this.getSelectedIndex() + 1) {
             case 1:

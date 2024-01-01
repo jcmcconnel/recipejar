@@ -73,7 +73,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             setIngredientsFromHTML(getDataElement("ingredients").getContent());
         } else {
             System.out.println("Recipe does not exist");
-            System.out.println("Creating new fil: "+getAbsolutePath());
+            System.out.println("Creating new file: "+getAbsolutePath());
             this.createNewFile();
         }
         setActiveFooter("program-footer");
@@ -139,8 +139,6 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-footer").toString()) + "\n");
         }
 
-        System.out.println("active footer: "+activeFooter);
-        System.out.println(processMacros(recipeTemplate.getDataElement(activeFooter).toString()));
         if (recipeTemplate.dataElementExists(activeFooter)) {
             out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
         }
@@ -236,8 +234,6 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     }
 
     public static RecipeFile newFromTemplate(String newFilePathName) throws IOException {
-        System.out.println(recipejar.ProgramVariables.TEMPLATE_RECIPE.toString());
-        System.out.println(newFilePathName);
         Files.copy(new File(recipejar.ProgramVariables.TEMPLATE_RECIPE.toString()).toPath(),
                    new File(newFilePathName).toPath());
         return new RecipeFile(newFilePathName);

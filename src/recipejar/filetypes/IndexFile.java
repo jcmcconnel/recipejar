@@ -241,6 +241,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
     * @param f file to remove
     */
    public void remove(RecipeFile f) {
+      System.out.println("removing: "+f.getName());
       for (int i = 0; i < Section.values().length; i++) {
          Object[] keys = getSection(Section.values()[i]).keySet().toArray();
          for (int j = 0; j < keys.length; j++) {
@@ -486,6 +487,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
       } else {
          sec = Section.parse(category);
       }
+      System.out.println("Section: "+sec+" category: "+category);
       ArrayList<Anchor> theList;
       if (getSection(sec).containsKey(category)) {
          theList = getList(sec, category);
@@ -493,7 +495,11 @@ public class IndexFile extends AbstractXHTMLBasedFile {
          throw new IOException("unable to access category: " + c);
       }
       for (int i = 0; i < theList.size(); i++) {
-         if (theList.get(i).equals((Object)oldFile)) {
+         System.out.println("Checking: "+theList.get(i).toString());
+         if (theList.get(i).linksTo(oldFile)) {
+             //Okay, so the problem is that the anchor class equals function returns false for any object not of type anchor.
+             //That may make sense.  So, I think the think to do, would be to make a new function: linksTo(RecipeFile f)
+            System.out.println("Found it!");
             theList.remove(i);
             //this is supposed to remove a category if it is empty.
             if (theList.isEmpty() && !category.equals("DEFAULT")) {

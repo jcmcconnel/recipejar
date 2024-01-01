@@ -10,9 +10,6 @@ If you are interested in some of my personal family recipes, you can find that d
 You can use it to view the recipes just fine, but editing and creating new isn't ready yet.
 
 # TO DO
-  - [X] Read-only view does not update after edit
-  - [X] Too much debugging output to the console
-  - [ ] Implement Delete action
+  - [ ] Too much debugging output to the console
+  - [X] Implement Delete action
   - [ ] Set welcome message
-  - [ ] De-hamstring saving
-  

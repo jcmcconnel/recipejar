@@ -76,6 +76,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
                diskFile = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
                recipeModel = new Recipe(diskFile);
                titleField.setDocument(recipeModel.getTitleModel());
+               titleField.setEditable(true);
                notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
                procedureField.setDocument(recipeModel.getProcedureModel());
@@ -98,7 +99,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       procedureField.setText("");
       procedureField.setEditable(false);
       saveButton.setEnabled(false);
-
+      recipeModel = null;
    }
 
 
@@ -145,6 +146,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             diskFile = new recipejar.filetypes.RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString());
             recipeModel = new Recipe(diskFile);
             titleField.setDocument(recipeModel.getTitleModel());
+            titleField.setEditable(true);
             notesField.setDocument(recipeModel.getNotesModel());
             iListTable1.setModel(recipeModel.getTableModel());
             procedureField.setDocument(recipeModel.getProcedureModel());

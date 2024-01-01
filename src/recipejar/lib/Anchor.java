@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import recipejar.filetypes.RecipeFile;
+
 /**
  *
  * @author james
@@ -58,8 +60,14 @@ public class Anchor implements Comparable<Anchor> {
       return true;
    }
 
+   public boolean linksTo(RecipeFile obj) {
+      if (obj == null) {
+         return false;
+      }
+      return (text.equals(obj.getTitle()) && link.equals(obj.getName()));
+   }
+
    /**
-    * TODO: This is not what it is currently doing.
     * Computed thus: both fields null: 0
     *                link is null: -1
     *                text is null: -2
