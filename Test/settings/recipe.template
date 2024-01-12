@@ -1,86 +1,43 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
   <head>
-	  <!--This file is intended for use by the RecipeJar program.
-	      Author: James McConnel
-		  12/15/09
-	  -->
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="generator" content="RecipeJar"/>
+    <meta name="created" content="Sometime before, Wed Jan 10 11:45:35 PST 2024"/>
+    <meta name="last saved" content="Wed Jan 10 11:45:35 PST 2024"/>
+    <title></title>
     <style type="text/css">@import url("style/default.css");</style>
+    
   </head>
-  <body>
-       <!-- This file is only intended to maintain information common to all recipes.
-            It does NOT necessarily reflect the structure of recipes constructed by the RecipeJar Program.
-            
-            Data in the following elements is used in constructing new recipes.
-            These elements are not optional.  They must exist in order for the RecipeJar program to function:
-            1. The style element in the head section.
-            2. The notes div in the body.
-            3. The ingredients div in the body.
-            4. The procedure div in the body.
-            
-            The following elements contain data intended to be common to all recipes.
-            Recipes without this data are updated to include it any time they are saved.
-            These elements are optional.  Some are provided below as examples:
-            1. div header
-            2. div notes-header
-            3. div notes-footer
-            4. div ingredients-header
-            5. div ingredients-footer
-            6. div procedure-header
-            7. div procedure-footer
-            8. div footer
-            9. div browser-footer
-
-       For more information about this template, see http://code.google.com/p/recipejar/wiki/Template_Files
-               
-         -->
-      <div id="header"><h1>[TITLE]</h1></div>
-
-      <div id="notes-header"><h3>Notes:</h3></div>
-      <div id="notes">A little about this recipe,<br/>where I got it why I like it, etc.<br/>Makes 1 serving.</div>
-      <div id="notes-footer"></div>
-      
-      <div id="ingredients-header"><h3>You will need:</h3></div>
-      <div id="ingredients">
-         <ul>
-            <li><span class="qty">2</span> <span class="unit">Slices</span> <span class="name">Bread</span></li>
-            <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Jam</span></li>
-            <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Peanut Butter</span></li>
-         </ul>
-      </div>
-      
-      <div id="procedure-header"><h3>Procedure:</h3></div>
-      <div id="procedure">Evenly spread the Jam on one of the bread slices, and the Peanut Butter on the other.  <br/>
+   <body>
+    <div id="header"><h1></h1></div>
+    <div id="notes-header"><h3>Notes:</h3></div>
+    <div id="notes">A little about this recipe,<br/>
+where I got it why I like it, etc.<br/>
+Makes 1 serving.    </div>
+    <div id="notes-footer"></div>
+    <div id="ingredients-header"><h3>You will need:</h3></div>
+    <div id="ingredients">
+      <ul>
+         <li><span class="qty">2</span> <span class="unit">Slices</span> <span class="name">Bread</span></li>
+         <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Jam</span></li>
+         <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Peanut Butter</span></li>
+      </ul>
+    </div>
+    <div id="procedure-header"><h3>Procedure:</h3></div>
+    <div id="procedure">Evenly spread the Jam on one of the bread slices, and the Peanut Butter on the other.  <br/>
 Apply the condiment coated side of one of the bread slices to the condiment coated side of the other.<br/>
-If desired, cut the sandwich into geometric shapes before enjoying.
-      </div>
-      <div id="program-footer">
+If desired, cut the sandwich into geometric shapes <strong>before</strong> enjoying.          </div>
+    <div id="browser-footer">
 		  <br/>
 		  <hr/>
-		  Labels: [LABELS]<br/>
-	      Last Saved: [LASTSAVE]<br/>
-	      Created: [CREATED]
-      </div>
-      <div id="browser-footer">
-		  <br/>
-		  <hr/>
-		  Labels: [LABELS]<br/>
-	      Last Saved: [LASTSAVE]<br/>
-	      Created: [CREATED]<br/>
-	      By: [AUTHOR]<br/>
-	      Using: <a href="http://code.google.com/p/recipejar/">[VERSION]</a>.
+		  Labels: Currently None.<br/>
+	      Last Saved: Wed Jan 10 11:45:35 PST 2024<br/>
+	      Created: Sometime before, Wed Jan 10 11:45:35 PST 2024<br/>
+	      By: Unknown<br/>
+	      Using: <a href="http://code.google.com/p/recipejar/">0.0.1</a>.
 	      <hr/>
          <a href="index.html">Index</a>
       </div>
-      <div id="export-footer">
-		  <br/>
-		  <hr/>
-        Labels: [LABELS]<br/>
-	Last Saved: [LASTSAVE]<br/>
-        Created: [CREATED]<br/>
-	By: [AUTHOR]<br/>
-        Using: <a href="http://code.google.com/p/recipejar/">[VERSION]</a>.
-      </div>
-
   </body>
 </html>

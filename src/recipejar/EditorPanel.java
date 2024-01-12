@@ -50,6 +50,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     private AbstractCharDelineatedFile macroTextActionsFile;
     private ArrayList<MacroTextAction> macroActions;
     private JMenu textActionsMenu;
+    private JPopupMenu popupMenu;
 
    /**
     * Creates new EditorPanel
@@ -61,6 +62,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       try {
          textActionsMenu = new JMenu("Macros");
+         popupMenu = new JPopupMenu();
          readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
       } catch(FileNotFoundException fnf) {
       }
@@ -182,12 +184,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    }
    public void setCancelAction(Action a) {
       cancelButton.setAction(a);
-   }
-
-   public void setNotesPopup(JPopupMenu notesPopup) {
-   }
-
-   public void setProcedurePopup(JPopupMenu procedurePopup) {
    }
 
    /****************Other********************/
@@ -410,11 +406,11 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       add(jPanel1, gridBagConstraints);
    }
 
-private void showPopup(java.awt.event.MouseEvent evt) {
-    //if (evt.isPopupTrigger()) {
-    //   aes.fireApplicationEvent(new ApplicationEvent(Event_Type.POPUP, evt));
-    //}
-}
+   private void showPopup(java.awt.event.MouseEvent evt) {
+      if (evt.isPopupTrigger()) {
+         popupMenu.show(evt.getComponent(), evt.getX(), evt.getY());
+      }
+   }
 
 
    private javax.swing.JPanel buttonsPanel;
@@ -559,6 +555,7 @@ private void showPopup(java.awt.event.MouseEvent evt) {
          newMacro.addField(procedureField);
          macroActions.add(newMacro);
          textActionsMenu.add(newMacro);
+         popupMenu.add(newMacro);
       }
 
       //Collections.sort(macroActions);
