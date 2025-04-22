@@ -62,6 +62,7 @@ public abstract class AbstractTextAction extends AbstractAction implements Focus
       for (int i = 0; i < keystrokemasks.length; i++) {
          if (keystrokemasks[i].equals("DEFAULT")) {
             totalmodifier = totalmodifier + Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+            System.out.println(name+" "+(char)totalmodifier);
          } else if (keystrokemasks[i].equals("CTRL")) {
             totalmodifier = totalmodifier + KeyEvent.CTRL_DOWN_MASK;
          } else if (keystrokemasks[i].equals("ALT") || keystrokemasks[i].equals("OPTION")) {

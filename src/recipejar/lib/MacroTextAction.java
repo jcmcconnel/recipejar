@@ -138,6 +138,10 @@ public class MacroTextAction extends AbstractTextAction {
       TEXT, COLOR, SELECTION, INPUT;
    }
 
+   public static MacroTextAction buildFromConfigString(String configString) {
+      return null;
+   }
+
    private static boolean isCommand(String s) {
       if (s.toUpperCase().equals("[SELECTION]")) {
          return true;

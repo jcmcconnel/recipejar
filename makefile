@@ -1,7 +1,4 @@
 # "Unless the Lord builds the house, they labor in vain who build it" Psalm 127:1
-#
-#
-
 
 SOURCEPATH=src
 COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
@@ -10,17 +7,17 @@ BUILDPATH=build
 all: 
 	$(COMPILER) @source_files 
 	cp src/*.* build
-	jar cfm RecipeJar.jar manifest -C build/ recipejar/
+	jar cfm RecipeJar.jar manifest -C build .
 
 mainframe: src/recipejar/MainFrame.java
 	$(COMPILER) src/recipejar/MainFrame.java
 	cp src/*.* build
-	jar cfm RecipeJar.jar manifest -C build/ recipejar/
+	jar cfm RecipeJar.jar manifest -C build .
 
 prefs: src/recipejar/PreferencesDialog.java
 	$(COMPILER) src/recipejar/PreferencesDialog.java
 	cp src/*.* build
-	jar cfm RecipeJar.jar manifest -C build/ recipejar/
+	jar cfm RecipeJar.jar manifest -C build .
 
 .PHONY: clean
 clean:

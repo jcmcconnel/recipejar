@@ -19,6 +19,7 @@ import java.util.ArrayList;
  */
 public abstract class AbstractCharDelineatedFile extends File {
    private final String delineator;
+   private final char commentCharacter;
 
    /**
     * All the non-comment lines.
@@ -26,9 +27,10 @@ public abstract class AbstractCharDelineatedFile extends File {
    private ArrayList<String[]> DataLines;
 
 
-   public AbstractCharDelineatedFile(String s, String d) {
-      super(s);
+   public AbstractCharDelineatedFile(String filename, String d, char commentChar) {
+      super(filename);
       delineator = d;
+      commentCharacter = commentChar;
       DataLines = new ArrayList<String[]>();
       if (this.exists()) {
          try {
@@ -47,7 +49,7 @@ public abstract class AbstractCharDelineatedFile extends File {
       int c = in.read();
       while (c != -1) {
          //remove comments
-         if (c == ';') {//Comments are delineated by a preceding ';'
+         if (c == commentCharacter) {//Comments
             c = removeCommentedLine(in);
          } else if (c == '\n' || c == '\r') {//carriage returns cause problems if left in.
             //Remove multiple newlines
@@ -58,12 +60,8 @@ public abstract class AbstractCharDelineatedFile extends File {
             //Data lines
             String line = new String();
             while (c != '\n' && c != -1) {
-               if (c == ';') {
-                  c = removeCommentedLine(in);
-               } else {
-                  line = line + (char) c;
-                  c = in.read();
-               }
+               line = line + (char) c;
+               c = in.read();
             }
             String[] data = line.split(delineator);
             DataLines.add(data);

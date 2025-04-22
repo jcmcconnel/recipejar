@@ -62,6 +62,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       try {
          textActionsMenu = new JMenu("Macros");
+         textActionsMenu.setMnemonic('M');
          popupMenu = new JPopupMenu();
          readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
       } catch(FileNotFoundException fnf) {
@@ -480,7 +481,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    }
 
    public void readMacrosFromFile(String s) throws FileNotFoundException{
-      macroTextActionsFile = new AbstractCharDelineatedFile(s,","){
+      macroTextActionsFile = new AbstractCharDelineatedFile(s, ",", ';'){
          @Override
          public void save() {
             FileWriter out = null;
@@ -545,8 +546,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
           //System.out.println("*");
           MacroTextAction newMacro = new MacroTextAction(
                                                          macroTextActionsFile.getLine(i)[0],
-                                                         macroTextActionsFile.getLine(i)[1].charAt(0),
-                                                         macroTextActionsFile.getLine(i)[2].charAt(0),
+                                                         macroTextActionsFile.getLine(i)[1].trim().charAt(0),
+                                                         macroTextActionsFile.getLine(i)[2].trim().charAt(0),
                                                          macroTextActionsFile.getLine(i)[3],
                                                          macroTextActionsFile.getLine(i)[4]
                                                          );

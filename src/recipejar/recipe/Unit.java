@@ -230,7 +230,7 @@ public class Unit implements Comparable<Unit> {
     *
     */
    public static void readUnitsFromFile(String s) throws FileNotFoundException{
-      diskFile = new AbstractCharDelineatedFile(s,","){
+      diskFile = new AbstractCharDelineatedFile(s, ",", ';'){
          @Override
          public void save() {
             FileWriter out = null;

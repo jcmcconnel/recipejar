@@ -51,21 +51,25 @@ public class MainFrame extends JFrame {
       ArrayList<JMenu> menus = new ArrayList<JMenu>();
 
       JMenu fileMenu = new JMenu("File");
+      fileMenu.setMnemonic('F');
       // Edit Mode
       Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Open") {
          public void actionPerformed(ActionEvent e) {
             if (splitPane.getRightComponent().equals(ePanel)) {
                splitPane.setRightComponent(readerPane);
                this.putValue(AbstractAction.NAME, "Open");
+               this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
                Kernel.programActions.get("save").setEnabled(false);
                Kernel.programActions.get("delete").setEnabled(true);
             } else {
                splitPane.setRightComponent(ePanel);
                this.putValue(AbstractAction.NAME, "Close");
+               this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
                Kernel.programActions.get("delete").setEnabled(false);
             }
          }
       });
+      Kernel.programActions.get("toggle-edit-mode").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
       ePanel.setCancelAction(Kernel.programActions.get("toggle-edit-mode"));
       fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
 
@@ -80,6 +84,7 @@ public class MainFrame extends JFrame {
             readerPane.setPage("");
          }
       });
+      Kernel.programActions.get("delete").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_D);
       Kernel.programActions.get("delete").setEnabled(false);
       fileMenu.add(Kernel.programActions.get("delete"));
 
@@ -90,6 +95,7 @@ public class MainFrame extends JFrame {
             ePanel.startNew();
          }
       });
+      Kernel.programActions.get("new").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
       fileMenu.add(Kernel.programActions.get("new"));
 
       //Save
@@ -110,6 +116,7 @@ public class MainFrame extends JFrame {
             catch (BadLocationException ble) {}
          }
       });
+      Kernel.programActions.get("save").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
       ePanel.setSaveAction(Kernel.programActions.get("save"));
       Kernel.programActions.get("save").setEnabled(false);
       fileMenu.add(Kernel.programActions.get("save"));
@@ -120,13 +127,16 @@ public class MainFrame extends JFrame {
                      System.exit(0);
             }
       });
+      Kernel.programActions.get("exit-program").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_X);
       fileMenu.add(Kernel.programActions.get("exit-program"));
       menus.add(fileMenu);
 
       JMenu editMenu = new JMenu("Edit"); 
+      editMenu.setMnemonic('E');
       editMenu.add(ePanel.getTextActionsMenu());
       menus.add(editMenu);
       JMenu toolsMenu = new JMenu("Tools");
+      toolsMenu.setMnemonic('T');
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {
             if(prefDialog == null) {
@@ -136,6 +146,7 @@ public class MainFrame extends JFrame {
             prefDialog.setVisible(true);
          }
       });
+      Kernel.programActions.get("preferences-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
       toolsMenu.add(Kernel.programActions.get("preferences-dialog"));
       Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
          public void actionPerformed(ActionEvent e) {
@@ -143,15 +154,18 @@ public class MainFrame extends JFrame {
             converterDialog.setVisible(!converterDialog.isVisible());
          }
       });
+      Kernel.programActions.get("toggle-converter-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
       toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
       menus.add(toolsMenu);
 
       JMenu helpMenu = new JMenu("Help");
+      helpMenu.setMnemonic('H');
       Kernel.programActions.put("about-dialog", new AbstractAction("About") {
          public void actionPerformed(ActionEvent e) {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Welcome to RecipeJar!");
          }
       });
+      Kernel.programActions.get("about-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
       helpMenu.add(Kernel.programActions.get("about-dialog"));
       menus.add(helpMenu);
       /*** End Menubar ***/
@@ -181,7 +195,7 @@ public class MainFrame extends JFrame {
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
       try {
-      UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
+         UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
       } 
       catch(UnsupportedLookAndFeelException e){}
       catch(ClassNotFoundException e){}
