@@ -31,7 +31,11 @@ public class MainFrame extends JFrame {
       Kernel.topLevelFrame = this;
       // Frame configuration
       setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      this.setLocationRelativeTo(null);
+      this.setLocation(new Point(10, 20));
+      this.setIconImage(Toolkit.getDefaultToolkit().getImage(ClassLoader.getSystemClassLoader().getResource("recipejar.gif")));
+      this.setUndecorated(true);
+      this.getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
+      //TO DO Figure out how to manage Look and Feel.  Left justify Frame Title??
 
       // Component initialization
       AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
@@ -195,7 +199,7 @@ public class MainFrame extends JFrame {
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
       try {
-         UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
+          UIManager.setLookAndFeel(recipejar.lib.LAFType.NIMBUS.toString());
       } 
       catch(UnsupportedLookAndFeelException e){}
       catch(ClassNotFoundException e){}

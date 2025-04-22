@@ -83,6 +83,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
                notesField.setDocument(recipeModel.getNotesModel());
                iListTable1.setModel(recipeModel.getTableModel());
                procedureField.setDocument(recipeModel.getProcedureModel());
+               Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
            } 
            catch(IOException ioe){}
            catch(BadLocationException ble){}
