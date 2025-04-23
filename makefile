@@ -33,3 +33,7 @@ test:
 .PHONY: test-jar
 test-jar:
 	java -jar RecipeJar.jar -d Test
+
+.PHONY: test-54
+test-54:
+	cd Test && java -jar RecipeJar54_177.jar

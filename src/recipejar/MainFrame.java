@@ -33,9 +33,8 @@ public class MainFrame extends JFrame {
       setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       this.setLocation(new Point(10, 20));
       this.setIconImage(Toolkit.getDefaultToolkit().getImage(ClassLoader.getSystemClassLoader().getResource("recipejar.gif")));
-      this.setUndecorated(true);
+      if(ProgramVariables.LAF.toString().equals(recipejar.lib.LAFType.METAL.toString())) this.setUndecorated(true);
       this.getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
-      //TO DO Figure out how to manage Look and Feel.  Left justify Frame Title??
 
       // Component initialization
       AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
@@ -54,8 +53,22 @@ public class MainFrame extends JFrame {
       /** Action Definitions **/
       ArrayList<JMenu> menus = new ArrayList<JMenu>();
 
-      JMenu fileMenu = new JMenu("File");
-      fileMenu.setMnemonic('F');
+      JMenu fileMenu = new JMenu("Recipe");
+      fileMenu.setMnemonic('R');
+      // New 
+      Kernel.programActions.put("new", new AbstractAction("New") {
+         public void actionPerformed(ActionEvent e) {
+            Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
+            ePanel.startNew();
+         }
+      });
+      Kernel.programActions.get("new").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+      Kernel.programActions.get("new").putValue(
+                                                Action.ACCELERATOR_KEY,
+                                                KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+                                                );
+      fileMenu.add(Kernel.programActions.get("new"));
+
       // Edit Mode
       Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Open") {
          public void actionPerformed(ActionEvent e) {
@@ -74,33 +87,12 @@ public class MainFrame extends JFrame {
          }
       });
       Kernel.programActions.get("toggle-edit-mode").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
+      Kernel.programActions.get("toggle-edit-mode").putValue(
+                                                Action.ACCELERATOR_KEY,
+                                                KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+                                                );
       ePanel.setCancelAction(Kernel.programActions.get("toggle-edit-mode"));
       fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
-
-      // Delete 
-      Kernel.programActions.put("delete", new AbstractAction("Delete") {
-         public void actionPerformed(ActionEvent e) {
-            System.out.println("Attempted to delete");
-            IndexFile.getIndexFile().remove(ePanel.getDiskFile());
-            ePanel.getDiskFile().delete();
-            ePanel.clear();
-            tabbedPane.reload();
-            readerPane.setPage("");
-         }
-      });
-      Kernel.programActions.get("delete").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_D);
-      Kernel.programActions.get("delete").setEnabled(false);
-      fileMenu.add(Kernel.programActions.get("delete"));
-
-      // New 
-      Kernel.programActions.put("new", new AbstractAction("New") {
-         public void actionPerformed(ActionEvent e) {
-            Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
-            ePanel.startNew();
-         }
-      });
-      Kernel.programActions.get("new").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
-      fileMenu.add(Kernel.programActions.get("new"));
 
       //Save
       Kernel.programActions.put("save", new AbstractAction("Save") {
@@ -121,9 +113,38 @@ public class MainFrame extends JFrame {
          }
       });
       Kernel.programActions.get("save").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
+      Kernel.programActions.get("save").putValue(
+                                                 Action.ACCELERATOR_KEY,
+                                                 KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+                                                 );
       ePanel.setSaveAction(Kernel.programActions.get("save"));
       Kernel.programActions.get("save").setEnabled(false);
       fileMenu.add(Kernel.programActions.get("save"));
+
+      // Rename
+      fileMenu.addSeparator();
+
+      //Import
+      //Export
+      fileMenu.addSeparator();
+
+      // Delete 
+      Kernel.programActions.put("delete", new AbstractAction("Remove") {
+         public void actionPerformed(ActionEvent e) {
+            System.out.println("Attempted to delete");
+            IndexFile.getIndexFile().remove(ePanel.getDiskFile());
+            ePanel.getDiskFile().delete();
+            ePanel.clear();
+            tabbedPane.reload();
+            readerPane.setPage("");
+         }
+      });
+      Kernel.programActions.get("delete").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_R);
+      Kernel.programActions.get("delete").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("delete"));
+
+      //Print
+      fileMenu.addSeparator();
 
       // Exit
       Kernel.programActions.put("exit-program", new AbstractAction("Exit") {
@@ -137,10 +158,29 @@ public class MainFrame extends JFrame {
 
       JMenu editMenu = new JMenu("Edit"); 
       editMenu.setMnemonic('E');
+      //Cut
+      //Copy
+      //Paste
+      //Select All
+      editMenu.addSeparator();
+
       editMenu.add(ePanel.getTextActionsMenu());
       menus.add(editMenu);
+
+      //Find
+
       JMenu toolsMenu = new JMenu("Tools");
       toolsMenu.setMnemonic('T');
+      Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
+         public void actionPerformed(ActionEvent e) {
+            converterDialog.setLocationRelativeTo(Kernel.topLevelFrame);
+            converterDialog.setVisible(!converterDialog.isVisible());
+         }
+      });
+      Kernel.programActions.get("toggle-converter-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
+      toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
+
+      toolsMenu.addSeparator();
       Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {
             if(prefDialog == null) {
@@ -152,18 +192,14 @@ public class MainFrame extends JFrame {
       });
       Kernel.programActions.get("preferences-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
       toolsMenu.add(Kernel.programActions.get("preferences-dialog"));
-      Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
-         public void actionPerformed(ActionEvent e) {
-            converterDialog.setLocationRelativeTo(Kernel.topLevelFrame);
-            converterDialog.setVisible(!converterDialog.isVisible());
-         }
-      });
-      Kernel.programActions.get("toggle-converter-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-      toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
       menus.add(toolsMenu);
 
       JMenu helpMenu = new JMenu("Help");
       helpMenu.setMnemonic('H');
+
+      //On the Web
+
+      //About
       Kernel.programActions.put("about-dialog", new AbstractAction("About") {
          public void actionPerformed(ActionEvent e) {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Welcome to RecipeJar!");
@@ -192,14 +228,16 @@ public class MainFrame extends JFrame {
    public static void main(String[] argv) {
       Kernel.configDir = new File("%HOME/.RecipeJar");
       if (argv.length > 1) {
-            if (argv[0].contains("-d")) {
-                     Kernel.configDir = new File(argv[1]);
-            }
+         if (argv[0].contains("-d")) {
+                  Kernel.configDir = new File(argv[1]);
+         }
       }
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
       try {
-          UIManager.setLookAndFeel(recipejar.lib.LAFType.NIMBUS.toString());
+          //UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
+          //UIManager.setLookAndFeel(recipejar.lib.LAFType.MOTIF.toString());
+          UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
       } 
       catch(UnsupportedLookAndFeelException e){}
       catch(ClassNotFoundException e){}

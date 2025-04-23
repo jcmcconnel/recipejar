@@ -149,7 +149,9 @@ public enum ProgramVariables {
 
       switch (this) {
          case LAF:
-            return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.LAFType.SYSTEM.toString());
+             return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.LAFType.SYSTEM.toString());
+             //return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.LAFType.SYSTEM.toString());
+             //return recipejar.lib.LAFType.NIMBUS.toString();
          case CURRENT_MODE:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, recipejar.lib.UIMode.INITIAL_STATE.name());
          case TAB:

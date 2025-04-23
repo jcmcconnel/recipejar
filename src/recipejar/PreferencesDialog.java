@@ -72,6 +72,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jRadioButton2 = new javax.swing.JRadioButton();
       jRadioButton3 = new javax.swing.JRadioButton();
       jRadioButton4 = new javax.swing.JRadioButton();
+      jRadioButton5 = new javax.swing.JRadioButton();
       jPanel11 = new javax.swing.JPanel();
       filePrefPanel1 = new FilePrefPanel();
       jPanel7 = new javax.swing.JPanel();
@@ -237,6 +238,15 @@ public class PreferencesDialog extends javax.swing.JDialog {
       jRadioButton4.setText("Nimbus");
       if(ProgramVariables.LAF.toString().equals(LAFType.NIMBUS.toString())) jRadioButton4.setSelected(true);
       jRadioButton4.addActionListener(new java.awt.event.ActionListener() {
+         public void actionPerformed(java.awt.event.ActionEvent evt) {
+            LAFChange(evt);
+         }
+      });
+
+      buttonGroup1.add(jRadioButton5);
+      jRadioButton4.setText("GTK");
+      if(ProgramVariables.LAF.toString().equals(LAFType.GTK.toString())) jRadioButton5.setSelected(true);
+      jRadioButton5.addActionListener(new java.awt.event.ActionListener() {
          public void actionPerformed(java.awt.event.ActionEvent evt) {
             LAFChange(evt);
          }
@@ -752,6 +762,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
    private javax.swing.JRadioButton jRadioButton2;
    private javax.swing.JRadioButton jRadioButton3;
    private javax.swing.JRadioButton jRadioButton4;
+   private javax.swing.JRadioButton jRadioButton5;
    private javax.swing.JScrollPane jScrollPane1;
    private javax.swing.JScrollPane jScrollPane2;
    private javax.swing.JTabbedPane jTabbedPane1;
