@@ -124,8 +124,10 @@ public class MainFrame extends JFrame {
       // Rename
       fileMenu.addSeparator();
 
-      //Import
+      //Import 
+      //TODO What does "Import" mean?
       //Export
+      //TODO What does "Export" mean?
       fileMenu.addSeparator();
 
       // Delete 
@@ -144,6 +146,7 @@ public class MainFrame extends JFrame {
       fileMenu.add(Kernel.programActions.get("delete"));
 
       //Print
+      //TODO
       fileMenu.addSeparator();
 
       // Exit
@@ -159,9 +162,13 @@ public class MainFrame extends JFrame {
       JMenu editMenu = new JMenu("Edit"); 
       editMenu.setMnemonic('E');
       //Cut
+      editMenu.add(Kernel.programActions.get("edit-cut"));
       //Copy
+      editMenu.add(Kernel.programActions.get("edit-copy"));
       //Paste
+      editMenu.add(Kernel.programActions.get("edit-paste"));
       //Select All
+      editMenu.add(Kernel.programActions.get("edit-select-all"));
       editMenu.addSeparator();
 
       editMenu.add(ePanel.getTextActionsMenu());
@@ -198,6 +205,7 @@ public class MainFrame extends JFrame {
       helpMenu.setMnemonic('H');
 
       //On the Web
+      //TODO
 
       //About
       Kernel.programActions.put("about-dialog", new AbstractAction("About") {

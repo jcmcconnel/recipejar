@@ -11,5 +11,5 @@ You can use it to view the recipes just fine, but editing and creating new isn't
 
 # TO DO
   - [ ] Too much debugging output to the console
-  - [X] Implement Delete action
   - [ ] Set welcome message
+  - [ ] Rename (Requires changes to Index file and Recipefile)
