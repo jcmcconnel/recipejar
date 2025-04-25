@@ -54,6 +54,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     private AbstractCharDelineatedFile macroTextActionsFile;
     private ArrayList<MacroTextAction> macroActions;
     private JMenu textActionsMenu;
+    private JMenu popupTextActionsMenu;
     private JPopupMenu popupMenu;
 
    /**
@@ -67,6 +68,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       try {
          textActionsMenu = new JMenu("Macros");
          textActionsMenu.setMnemonic('M');
+         popupTextActionsMenu = new JMenu("Macros");
+         popupTextActionsMenu.setMnemonic('M');
          popupMenu = new JPopupMenu();
 
          AbstractTextAction creationBuffer = new AbstractTextAction("Cut"){
@@ -134,8 +137,10 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          );
          Kernel.programActions.put("edit-select-all", creationBuffer);
          popupMenu.add(Kernel.programActions.get("edit-select-all"));
+         popupMenu.addSeparator();
 
          readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
+         popupMenu.add(popupTextActionsMenu);
       } catch(FileNotFoundException fnf) {
 
       }
@@ -580,7 +585,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          newMacro.addField(procedureField);
          macroActions.add(newMacro);
          textActionsMenu.add(newMacro);
-         popupMenu.add(newMacro);
+         popupTextActionsMenu.add(newMacro);
       }
 
    }
