@@ -147,23 +147,31 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    }
 
 
+   public void setRecipePage(String fileName){
+        try {
+            diskFile = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+fileName);
+            recipeModel = new Recipe(diskFile);
+            titleField.setDocument(recipeModel.getTitleModel());
+            titleField.setEditable(true);
+            notesField.setDocument(recipeModel.getNotesModel());
+            iListTable1.setModel(recipeModel.getTableModel());
+            procedureField.setDocument(recipeModel.getProcedureModel());
+            Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
+
+            Kernel.programActions.get("save").setEnabled(true);
+            Kernel.programActions.get("delete").setEnabled(true);
+            Kernel.programActions.get("change-title").setEnabled(true);
+        } 
+        catch(IOException ioe){}
+        catch(BadLocationException ble){}
+   }
+
     /**
      * Intended as a listener for the IndexPane.
      */
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
-           try {
-               diskFile = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
-               recipeModel = new Recipe(diskFile);
-               titleField.setDocument(recipeModel.getTitleModel());
-               titleField.setEditable(true);
-               notesField.setDocument(recipeModel.getNotesModel());
-               iListTable1.setModel(recipeModel.getTableModel());
-               procedureField.setDocument(recipeModel.getProcedureModel());
-               Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
-           } 
-           catch(IOException ioe){}
-           catch(BadLocationException ble){}
+          setRecipePage(e.getDescription());
        }
    }
 
@@ -212,6 +220,24 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       return true;
    }
 
+   public boolean retitle(String newTitle) {
+      // Changing the name of this recipe.
+      if (StringProcessor.isBadTitle(newTitle)) {
+         JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
+         return false;
+      } else {
+         try {
+            recipeModel.getTitleModel().remove(0, recipeModel.getTitleModel().getLength());
+            recipeModel.getTitleModel().insertString(0, newTitle, null);
+            //recipeModel.writeToDisk();
+            //IndexFile.getIndexFile().add(diskFile);
+         }
+         catch(BadLocationException e){}
+      }
+      return true;
+   }
+
+
    /**
       *
       * @return
@@ -236,6 +262,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          catch(BadLocationException ble){}
 
          Kernel.programActions.get("save").setEnabled(false);
+         Kernel.programActions.get("delete").setEnabled(false);
+         Kernel.programActions.get("change-title").setEnabled(false);
 
          return true;
       } else {

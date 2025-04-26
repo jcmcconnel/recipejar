@@ -105,9 +105,12 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
     protected String buildBody() {
         StringWriter out = new StringWriter();
         out.write("\n   <body>\n");
-        if (recipeTemplate.dataElementExists("header")) {
-            out.write("    " + processMacros(recipeTemplate.getDataElement("header").toString()) + "\n");
-        }
+        //if (recipeTemplate.dataElementExists("header")) {
+            //out.write("    " + processMacros(recipeTemplate.getDataElement("header").toString()) + "\n");
+        //}
+        out.write("    <div id=\"header\"><h1>");
+        out.write(this.getTitle());
+        out.write("    </h1><div id=\"header\"><h1>");
 
         if (recipeTemplate.dataElementExists("notes-header")) {
             out.write("    " + processMacros(recipeTemplate.getDataElement("notes-header").toString()) + "\n");

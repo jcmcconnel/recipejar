@@ -41,16 +41,20 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
       popup = null;
    }
 
+
+   public void setRecipePage(String fileName){
+       try {
+           recipejar.filetypes.RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+fileName);
+           setPage(f);
+           Kernel.programActions.get("delete").setEnabled(true);
+       }catch(IOException ioe){}
+   }
     /**
      * Intended as a listener for the IndexPane.
      */
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
-           try {
-               recipejar.filetypes.RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
-               setPage(f);
-               Kernel.programActions.get("delete").setEnabled(true);
-           }catch(IOException ioe){}
+          setRecipePage(e.getDescription());
        }
    }
    public void setPopup(JPopupMenu popup) {

@@ -32,6 +32,8 @@ public class PreferencesDialog extends javax.swing.JDialog {
     */
    public PreferencesDialog(java.awt.Frame parent, boolean modal) {
       super(parent, modal);
+      if(ProgramVariables.LAF.toString().equals(recipejar.lib.LAFType.METAL.toString())) this.setUndecorated(true);
+      this.getRootPane().setWindowDecorationStyle(javax.swing.JRootPane.PLAIN_DIALOG);
       initComponents();
       try {
          File macroFile = new File(ProgramVariables.FILE_MACRO.toString());
@@ -60,13 +62,6 @@ public class PreferencesDialog extends javax.swing.JDialog {
       buttonGroup1 = new javax.swing.ButtonGroup();
       jTabbedPane1 = new javax.swing.JTabbedPane();
       jPanel1 = new javax.swing.JPanel();
-      jPanel15 = new javax.swing.JPanel();
-      inNotes = new javax.swing.JCheckBox();
-      inIngredients = new javax.swing.JCheckBox();
-      inAll = new javax.swing.JCheckBox();
-      inTitle = new javax.swing.JCheckBox();
-      inLabels = new javax.swing.JCheckBox();
-      inProcedure = new javax.swing.JCheckBox();
       jPanel2 = new javax.swing.JPanel();
       jRadioButton1 = new javax.swing.JRadioButton();
       jRadioButton2 = new javax.swing.JRadioButton();
@@ -120,90 +115,6 @@ public class PreferencesDialog extends javax.swing.JDialog {
             resizeDialog(evt);
          }
       });
-
-      jPanel15.setBorder(javax.swing.BorderFactory.createTitledBorder("When Searching Look In..."));
-
-      inNotes.setText("Notes");
-      inNotes.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      inIngredients.setText("Ingredients");
-      inIngredients.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      inAll.setFont(new java.awt.Font("Lucida Grande", 1, 13)); // NOI18N
-      inAll.setText("All Fields");
-      inAll.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      inTitle.setSelected(true);
-      inTitle.setText("Titles");
-      inTitle.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      inLabels.setFont(inLabels.getFont());
-      inLabels.setForeground(new java.awt.Color(255, 153, 153));
-      inLabels.setSelected(true);
-      inLabels.setText("Labels");
-      inLabels.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      inProcedure.setText("Procedures");
-      inProcedure.addActionListener(new java.awt.event.ActionListener() {
-         public void actionPerformed(java.awt.event.ActionEvent evt) {
-            onSearchSettingsChange(evt);
-         }
-      });
-
-      javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
-      jPanel15.setLayout(jPanel15Layout);
-      jPanel15Layout.setHorizontalGroup(
-         jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-         .addGroup(jPanel15Layout.createSequentialGroup()
-            .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-               .addGroup(jPanel15Layout.createSequentialGroup()
-                  .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                     .addComponent(inTitle)
-                     .addComponent(inNotes))
-                  .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                  .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                     .addComponent(inIngredients)
-                     .addComponent(inLabels)))
-               .addComponent(inProcedure)
-               .addComponent(inAll)))
-      );
-      jPanel15Layout.setVerticalGroup(
-         jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-         .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel15Layout.createSequentialGroup()
-            .addComponent(inAll)
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 15, Short.MAX_VALUE)
-            .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-               .addComponent(inTitle)
-               .addComponent(inLabels))
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-            .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-               .addComponent(inNotes)
-               .addComponent(inIngredients))
-            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-            .addComponent(inProcedure)
-            .addContainerGap())
-      );
 
       jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("Look and Feel"));
 
@@ -320,8 +231,6 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addGroup(jPanel1Layout.createSequentialGroup()
             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                .addGroup(jPanel1Layout.createSequentialGroup()
-                  .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, 220, javax.swing.GroupLayout.PREFERRED_SIZE)
-                  .addGap(3, 3, 3)
                   .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                .addComponent(jPanel11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -332,8 +241,7 @@ public class PreferencesDialog extends javax.swing.JDialog {
          .addGroup(jPanel1Layout.createSequentialGroup()
             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-               .addComponent(jPanel15, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGap(4, 4, 4)
+            )
             .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
             .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -680,28 +588,6 @@ public class PreferencesDialog extends javax.swing.JDialog {
       this.pack();
    }
 
-   private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearchSettingsChange
-      if (evt.getSource().equals(inAll)) {
-         if (inAll.isSelected()) {
-            inIngredients.setSelected(true);
-            inLabels.setSelected(true);
-            inNotes.setSelected(true);
-            inProcedure.setSelected(true);
-            inTitle.setSelected(true);
-         }else if (inIngredients.isSelected() && inLabels.isSelected() && inNotes.isSelected()
-                 && inProcedure.isSelected() && inTitle.isSelected()) {
-            inAll.setSelected(true);
-         }
-      } else {
-         if (inIngredients.isSelected() && inLabels.isSelected() && inNotes.isSelected()
-                 && inProcedure.isSelected() && inTitle.isSelected()) {
-            inAll.setSelected(true);
-         } else {
-            inAll.setSelected(false);
-         }
-      }
-   }//GEN-LAST:event_onSearchSettingsChange
-
    private void onNameChange(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_onNameChange
       ProgramVariables.USER_NAME.set(authorField.getText());
    }//GEN-LAST:event_onNameChange
@@ -733,19 +619,12 @@ public class PreferencesDialog extends javax.swing.JDialog {
    private FilePrefPanel filePrefPanel6;
    private FilePrefPanel filePrefPanel7;
    private FilePrefPanel filePrefPanel8;
-   private javax.swing.JCheckBox inAll;
-   private javax.swing.JCheckBox inIngredients;
-   private javax.swing.JCheckBox inLabels;
-   private javax.swing.JCheckBox inNotes;
-   private javax.swing.JCheckBox inProcedure;
-   private javax.swing.JCheckBox inTitle;
    private javax.swing.JPanel jPanel1;
    private javax.swing.JPanel jPanel10;
    private javax.swing.JPanel jPanel11;
    private javax.swing.JPanel jPanel12;
    private javax.swing.JPanel jPanel13;
    private javax.swing.JPanel jPanel14;
-   private javax.swing.JPanel jPanel15;
    private javax.swing.JPanel jPanel16;
    private javax.swing.JPanel jPanel17;
    private javax.swing.JPanel jPanel18;

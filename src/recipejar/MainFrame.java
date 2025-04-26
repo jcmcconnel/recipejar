@@ -78,12 +78,12 @@ public class MainFrame extends JFrame {
                this.putValue(AbstractAction.NAME, "Open");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
                Kernel.programActions.get("save").setEnabled(false);
-               Kernel.programActions.get("delete").setEnabled(true);
+               //Kernel.programActions.get("delete").setEnabled(true);
             } else {
                splitPane.setRightComponent(ePanel);
                this.putValue(AbstractAction.NAME, "Close");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-               Kernel.programActions.get("delete").setEnabled(false);
+               //Kernel.programActions.get("delete").setEnabled(false);
             }
          }
       });
@@ -123,11 +123,13 @@ public class MainFrame extends JFrame {
       fileMenu.add(Kernel.programActions.get("save"));
 
       // Rename
-      fileMenu.add(new AbstractAction("Rename"){
+      Kernel.programActions.put("change-title", new AbstractAction("Rename"){
          public void actionPerformed(ActionEvent e) {
-            //TODO
+            ePanel.retitle(JOptionPane.showInputDialog(Kernel.topLevelFrame, "New Title", "New Title Text:", JOptionPane.INFORMATION_MESSAGE));
          }
       });
+      Kernel.programActions.get("change-title").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("change-title"));
       fileMenu.addSeparator();
 
       //Import 

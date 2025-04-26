@@ -78,6 +78,8 @@ public class UnitConverterDialog extends javax.swing.JDialog {
 	 */
 	public UnitConverterDialog(java.awt.Frame parent, boolean modal) {
 		super(parent, modal);
+      if(ProgramVariables.LAF.toString().equals(recipejar.lib.LAFType.METAL.toString())) this.setUndecorated(true);
+      this.getRootPane().setWindowDecorationStyle(javax.swing.JRootPane.PLAIN_DIALOG);
 		initComponents();
 
 		toComboBoxModels = new HashMap<String, DefaultComboBoxModel>();

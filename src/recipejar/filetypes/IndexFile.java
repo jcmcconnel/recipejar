@@ -534,50 +534,51 @@ public class IndexFile extends AbstractXHTMLBasedFile {
    @Override
    protected void cleanUpAfterSave() {
    }
-public enum Section {
 
-   SECTION_A("A"), SECTION_B("B"), SECTION_C("C"), SECTION_D("D"), SECTION_E("E"), SECTION_F("F"),
-   SECTION_G("G"), SECTION_H("H"), SECTION_I("I"), SECTION_J("J"), SECTION_K("K"), SECTION_L("L"),
-   SECTION_M("M"), SECTION_N("N"), SECTION_O("O"), SECTION_P("P"), SECTION_Q("Q"), SECTION_R("R"),
-   SECTION_S("S"), SECTION_T("T"), SECTION_U("U"), SECTION_V("V"), SECTION_W("W"), SECTION_X("X"),
-   SECTION_Y("Y"), SECTION_Z("Z"), SECTION_OTHER("0");
+   public enum Section {
 
-   public static Section parse(int i) {
-      return Section.values()[i];
-   }
+      SECTION_A("A"), SECTION_B("B"), SECTION_C("C"), SECTION_D("D"), SECTION_E("E"), SECTION_F("F"),
+      SECTION_G("G"), SECTION_H("H"), SECTION_I("I"), SECTION_J("J"), SECTION_K("K"), SECTION_L("L"),
+      SECTION_M("M"), SECTION_N("N"), SECTION_O("O"), SECTION_P("P"), SECTION_Q("Q"), SECTION_R("R"),
+      SECTION_S("S"), SECTION_T("T"), SECTION_U("U"), SECTION_V("V"), SECTION_W("W"), SECTION_X("X"),
+      SECTION_Y("Y"), SECTION_Z("Z"), SECTION_OTHER("0");
 
-   /**
-    *
-    * @param s
-    * @return The section where the given string would be filed alphabetically.  Section_123 for everything else.
-    */
-   public static Section parse(String s) {
-      for (Section S : Section.values()) {
-         if (s.toUpperCase().indexOf(S.id) == 0) {
-            return S;
-         }
+      public static Section parse(int i) {
+         return Section.values()[i];
       }
-      return SECTION_OTHER;
+
+      /**
+       *
+       * @param s
+       * @return The section where the given string would be filed alphabetically.  Section_123 for everything else.
+       */
+      public static Section parse(String s) {
+         for (Section S : Section.values()) {
+            if (s.toUpperCase().indexOf(S.id) == 0) {
+               return S;
+            }
+         }
+         return SECTION_OTHER;
+      }
+
+      private final String id;
+
+      /**
+       *
+       * @param s
+       */
+      private Section(String s) {
+         id = s;
+      }
+
+      public final String getId(){
+         return id;
+      }
+
+      @Override
+      public String toString() {
+         return "letter" + id;
+      }
+
    }
-
-   private final String id;
-
-   /**
-    *
-    * @param s
-    */
-   private Section(String s) {
-      id = s;
-   }
-
-   public final String getId(){
-      return id;
-   }
-
-   @Override
-   public String toString() {
-      return "letter" + id;
-   }
-
-}
 }
