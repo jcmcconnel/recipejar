@@ -49,6 +49,7 @@ public class MainFrame extends JFrame {
       this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
       UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
+      SearchDialog searchDialog = new SearchDialog(this, false);
 
       /** Action Definitions **/
       ArrayList<JMenu> menus = new ArrayList<JMenu>();
@@ -122,12 +123,25 @@ public class MainFrame extends JFrame {
       fileMenu.add(Kernel.programActions.get("save"));
 
       // Rename
+      fileMenu.add(new AbstractAction("Rename"){
+         public void actionPerformed(ActionEvent e) {
+            //TODO
+         }
+      });
       fileMenu.addSeparator();
 
       //Import 
-      //TODO What does "Import" mean?
+      fileMenu.add(new AbstractAction("Import"){
+         public void actionPerformed(ActionEvent e) {
+            //TODO What does "Import" mean?
+         }
+      });
       //Export
-      //TODO What does "Export" mean?
+      fileMenu.add(new AbstractAction("Export"){
+         public void actionPerformed(ActionEvent e) {
+            //TODO What does "Export" mean?
+         }
+      });
       fileMenu.addSeparator();
 
       // Delete 
@@ -146,7 +160,11 @@ public class MainFrame extends JFrame {
       fileMenu.add(Kernel.programActions.get("delete"));
 
       //Print
-      //TODO
+      fileMenu.add(new AbstractAction("Print"){
+         public void actionPerformed(ActionEvent e) {
+            //TODO
+         }
+      });
       fileMenu.addSeparator();
 
       // Exit
@@ -175,6 +193,14 @@ public class MainFrame extends JFrame {
       menus.add(editMenu);
 
       //Find
+      //editMenu.add(new JMenu("Find"));
+      Kernel.programActions.put("find-dialog", new AbstractAction("Find") {
+         public void actionPerformed(ActionEvent e) {
+            searchDialog.setLocationRelativeTo(Kernel.topLevelFrame);
+            searchDialog.setVisible(!searchDialog.isVisible());
+         }
+      });
+      editMenu.add(Kernel.programActions.get("find-dialog"));
 
       JMenu toolsMenu = new JMenu("Tools");
       toolsMenu.setMnemonic('T');
