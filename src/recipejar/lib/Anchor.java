@@ -37,12 +37,10 @@ public class Anchor implements Comparable<Anchor> {
 
    public String getText() {
       return text;
-      //return source.getTitle();
    }
 
    public String getLink() {
       return link;
-      //return getSource().getName();
    }
 
    @Override

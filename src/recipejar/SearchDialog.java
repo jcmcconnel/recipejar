@@ -17,6 +17,10 @@ import javax.swing.JList;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.html.HTMLDocument;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
+import recipejar.filetypes.*;
 
 /**
  *
@@ -24,6 +28,8 @@ import javax.swing.text.html.HTMLDocument;
  */
 public class SearchDialog extends javax.swing.JDialog {
 
+
+   ArrayList<recipejar.lib.Identifier> results;
 
    /** Creates new form SearchDialog
     * @param parent
@@ -35,11 +41,12 @@ public class SearchDialog extends javax.swing.JDialog {
       this.getRootPane().setWindowDecorationStyle(javax.swing.JRootPane.PLAIN_DIALOG);
       initComponents();
       jTextField1.setText("");
-      //results = new ArrayList<Identifier>();
+      results = new ArrayList<recipejar.lib.Identifier>();
       jList1.setEnabled(false);
       jList1.setCellRenderer(new ListRenderer());
 
    }
+
 
    private Element getListElement(HTMLDocument doc, String address) {
       javax.swing.text.Element e = doc.getElement("letter" + address.trim().toUpperCase().charAt(0));
@@ -83,13 +90,31 @@ public class SearchDialog extends javax.swing.JDialog {
                  index,
                  isSelected,
                  cellHasFocus);
-//         if (((Identifier) value).isCategory) {
-  //          setForeground(inLabels.getForeground());
-    //        setFont(inLabels.getFont());
-      //   }
+         if (((recipejar.lib.Identifier) value).category != null) {
+            setForeground(inLabels.getForeground());
+            setFont(inLabels.getFont());
+         }
          return this;
       }
    }
+
+    private void onSearch(java.awt.event.ActionEvent evt) {
+       results = IndexFile.getIndexFile().search(
+          jTextField1.getText(), 
+          inTitle.isSelected(),
+         // inLabels.isSelected(), 
+          inNotes.isSelected(),
+          inIngredients.isSelected(), 
+          inProcedure.isSelected()
+       );
+       Collections.sort((List) results);
+       DefaultListModel listModel = new DefaultListModel();
+       for (int i = 0; i < results.size(); i++) {
+          listModel.addElement(results.get(i));
+       }
+       jList1.setModel(listModel);
+       jList1.setEnabled(true);
+    }
 
    /** This method is called from within the constructor to
     * initialize the form.
@@ -248,7 +273,7 @@ public class SearchDialog extends javax.swing.JDialog {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE))
                 ).addContainerGap()
-            ).addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, 220, javax.swing.GroupLayout.PREFERRED_SIZE)
+            ).addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, 300, javax.swing.GroupLayout.PREFERRED_SIZE)
              .addGap(3, 3, 3)
 
         );
@@ -286,55 +311,44 @@ public class SearchDialog extends javax.swing.JDialog {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void onSearch(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearch
-//       results = index.search(jTextField1.getText(), inTitle.isSelected(),
-  //             inLabels.isSelected(), inNotes.isSelected(),
-    //           inIngredients.isSelected(), inProcedure.isSelected());
-      // Collections.sort((List) results);
-       DefaultListModel listModel = new DefaultListModel();
-//       for (int i = 0; i < results.size(); i++) {
-  //        listModel.addElement(results.get(i));
-    //   }
-       jList1.setModel(listModel);
-       jList1.setEnabled(true);
-    }//GEN-LAST:event_onSearch
 
     private void onClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_onClicked
-/*       if (evt.getClickCount() > 0 && evt.getClickCount() < 3) {
+       if (evt.getClickCount() > 0 && evt.getClickCount() < 3) {
           //Select correct Tab, select item, and if it is a recipe,
           //open it.
           int selection = jList1.getSelectedIndex();
           if (selection != -1) {
-             index.setSelectedIndex(results.get(selection).name.charAt(0));
-             JTextPane p = index.getSelectedTextPane();
-             HTMLDocument doc = (HTMLDocument) p.getDocument();
+             Kernel.topLevelFrame.tabbedPane.setSelectedTab(results.get(selection).getText().charAt(0));
+             //JTextPane p = index.getSelectedTextPane();
+             //HTMLDocument doc = (HTMLDocument) p.getDocument();
              //Most of the following is just to get it to scroll the the right place.
-             if (results.get(selection).isCategory) {
-                javax.swing.text.Element e = doc.getElement(IndexFile.underscoreSpaces(results.get(selection).name));
-                if (e != null) {
-                   p.setCaretPosition(e.getStartOffset());
-                   try {
-                      Rectangle r1 = p.modelToView(e.getStartOffset());
-                      Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
-                      p.scrollRectToVisible(whatIWant);
-                   } catch (BadLocationException ex) {
-                   }
-                }
+             if (results.get(selection).category != null) 
+             {
+                //javax.swing.text.Element e = doc.getElement(StringProcessor.underscoreSpaces(results.get(selection).name));
+                //if (e != null) {
+                //   p.setCaretPosition(e.getStartOffset());
+                //   try {
+                //      Rectangle r1 = p.modelToView(e.getStartOffset());
+                //      Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
+                //      p.scrollRectToVisible(whatIWant);
+                //   } catch (BadLocationException ex) {
+                //   }
+                //}
              } else {
-                javax.swing.text.Element e = getListElement(doc, results.get(selection).address);
-                try {
-                   if (e != null) {
-                      javax.swing.text.Element f = getAnchorElement(e, results.get(selection).name);
-                      if (f != null) {
-                         p.setCaretPosition(f.getStartOffset());
-                         Rectangle r1 = p.modelToView(f.getStartOffset());
-                         Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
-                         p.scrollRectToVisible(whatIWant);
-                      }
-                   }
-                } catch (BadLocationException badLocationException) {
-                }
-                opener.open(results.get(selection).address);
+                //javax.swing.text.Element e = getListElement(doc, results.get(selection).address);
+                //try {
+                //   if (e != null) {
+                //      javax.swing.text.Element f = getAnchorElement(e, results.get(selection).name);
+                //      if (f != null) {
+                //         p.setCaretPosition(f.getStartOffset());
+                //         Rectangle r1 = p.modelToView(f.getStartOffset());
+                //         Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
+                //         p.scrollRectToVisible(whatIWant);
+                //      }
+                //   }
+                //} catch (BadLocationException badLocationException) {
+                //}
+                //opener.open(results.get(selection).address);
              }
           }
 
@@ -342,10 +356,10 @@ public class SearchDialog extends javax.swing.JDialog {
              this.setVisible(false);
              this.dispose();
           }
-       }*/
-}//GEN-LAST:event_onClicked
+       }
+}
 
-    private void shortcutHandler(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_shortcutHandler
+    private void shortcutHandler(java.awt.event.KeyEvent evt) {
        //if (recipejar.Util.isOS("mac")) {
        //   if (evt.isMetaDown()) {
        //      if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_W) {
@@ -353,7 +367,7 @@ public class SearchDialog extends javax.swing.JDialog {
        //      }
        //   }
        //}
-    }//GEN-LAST:event_shortcutHandler
+    }
    private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearchSettingsChange
       if (evt.getSource().equals(inAll)) {
          if (inAll.isSelected()) {

@@ -517,6 +517,11 @@ public class IndexFile extends AbstractXHTMLBasedFile {
       return macro;
    }
 
+   /**
+    * Searches the index for the given name or link.
+    * Only returns 1 item.
+    *
+    **/
    public File lookup(String s) {
       ArrayList<Anchor> list = getList(Section.parse(s), "DEFAULT");
       for(int i=0; i<list.size(); i++){
@@ -525,6 +530,103 @@ public class IndexFile extends AbstractXHTMLBasedFile {
          }
       }
       return null;
+   }
+
+   /**
+    * Searches the default lists in each section for s.
+    * Returns a list of identifiers which contain more information about
+    * the identified items.  If none were found the list is empty.
+    * 
+    * @param s
+    * @param inTitle
+    * @param inNotes
+    * @param inIngredients
+    * @param inProcedure
+    * @return
+    */
+   public ArrayList<recipejar.lib.Identifier> search(String s, boolean inTitle, boolean inNotes,
+           boolean inIngredients, boolean inProcedure) {
+      ArrayList<recipejar.lib.Identifier> results = new ArrayList<recipejar.lib.Identifier>();
+      if (s.isEmpty() || (!inTitle && !inNotes && !inIngredients && !inProcedure)) {
+         return results;
+      }
+      for (Section i : Section.values()) {
+         ArrayList<Anchor> defaultList = anchors.get(i).get("DEFAULT");
+         for (int k = 0; k < defaultList.size(); k++) {
+            boolean alreadyAdded = false;
+            Anchor a = defaultList.get(k);
+            //Recipe Titles
+            if (inTitle && a.getText().toUpperCase().contains(s.toUpperCase())) {
+               results.add(new recipejar.lib.Identifier(a));
+               alreadyAdded = true;
+            }
+            //Content
+            if ((inNotes || inIngredients || inProcedure) && !alreadyAdded) {
+               try {
+                  RecipeFile temp = new RecipeFile(this.getParent() + "/" + a.getLink());
+                  if (temp.exists()) {
+                     if (inNotes) {
+                        if (temp.getNotes().contains(s)) {
+                           results.add(new recipejar.lib.Identifier(a));
+                           alreadyAdded = true;
+                        }
+                     }
+                     if (inIngredients && !alreadyAdded) {
+                        for(int j=0; j < temp.getIngredientListSize(); j++){
+                           if(temp.getIngredient(j).contains(s)){
+                              results.add(new recipejar.lib.Identifier(a));
+                              alreadyAdded = true;
+                           }
+                        }
+                     }
+                     if (inProcedure && !alreadyAdded) {
+                        if (temp.getProcedure().contains(s)) {
+                           results.add(new recipejar.lib.Identifier(a));
+                        }
+                     }
+                  }
+               } catch (IOException ex) {
+               }
+            }
+         }
+      }
+      for (Section i : Section.values()) {
+         java.util.Iterator<String> catkeys = anchors.get(i).keySet().iterator();
+         while (catkeys.hasNext()) {
+            String next = catkeys.next();
+            if (!next.equals("DEFAULT")) {
+               if (next.toLowerCase().contains(s.toLowerCase())) {
+                  ArrayList<Anchor> links = anchors.get(i).get(next);
+                  results.add(new recipejar.lib.Identifier(next));
+                  for (int k = 0; k < links.size(); k++) {
+                     results.add(new recipejar.lib.Identifier(links.get(k)));
+                  }
+               }
+            }
+         }
+      }
+      return results;
+   }
+
+   /**
+    * Searches for any labels that contain s.
+    * @param s The search term.
+    * @return All lists whose name contains s.
+    */
+   public HashMap<String, ArrayList<Anchor>> searchLabels(String s) {
+      HashMap<String, ArrayList<Anchor>> results = new HashMap<String, ArrayList<Anchor>>();
+      for (Section i : Section.values()) {
+         java.util.Iterator<String> catkeys = anchors.get(i).keySet().iterator();
+         while (catkeys.hasNext()) {
+            String next = catkeys.next();
+            if (!next.equals("DEFAULT")) {
+               if (next.toLowerCase().contains(s.toLowerCase())) {
+                  results.put(next, anchors.get(i).get(next));
+               }
+            }
+         }
+      }
+      return results;
    }
 
    @Override

@@ -333,6 +333,26 @@ public class Recipe implements TableModelListener, DocumentListener {
     public IngredientTableModel getTableModel(){
        return tmodel;
     }
+   /**
+    * Renames a recipe
+    * 
+    **/
+   public boolean reTitle(String newTitle) {
+      // Changing the name of this recipe.
+      try {
+         titleModel.remove(0, titleModel.getLength());
+         titleModel.insertString(0, newTitle, null);
+         recipejar.filetypes.IndexFile.getIndexFile().remove(diskFile);
+         diskFile = new RecipeFile(StringProcessor.removeBadChars(newTitle)+".html");
+         writeToDisk();
+         recipejar.filetypes.IndexFile.getIndexFile().add(diskFile);
+      }
+      catch(BadLocationException e){}
+      catch(IOException e){
+         System.out.println("File Creation Failure in reTitle");
+      }
+      return true;
+   }
 
     @Override
     public String toString(){

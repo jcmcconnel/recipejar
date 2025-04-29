@@ -21,6 +21,7 @@ public class MainFrame extends JFrame {
    public CustomTextPane readerPane;
    public EditorPanel ePanel;
    public recipejar.PreferencesDialog prefDialog;
+   public AlphaTab tabbedPane;
    
    /**
     * Frame initializer.
@@ -37,7 +38,7 @@ public class MainFrame extends JFrame {
       this.getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
 
       // Component initialization
-      AlphaTab tabbedPane = new AlphaTab(IndexFile.getIndexFile());
+      tabbedPane = new AlphaTab(IndexFile.getIndexFile());
 
       readerPane = new CustomTextPane();
       ePanel = new EditorPanel();
@@ -125,7 +126,7 @@ public class MainFrame extends JFrame {
       // Rename
       Kernel.programActions.put("change-title", new AbstractAction("Rename"){
          public void actionPerformed(ActionEvent e) {
-            ePanel.retitle(JOptionPane.showInputDialog(Kernel.topLevelFrame, "New Title", "New Title Text:", JOptionPane.INFORMATION_MESSAGE));
+            ePanel.reTitle(JOptionPane.showInputDialog(Kernel.topLevelFrame, "New Title", "New Title Text:", JOptionPane.INFORMATION_MESSAGE));
          }
       });
       Kernel.programActions.get("change-title").setEnabled(false);
@@ -133,17 +134,25 @@ public class MainFrame extends JFrame {
       fileMenu.addSeparator();
 
       //Import 
-      fileMenu.add(new AbstractAction("Import"){
-         public void actionPerformed(ActionEvent e) {
-            //TODO What does "Import" mean?
+      Kernel.programActions.put("import-recipe",
+         new AbstractAction("Import"){
+            public void actionPerformed(ActionEvent e) {
+               //TODO What does "Import" mean?
+            }
          }
-      });
+      );
+      Kernel.programActions.get("import-recipe").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("import-recipe"));
       //Export
-      fileMenu.add(new AbstractAction("Export"){
-         public void actionPerformed(ActionEvent e) {
-            //TODO What does "Export" mean?
+      Kernel.programActions.put("export-recipe",
+         new AbstractAction("Export"){
+            public void actionPerformed(ActionEvent e) {
+               //TODO What does "Export" mean?
+            }
          }
-      });
+      );
+      Kernel.programActions.get("export-recipe").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("export-recipe"));
       fileMenu.addSeparator();
 
       // Delete 
@@ -162,11 +171,15 @@ public class MainFrame extends JFrame {
       fileMenu.add(Kernel.programActions.get("delete"));
 
       //Print
-      fileMenu.add(new AbstractAction("Print"){
-         public void actionPerformed(ActionEvent e) {
-            //TODO
+      Kernel.programActions.put("print-recipe", 
+         new AbstractAction("Print"){
+            public void actionPerformed(ActionEvent e) {
+               //TODO
+            }
          }
-      });
+      );
+      Kernel.programActions.get("print-recipe").setEnabled(false);
+      fileMenu.add(Kernel.programActions.get("print-recipe"));
       fileMenu.addSeparator();
 
       // Exit

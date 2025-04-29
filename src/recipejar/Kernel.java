@@ -24,7 +24,7 @@ public class Kernel {
    protected static File configDir;
    public static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
-   protected static JFrame topLevelFrame;
+   protected static MainFrame topLevelFrame;
 
    public static JMenuBar getJMenuBar(JMenu[] menus){
        JMenuBar menuBar = new JMenuBar();

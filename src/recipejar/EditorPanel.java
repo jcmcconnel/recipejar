@@ -220,21 +220,17 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       return true;
    }
 
-   public boolean retitle(String newTitle) {
-      // Changing the name of this recipe.
+   /**
+    * Renames a recipe
+    * 
+    **/
+   public boolean reTitle(String newTitle) {
       if (StringProcessor.isBadTitle(newTitle)) {
          JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
          return false;
       } else {
-         try {
-            recipeModel.getTitleModel().remove(0, recipeModel.getTitleModel().getLength());
-            recipeModel.getTitleModel().insertString(0, newTitle, null);
-            //recipeModel.writeToDisk();
-            //IndexFile.getIndexFile().add(diskFile);
-         }
-         catch(BadLocationException e){}
+         return recipeModel.reTitle(newTitle);
       }
-      return true;
    }
 
 
