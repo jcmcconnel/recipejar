@@ -73,8 +73,8 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             setIngredientsFromHTML(getDataElement("ingredients").getContent());
         } else {
             System.out.println("Recipe does not exist");
-            System.out.println("Creating new file: "+getAbsolutePath());
-            this.createNewFile();
+            //System.out.println("Creating new file: "+getAbsolutePath());
+            //this.createNewFile();
         }
         setActiveFooter("program-footer");
     }

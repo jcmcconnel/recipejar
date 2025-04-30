@@ -37,10 +37,15 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
 
       jTextPane1.setEditable(false);
       setStyle(new File(ProgramVariables.CSS_RECIPE.toString()));
+      try{
+         recipejar.filetypes.GenericHtmlFile welcomeFile = new recipejar.filetypes.GenericHtmlFile(ProgramVariables.FILE_WELCOME.toString());
+         jTextPane1.setText(welcomeFile.toTextPaneFriendlyString());
+      }
+      catch(IOException e){
+      }
       setPreferredSize(new java.awt.Dimension(500, 200));
       popup = null;
    }
-
 
    public void setRecipePage(String fileName){
        try {
@@ -49,6 +54,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
            Kernel.programActions.get("delete").setEnabled(true);
        }catch(IOException ioe){}
    }
+
     /**
      * Intended as a listener for the IndexPane.
      */

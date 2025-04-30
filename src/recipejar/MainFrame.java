@@ -206,16 +206,10 @@ public class MainFrame extends JFrame {
 
       editMenu.add(ePanel.getTextActionsMenu());
       menus.add(editMenu);
+      editMenu.addSeparator();
 
       //Find
-      //editMenu.add(new JMenu("Find"));
-      Kernel.programActions.put("find-dialog", new AbstractAction("Find") {
-         public void actionPerformed(ActionEvent e) {
-            searchDialog.setLocationRelativeTo(Kernel.topLevelFrame);
-            searchDialog.setVisible(!searchDialog.isVisible());
-         }
-      });
-      editMenu.add(Kernel.programActions.get("find-dialog"));
+      editMenu.add(searchDialog.getFindMenu());
 
       JMenu toolsMenu = new JMenu("Tools");
       toolsMenu.setMnemonic('T');

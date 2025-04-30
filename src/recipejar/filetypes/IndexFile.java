@@ -539,15 +539,23 @@ public class IndexFile extends AbstractXHTMLBasedFile {
     * 
     * @param s
     * @param inTitle
+    * @param inLabels
     * @param inNotes
     * @param inIngredients
     * @param inProcedure
     * @return
     */
-   public ArrayList<recipejar.lib.Identifier> search(String s, boolean inTitle, boolean inNotes,
-           boolean inIngredients, boolean inProcedure) {
+   public ArrayList<recipejar.lib.Identifier> search(
+         String s, 
+         boolean inTitle, 
+         boolean inLabels, 
+         boolean inNotes,
+         boolean inIngredients, 
+         boolean inProcedure
+   ) {
       ArrayList<recipejar.lib.Identifier> results = new ArrayList<recipejar.lib.Identifier>();
       if (s.isEmpty() || (!inTitle && !inNotes && !inIngredients && !inProcedure)) {
+         System.out.println("No recipe fields selected");
          return results;
       }
       for (Section i : Section.values()) {
@@ -563,7 +571,7 @@ public class IndexFile extends AbstractXHTMLBasedFile {
             //Content
             if ((inNotes || inIngredients || inProcedure) && !alreadyAdded) {
                try {
-                  RecipeFile temp = new RecipeFile(this.getParent() + "/" + a.getLink());
+                  RecipeFile temp = new RecipeFile(recipejar.ProgramVariables.DIR_DB.toString()+"/"+a.getLink());
                   if (temp.exists()) {
                      if (inNotes) {
                         if (temp.getNotes().contains(s)) {
@@ -586,20 +594,27 @@ public class IndexFile extends AbstractXHTMLBasedFile {
                      }
                   }
                } catch (IOException ex) {
+                  System.out.println("Recipe file initialization failed: IO");
+               } catch (NullPointerException ex) {
+                  System.out.println("Recipe file initialization failed: NP");
+               } catch (StringIndexOutOfBoundsException ex) {
+                  System.out.println("Recipe file initialization failed: OOB");
                }
             }
          }
       }
-      for (Section i : Section.values()) {
-         java.util.Iterator<String> catkeys = anchors.get(i).keySet().iterator();
-         while (catkeys.hasNext()) {
-            String next = catkeys.next();
-            if (!next.equals("DEFAULT")) {
-               if (next.toLowerCase().contains(s.toLowerCase())) {
-                  ArrayList<Anchor> links = anchors.get(i).get(next);
-                  results.add(new recipejar.lib.Identifier(next));
-                  for (int k = 0; k < links.size(); k++) {
-                     results.add(new recipejar.lib.Identifier(links.get(k)));
+      if(inLabels){
+         for (Section i : Section.values()) {
+            java.util.Iterator<String> catkeys = anchors.get(i).keySet().iterator();
+            while (catkeys.hasNext()) {
+               String next = catkeys.next();
+               if (!next.equals("DEFAULT")) {
+                  if (next.toLowerCase().contains(s.toLowerCase())) {
+                     ArrayList<Anchor> links = anchors.get(i).get(next);
+                     results.add(new recipejar.lib.Identifier(next));
+                     for (int k = 0; k < links.size(); k++) {
+                        results.add(new recipejar.lib.Identifier(links.get(k)));
+                     }
                   }
                }
             }

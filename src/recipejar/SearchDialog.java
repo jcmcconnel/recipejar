@@ -11,9 +11,14 @@
 package recipejar;
 
 import java.awt.Component;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import javax.swing.AbstractAction;
+import javax.swing.JTextPane;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JList;
+import javax.swing.JMenu;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.html.HTMLDocument;
@@ -30,7 +35,63 @@ public class SearchDialog extends javax.swing.JDialog {
 
 
    ArrayList<recipejar.lib.Identifier> results;
+   JMenu findMenu;
 
+   private class FindAction extends AbstractAction {
+      public FindAction(String name){
+         super(name);
+      }
+
+      public void actionPerformed(ActionEvent e) {
+
+         if(e.getActionCommand().equals("All")) {
+            inAll.setSelected(true);
+            inTitle.setSelected(true);
+            inLabels.setSelected(true);
+            inNotes.setSelected(true);
+            inIngredients.setSelected(true);
+            inProcedure.setSelected(true);
+         } else if(e.getActionCommand().equals("Title")){
+            inAll.setSelected(false);
+            inTitle.setSelected(true);
+            inLabels.setSelected(false);
+            inNotes.setSelected(false);
+            inIngredients.setSelected(false);
+            inProcedure.setSelected(false);
+         } else if(e.getActionCommand().equals("Labels")){
+            inAll.setSelected(false);
+            inTitle.setSelected(false);
+            inLabels.setSelected(true);
+            inNotes.setSelected(false);
+            inIngredients.setSelected(false);
+            inProcedure.setSelected(false);
+         } else if(e.getActionCommand().equals("Notes")){
+            inAll.setSelected(false);
+            inTitle.setSelected(false);
+            inLabels.setSelected(false);
+            inNotes.setSelected(true);
+            inIngredients.setSelected(false);
+            inProcedure.setSelected(false);
+         } else if(e.getActionCommand().equals("Ingredients")){
+            inAll.setSelected(false);
+            inTitle.setSelected(false);
+            inLabels.setSelected(false);
+            inNotes.setSelected(false);
+            inIngredients.setSelected(true);
+            inProcedure.setSelected(false);
+         } else if(e.getActionCommand().equals("Procedure")){
+            inAll.setSelected(false);
+            inTitle.setSelected(false);
+            inLabels.setSelected(false);
+            inNotes.setSelected(false);
+            inIngredients.setSelected(false);
+            inProcedure.setSelected(true);
+         }
+
+         setLocationRelativeTo(Kernel.topLevelFrame);
+         setVisible(!isVisible());
+      }
+   }
    /** Creates new form SearchDialog
     * @param parent
     * @param modal
@@ -44,9 +105,18 @@ public class SearchDialog extends javax.swing.JDialog {
       results = new ArrayList<recipejar.lib.Identifier>();
       jList1.setEnabled(false);
       jList1.setCellRenderer(new ListRenderer());
-
+      findMenu = new JMenu("Find In...");
+      findMenu.add(new FindAction("All"));
+      findMenu.add(new FindAction("Titles"));
+      findMenu.add(new FindAction("Labels"));
+      findMenu.add(new FindAction("Notes"));
+      findMenu.add(new FindAction("Ingredients"));
+      findMenu.add(new FindAction("Procedures"));
    }
 
+   public JMenu getFindMenu(){
+      return findMenu;
+   }
 
    private Element getListElement(HTMLDocument doc, String address) {
       javax.swing.text.Element e = doc.getElement("letter" + address.trim().toUpperCase().charAt(0));
@@ -102,7 +172,7 @@ public class SearchDialog extends javax.swing.JDialog {
        results = IndexFile.getIndexFile().search(
           jTextField1.getText(), 
           inTitle.isSelected(),
-         // inLabels.isSelected(), 
+          inLabels.isSelected(), 
           inNotes.isSelected(),
           inIngredients.isSelected(), 
           inProcedure.isSelected()
@@ -167,14 +237,14 @@ public class SearchDialog extends javax.swing.JDialog {
         inNotes.setText("Notes");
         inNotes.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
         inIngredients.setText("Ingredients");
         inIngredients.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
@@ -182,7 +252,7 @@ public class SearchDialog extends javax.swing.JDialog {
         inAll.setText("All Fields");
         inAll.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
@@ -190,7 +260,7 @@ public class SearchDialog extends javax.swing.JDialog {
         inTitle.setText("Titles");
         inTitle.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
@@ -200,14 +270,14 @@ public class SearchDialog extends javax.swing.JDialog {
         inLabels.setText("Labels");
         inLabels.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
         inProcedure.setText("Procedures");
         inProcedure.addActionListener(new java.awt.event.ActionListener() {
            public void actionPerformed(java.awt.event.ActionEvent evt) {
-              //onSearchSettingsChange(evt);
+              onSearchSettingsChange(evt);
            }
         });
 
@@ -319,36 +389,36 @@ public class SearchDialog extends javax.swing.JDialog {
           int selection = jList1.getSelectedIndex();
           if (selection != -1) {
              Kernel.topLevelFrame.tabbedPane.setSelectedTab(results.get(selection).getText().charAt(0));
-             //JTextPane p = index.getSelectedTextPane();
-             //HTMLDocument doc = (HTMLDocument) p.getDocument();
+             JTextPane p = Kernel.topLevelFrame.tabbedPane.getSelectedTextPane();
+             HTMLDocument doc = (HTMLDocument) p.getDocument();
              //Most of the following is just to get it to scroll the the right place.
              if (results.get(selection).category != null) 
              {
-                //javax.swing.text.Element e = doc.getElement(StringProcessor.underscoreSpaces(results.get(selection).name));
-                //if (e != null) {
-                //   p.setCaretPosition(e.getStartOffset());
-                //   try {
-                //      Rectangle r1 = p.modelToView(e.getStartOffset());
-                //      Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
-                //      p.scrollRectToVisible(whatIWant);
-                //   } catch (BadLocationException ex) {
-                //   }
-                //}
+                javax.swing.text.Element e = doc.getElement(StringProcessor.underscoreSpaces(results.get(selection).category));
+                if (e != null) {
+                   p.setCaretPosition(e.getStartOffset());
+                   try {
+                      Rectangle r1 = p.modelToView(e.getStartOffset());
+                      Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
+                      p.scrollRectToVisible(whatIWant);
+                   } catch (BadLocationException ex) {
+                   }
+                }
              } else {
-                //javax.swing.text.Element e = getListElement(doc, results.get(selection).address);
-                //try {
-                //   if (e != null) {
-                //      javax.swing.text.Element f = getAnchorElement(e, results.get(selection).name);
-                //      if (f != null) {
-                //         p.setCaretPosition(f.getStartOffset());
-                //         Rectangle r1 = p.modelToView(f.getStartOffset());
-                //         Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
-                //         p.scrollRectToVisible(whatIWant);
-                //      }
-                //   }
-                //} catch (BadLocationException badLocationException) {
-                //}
-                //opener.open(results.get(selection).address);
+                javax.swing.text.Element e = getListElement(doc, results.get(selection).anchor.getText());
+                try {
+                   if (e != null) {
+                      javax.swing.text.Element f = getAnchorElement(e, results.get(selection).anchor.getText());
+                      if (f != null) {
+                         p.setCaretPosition(f.getStartOffset());
+                         Rectangle r1 = p.modelToView(f.getStartOffset());
+                         Rectangle whatIWant = new Rectangle(r1.x, r1.y, r1.width, p.getVisibleRect().height);
+                         p.scrollRectToVisible(whatIWant);
+                      }
+                   }
+                } catch (BadLocationException badLocationException) {
+                }
+                Kernel.topLevelFrame.readerPane.setRecipePage(results.get(selection).anchor.getLink());
              }
           }
 
@@ -368,7 +438,7 @@ public class SearchDialog extends javax.swing.JDialog {
        //   }
        //}
     }
-   private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_onSearchSettingsChange
+   private void onSearchSettingsChange(java.awt.event.ActionEvent evt) {
       if (evt.getSource().equals(inAll)) {
          if (inAll.isSelected()) {
             inIngredients.setSelected(true);
@@ -388,10 +458,8 @@ public class SearchDialog extends javax.swing.JDialog {
             inAll.setSelected(false);
          }
       }
-   }//GEN-LAST:event_onSearchSettingsChange
+   }
 
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JList jList1;
     private javax.swing.JPanel jPanel1;
@@ -404,5 +472,4 @@ public class SearchDialog extends javax.swing.JDialog {
     private javax.swing.JCheckBox inTitle;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextField jTextField1;
-    // End of variables declaration//GEN-END:variables
 }
