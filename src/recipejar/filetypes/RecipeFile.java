@@ -110,7 +110,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         //}
         out.write("    <div id=\"header\"><h1>");
         out.write(this.getTitle());
-        out.write("    </h1><div id=\"header\"><h1>");
+        out.write("    </h1></div>");
 
         if (recipeTemplate.dataElementExists("notes-header")) {
             out.write("    " + processMacros(recipeTemplate.getDataElement("notes-header").toString()) + "\n");
@@ -142,9 +142,9 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-footer").toString()) + "\n");
         }
 
-        if (recipeTemplate.dataElementExists(activeFooter)) {
-            out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
-        }
+        //if (recipeTemplate.dataElementExists(activeFooter)) {
+        //    out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
+        //}
         out.write("  </body>\n");
         return out.toString();
     }
@@ -249,7 +249,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
      * @throws IOException
      */
     public void export(File f) throws IOException {
-        RecipeFile temp = new RecipeFile(f);
+        RecipeFile temp = RecipeFile.newFromTemplate(f.getAbsolutePath());
         temp.setActiveFooter("export-footer");
         temp.setTitle(this.getTitle());
         temp.setNotes(this.getNotes());
@@ -259,7 +259,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         }
         temp.setLabels(this.getLabelsAsText());
         temp.save();
-        temp.setActiveFooter("program-footer");
+        //temp.setActiveFooter("program-footer");
     }
 
     /**
@@ -425,7 +425,8 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
      * @param I
      */
     public void setIngredient(int i, Ingredient I) {
-        ingredients.set(i, I);
+       if(i >= ingredients.size()) ingredients.add(I);
+       else ingredients.set(i, I);
     }
 
     /**

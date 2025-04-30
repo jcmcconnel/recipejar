@@ -341,11 +341,12 @@ public class Recipe implements TableModelListener, DocumentListener {
       // Changing the name of this recipe.
       try {
          titleModel.remove(0, titleModel.getLength());
-         titleModel.insertString(0, newTitle, null);
+         titleModel.insertString(0, newTitle.trim(), null);
          recipejar.filetypes.IndexFile.getIndexFile().remove(diskFile);
-         diskFile = new RecipeFile(StringProcessor.removeBadChars(newTitle)+".html");
+         diskFile = new RecipeFile(ProgramVariables.DIR_DB.toString()+"/"+StringProcessor.removeBadChars(newTitle)+".html");
          writeToDisk();
          recipejar.filetypes.IndexFile.getIndexFile().add(diskFile);
+         //TODO Remove old file
       }
       catch(BadLocationException e){}
       catch(IOException e){

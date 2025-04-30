@@ -742,7 +742,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
          }
 
       }
-      throw new IOException("End of Stream unexpectedly reached: " + this.getTitle());
+      throw new IOException("End of Stream unexpectedly reached: " + this.getTitle()+"\n"+content.toString());
    }
 
    protected abstract void prepforSave();

@@ -161,6 +161,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             Kernel.programActions.get("save").setEnabled(true);
             Kernel.programActions.get("delete").setEnabled(true);
             Kernel.programActions.get("change-title").setEnabled(true);
+            Kernel.programActions.get("export-recipe").setEnabled(true);
         } 
         catch(IOException ioe){}
         catch(BadLocationException ble){}

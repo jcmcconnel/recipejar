@@ -147,7 +147,20 @@ public class MainFrame extends JFrame {
       Kernel.programActions.put("export-recipe",
          new AbstractAction("Export"){
             public void actionPerformed(ActionEvent e) {
-               //TODO What does "Export" mean?
+               JFileChooser fc = new JFileChooser();
+               fc.setMultiSelectionEnabled(false);
+               fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+               if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
+                  System.out.println(fc.getSelectedFile());
+                  File f = fc.getSelectedFile();
+                  try{
+                     ePanel.getDiskFile().export(f);
+                  }
+                  catch(IOException ex){
+                     System.out.println("Export failed");
+                     System.out.println(ex.getMessage());
+                  }
+               }
             }
          }
       );
