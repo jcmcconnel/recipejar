@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.net.URISyntaxException;
 
 import javax.swing.text.BadLocationException;
 
@@ -137,11 +138,24 @@ public class MainFrame extends JFrame {
       Kernel.programActions.put("import-recipe",
          new AbstractAction("Import"){
             public void actionPerformed(ActionEvent e) {
-               //TODO What does "Import" mean?
+               JFileChooser fc = new JFileChooser();
+               fc.setMultiSelectionEnabled(false);
+               fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+               if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
+                  System.out.println(fc.getSelectedFile());
+                  try{
+                     RecipeFile f = new RecipeFile(fc.getSelectedFile());
+                     System.out.println(f.getTitle());
+                  }
+                  catch(IOException ex){
+                     System.out.println("Import failed");
+                     System.out.println(ex.getMessage());
+                  }
+               }
             }
          }
       );
-      Kernel.programActions.get("import-recipe").setEnabled(false);
+      //Kernel.programActions.get("import-recipe").setEnabled(false);
       fileMenu.add(Kernel.programActions.get("import-recipe"));
       //Export
       Kernel.programActions.put("export-recipe",
@@ -253,12 +267,28 @@ public class MainFrame extends JFrame {
       helpMenu.setMnemonic('H');
 
       //On the Web
-      //TODO
+      Kernel.programActions.put("help-dialog", new AbstractAction("On the Web") {
+         public void actionPerformed(ActionEvent e) {
+            if (java.awt.Desktop.isDesktopSupported()) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(new java.net.URI(ProgramVariables.HELP_URL.toString()));
+                } catch (URISyntaxException ex) {
+                    JOptionPane.showMessageDialog(Kernel.topLevelFrame, "You can get help, by visiting \"" + ProgramVariables.HELP_URL.toString() + "\"\n Thanks, \n   -mgmt");
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(Kernel.topLevelFrame, "You can get help, by visiting \"" + ProgramVariables.HELP_URL.toString() + "\"\n Thanks, \n   -mgmt");
+                }
+            } else {
+                JOptionPane.showMessageDialog(Kernel.topLevelFrame, "You can get help, by visiting \"" + ProgramVariables.HELP_URL.toString() + "\"\n Thanks, \n   -mgmt");
+            }
+         }
+      });
+      Kernel.programActions.get("help-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_W);
+      helpMenu.add(Kernel.programActions.get("help-dialog"));
 
       //About
       Kernel.programActions.put("about-dialog", new AbstractAction("About") {
          public void actionPerformed(ActionEvent e) {
-            JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Welcome to RecipeJar!");
+            JOptionPane.showMessageDialog(Kernel.topLevelFrame, ProgramVariables.ABOUT+"\n"+ProgramVariables.VERSION);
          }
       });
       Kernel.programActions.get("about-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);

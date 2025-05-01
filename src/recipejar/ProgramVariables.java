@@ -65,7 +65,8 @@ public enum ProgramVariables {
    //Other
    HELP_URL("files/help_url"),
    //Major.Minor.Increment
-   VERSION("info/version");
+   VERSION("info/version"),
+   ABOUT("info/about");
 
    public static void unpackToRegistry() {
        for(int i=0; i<ProgramVariables.values().length; i++){
@@ -208,6 +209,7 @@ public enum ProgramVariables {
          case HELP_URL:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, getDefault(this));
          case VERSION:
+         case ABOUT:
              return getDefault(this);
          default:
             return Preferences.userRoot().node(PROGRAM_NODE).get(key, null);
