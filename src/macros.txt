@@ -1,0 +1,33 @@
+;You can write your own macros! The following are examples/default macros
+;which will insert some text.  This can be useful for adding things like
+;html formatting.
+
+;To write a macro you need 5 things:
+;NAME, MNEMONIC, ACCELERATOR, MASK, SOME TEXT
+
+;The NAME is what your macro will be called in the menu.  
+;A MNEMONIC is the letter you will press if navigating the menu with the keyboard.
+;An ACCELERATOR along with a Mask is the shortcut key.
+;The TEXT is what you want the macro to insert.  
+
+;Acceptable values for the mask are (all in uppercase):
+;DEFAULT, CTRL, ALT or OPTION, SHIFT, and COMMAND or CMD
+;DEFAULT equates to CTRL on windows and COMMAND or CMD on a Mac.
+
+;By adding [SELECTION] into the text string, the currently selected text will be inserted,
+;or the command [COLOR] will open a color picker dialog, and [INPUT] inserts input from the user.
+
+;For more information on how to write your own
+;custom macros please visit: http://sites.google.com/site/recipejar/Home/macros
+
+;Any line beginning with a ";" is a comment and will be ignored by the program.
+
+
+Bold, B, B,DEFAULT,<strong>[SELECTION]</strong>
+Italics, I, I,DEFAULT,<em>[SELECTION]</em>
+Underline, U, U,DEFAULT,<span style="text-decoration: underline;">[Selection]</span>
+Color, C, C,ALT-SHIFT,<span style="color: [COLOR:Select Text Color];">[Selection]</span>
+Paragraph, P, P, ALT-DEFAULT,<p>[SELECTION]</p>
+;<html>&deg;F</html>, F, F, ALT-DEFAULT,&deg;F
+;<html>&deg;C</html>, C, C, ALT-DEFAULT,&deg;C
+Link,K,K,DEFAULT,<a href="[INPUT:Address]">[SELECTION]</a>

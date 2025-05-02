@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="generator" content="RecipeJar"/>
+    <meta name="created" content="Sometime before, Wed Jan 10 11:45:35 PST 2024"/>
+    <meta name="last saved" content="Wed Jan 10 11:45:35 PST 2024"/>
+    <title></title>
+    <style type="text/css">@import url("style/default.css");</style>
+    
+  </head>
+   <body>
+    <div id="header"><h1></h1></div>
+    <div id="notes-header"><h3>Notes:</h3></div>
+    <div id="notes">A little about this recipe,<br/>
+where I got it why I like it, etc.<br/>
+Makes 1 serving.    </div>
+    <div id="notes-footer"></div>
+    <div id="ingredients-header"><h3>You will need:</h3></div>
+    <div id="ingredients">
+      <ul>
+         <li><span class="qty">2</span> <span class="unit">Slices</span> <span class="name">Bread</span></li>
+         <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Jam</span></li>
+         <li><span class="qty">1</span> <span class="unit">Tbsp</span> <span class="name">Peanut Butter</span></li>
+      </ul>
+    </div>
+    <div id="procedure-header"><h3>Procedure:</h3></div>
+    <div id="procedure">Evenly spread the Jam on one of the bread slices, and the Peanut Butter on the other.  <br/>
+Apply the condiment coated side of one of the bread slices to the condiment coated side of the other.<br/>
+If desired, cut the sandwich into geometric shapes <strong>before</strong> enjoying.          </div>
+    <div id="browser-footer">
+		  <br/>
+		  <hr/>
+		  Labels: Currently None.<br/>
+	      Last Saved: Wed Jan 10 11:45:35 PST 2024<br/>
+	      Created: Sometime before, Wed Jan 10 11:45:35 PST 2024<br/>
+	      By: Unknown<br/>
+	      Using: <a href="https://github.com/jcmcconnel/recipejar/">Recipejar</a>.
+	      <hr/>
+         <a href="index.html">Index</a>
+      </div>
+  </body>
+</html>

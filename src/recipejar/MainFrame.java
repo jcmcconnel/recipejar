@@ -8,6 +8,12 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+import javax.imageio.ImageIO;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -315,14 +321,29 @@ public class MainFrame extends JFrame {
       Kernel.configDir = new File("%HOME/.RecipeJar");
       if (argv.length > 1) {
          if (argv[0].contains("-d")) {
-                  Kernel.configDir = new File(argv[1]);
+            Kernel.configDir = new File(argv[1]);
+            if (!Kernel.configDir.exists()) {
+               Kernel.configDir.mkdir();
+               try {
+                  System.out.println("Unpack");
+                  BufferedReader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("unpackingList.txt")));
+                  while(r.ready()){
+                     String line = r.readLine();
+                     System.out.println(line);
+                     String[] lineComps = line.split(" ");
+                     if(lineComps.length == 2) extractFile(new File(Kernel.configDir.getAbsolutePath()+"/"+lineComps[1]), line.split(" ")[0]);
+                     else new File(Kernel.configDir.getAbsolutePath()+"/"+line).mkdir();
+                  }
+                  r.close();
+               } catch (IOException e) {
+                  System.out.println("Unpacking failed");
+               }
+            }
          }
       }
       System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
       ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
       try {
-          //UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
-          //UIManager.setLookAndFeel(recipejar.lib.LAFType.MOTIF.toString());
           UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
       } 
       catch(UnsupportedLookAndFeelException e){}
@@ -346,4 +367,104 @@ public class MainFrame extends JFrame {
       MainFrame f = new MainFrame("RecipeJar");
       f.setVisible(true);
    }
+
+   /**
+    * Checks to make sure the program resources have been installed, and
+    * if they haven't then it installs them.
+    * @param workingPath
+    */
+//   public static void unpack(String workingPath) {
+//      try {
+//         File p = new File(workingPath);
+//         if (!p.exists()) {
+//            p.mkdir();
+//         }
+//         InputStream in = ClassLoader.getSystemResourceAsStream("filetree.txt");
+//         String s = new String();
+//         int c = in.read();
+//         while (c != -1) {
+//            s = s + (char) c;
+//            c = in.read();
+//         }
+//         if (!s.isEmpty()) {
+//            String[] files = s.split("\n");
+//            for (int i = 0; i < files.length; i++) {
+//               File test = new File(p.getPath() + File.separator+ files[i].trim());
+//               if (!test.exists()) {
+//                  extractFile(test);
+//               }
+//            }
+//         }
+//      } catch (IOException ex) {
+//         JOptionPane.showMessageDialog(null, "Unpacking Failed. IOE");
+//         System.exit(1);
+//      } catch (NullPointerException npe) {
+//         JOptionPane.showMessageDialog(null, "Unpacking Failed. NPE");
+//         System.exit(1);
+//      } finally {
+//         System.gc();
+//      }
+//   }
+
+   /**
+    * Extracts files from the system resources
+    * @param test
+    * @see #unpack(java.lang.String)
+    */
+   public static void extractFile(File test, String rsc) {
+      //Directories
+      if (test.getName().indexOf(".") == -1) {
+         test.mkdir();
+      } else {
+         //Files
+         try {
+            InputStream in = ClassLoader.getSystemResourceAsStream(test.getName());
+            if (in == null) {
+               throw new NullPointerException("Failed to access: \"" + test.getName() + "\"");
+            }
+            if (test.createNewFile()) {
+               //emphasis on the successfully.
+               String format;
+               if ((format = getImageType(test)) != null) {//If the file is an image.
+                  ImageIO.write(ImageIO.read(in), format, test);
+               } else {//Text files
+                  OutputStream out = new FileOutputStream(test);
+                  int c = in.read();
+                  while (c != -1) {
+                     out.write(c);
+                     c = in.read();
+                  }
+                  out.close();
+               }
+            }
+         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Fatal Error.  See \"errorLog.txt\" for more information.");
+            System.exit(1);
+         } catch (NullPointerException npe) {
+            JOptionPane.showMessageDialog(null, "Fatal Error.  See \"errorLog.txt\" for more information.");
+            System.exit(1);
+         }
+      }
+   }
+
+   /**
+    * Called by extractFile
+    * @param test
+    * @return
+    * @see #extractFile(java.io.File)
+    */
+   private static String getImageType(File test) {
+      String[] suffixes = ImageIO.getWriterFormatNames();
+      int x = test.getName().indexOf(".");
+      if (x == -1) {
+         return null;//file does not have an extension
+      }
+      for (int i = 0; i < suffixes.length; i++) {
+         if (test.getName().substring(x + 1).equals(suffixes[i])) {
+            return suffixes[i];
+         }
+      }
+      return null;
+   }
+
 }

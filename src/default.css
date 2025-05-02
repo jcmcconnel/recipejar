@@ -1,0 +1,46 @@
+body {
+   background-color: #e2e2ff;
+   color: black;
+
+   font-size: small;
+   font-family: serif;
+
+   text-align: left;
+}
+h1 {
+   background-color: inherit;
+   color: black;
+
+   font-family: monospace;
+   text-align: center;
+}
+h3 {
+   background-color: inherit;
+   color: black;
+
+   font-family: monospace;
+   text-align: center;
+}
+hr {}
+div {
+   background-color: inherit;
+   color: black;
+   text-align: left;
+}
+div#notes{
+   padding: 1em;
+   
+   text-align: center;
+}
+div#ingredients
+{
+   font-style: italic;
+   color: #cc6600;
+}
+div#ingredients ul {
+   list-style-type: disc;
+}
+li {}
+div#procedure{
+}
+p {}

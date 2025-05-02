@@ -24,6 +24,7 @@ clean:
 ifneq ("$(wildcard $(BUILDPATH))","")
 	@echo test
 	rm -r build
+	rm -r test-unpack
 endif
 
 .PHONY: test
@@ -37,3 +38,8 @@ test-jar:
 .PHONY: test-54
 test-54:
 	cd Test && java -jar RecipeJar54_177.jar
+
+.PHONY: test-unpack
+test-unpack:
+	java -jar RecipeJar.jar -d test-unpack
+
