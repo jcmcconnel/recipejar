@@ -18,6 +18,11 @@ import javax.swing.KeyStroke;
  */
 public class StringProcessor {
 
+   /**
+    * Changes spaces to underscores
+    *
+    * @param cat category name
+    **/
    public static String underscoreSpaces(String cat) {
       StringWriter s = new StringWriter();
       for (int i = 0; i < cat.length(); i++) {
@@ -31,6 +36,11 @@ public class StringProcessor {
       return s.toString();
    }
 
+   /**
+    * Changes underscores to spaces
+    *
+    * @param cat category name
+    **/
    public static String spaceUnderscores(String cat) {
       StringWriter s = new StringWriter();
       for (int i = 0; i < cat.length(); i++) {

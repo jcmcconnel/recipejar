@@ -151,6 +151,7 @@ public class MainFrame extends JFrame {
                   System.out.println(fc.getSelectedFile());
                   try{
                      RecipeFile f = new RecipeFile(fc.getSelectedFile());
+                     IndexFile.getIndexFile().add(f.importRecipe());
                      System.out.println(f.getTitle());
                   }
                   catch(IOException ex){

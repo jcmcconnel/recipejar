@@ -79,21 +79,6 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         setActiveFooter("program-footer");
     }
 
-    ///**
-     //* Makes sure that the element exists in this RecipeFile, and if it does
-     //* sets the content to the default given in the template.
-     //*
-     //* @param token the Element
-     //*/
-    //private void revertToDefault(String token) {
-    //if (RecipeTemplate.getSource().dataElementExists(token)) {
-    //if (!this.dataElementExists(token)) {
-    //setDataElement(token, RecipeTemplate.getSource().getDataElement(token).clone());
-    //} else {
-    //this.getDataElement(token).setContent(RecipeTemplate.getSource().getDataElement(token).getContent());
-    //}
-    //}
-    //}
     ////////Protected/////////
     private String activeFooter = "program-footer";
 
@@ -244,10 +229,11 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
 
     //General
     /**
+     * Copies this file to the given file
      *
      * @param f
      * @throws IOException
-     */
+     **/
     public void export(File f) throws IOException {
         RecipeFile temp = RecipeFile.newFromTemplate(f.getAbsolutePath());
         temp.setActiveFooter("export-footer");
@@ -260,6 +246,27 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         temp.setLabels(this.getLabelsAsText());
         temp.save();
         //temp.setActiveFooter("program-footer");
+    }
+
+    /**
+     * Imports a Recipe Jar recipe into the recipes directory.  
+     * Context is the referenced external recipe.
+     *
+     * @throws IOException
+     * 
+     **/
+    public RecipeFile importRecipe() throws IOException {
+        RecipeFile temp = RecipeFile.newFromTemplate(recipejar.ProgramVariables.DIR_DB.toString()+"/"+recipejar.StringProcessor.removeBadChars(this.getTitle())+".html");
+        temp.setActiveFooter("program-footer");
+        temp.setTitle(this.getTitle());
+        temp.setNotes(this.getNotes());
+        temp.setProcedure(this.getProcedure());
+        for (int i = 0; i < this.getIngredientListSize(); i++) {
+            temp.setIngredient(i, this.getIngredient(i));
+        }
+        temp.setLabels(this.getLabelsAsText());
+        temp.save();
+        return temp;
     }
 
     /**
@@ -480,6 +487,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         int next = s.indexOf("<li>");
         while (next != -1) {
             next = next + 4;//# of chars in "<li>"
+            System.out.println(s.substring(next, s.indexOf("</li>", next)));
             ingredients.add(Ingredient.parse(s.substring(next, s.indexOf("</li>", next))));
             next = s.indexOf("<li>", next);
         }

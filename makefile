@@ -43,3 +43,7 @@ test-54:
 test-unpack:
 	java -jar RecipeJar.jar -d test-unpack
 
+.PHONY: test-ingredient
+test-ingredient:
+	cd build && java recipejar.test.testRecipe parse-ingredient
+

@@ -2,6 +2,7 @@ package recipejar.recipe;
 
 import java.io.StringWriter;
 import java.text.DecimalFormat;
+import java.lang.StringIndexOutOfBoundsException;
 
 
 public class Ingredient {
@@ -34,31 +35,49 @@ public class Ingredient {
 
       String[] data = new String[3];
 
-      data[0] = new String();
-      String qtyToken = "<span class=\"qty\">";
-      int quantity = s.indexOf(qtyToken)+qtyToken.length();
-      int endQuantity = s.indexOf("</span>", quantity);
-      if (quantity != -1) {
-         data[0] = s.substring(quantity, endQuantity);
-         s = s.substring(endQuantity+7);
+      try{
+         data[0] = new String();
+         String qtyToken = "<span class=\"qty\">";
+         int quantity = s.indexOf(qtyToken)+qtyToken.length();
+         int endQuantity = s.indexOf("</span>", quantity);
+         if (quantity != -1) {
+            data[0] = s.substring(quantity, endQuantity);
+            s = s.substring(endQuantity+7);
+         }
+      } catch(StringIndexOutOfBoundsException e){
+         System.out.println("No quantity");
+         System.out.println(s);
+         System.out.println(e.getMessage());
       }
 
-      data[1] = new String();
-      String unitToken = "<span class=\"unit\">";
-      int unit = s.indexOf(unitToken)+unitToken.length();
-      int endUnit = s.indexOf("</span>", unit);
-      if (unit != -1) {
-         data[1] = s.substring(unit, endUnit);
-         s = s.substring(endUnit+7);
+      try{
+         data[1] = new String();
+         String unitToken = "<span class=\"unit\">";
+         int unit = s.indexOf(unitToken)+unitToken.length();
+         int endUnit = s.indexOf("</span>", unit);
+         if (unit != -1) {
+            data[1] = s.substring(unit, endUnit);
+            s = s.substring(endUnit+7);
+         }
+      } catch(StringIndexOutOfBoundsException e){
+         System.out.println("No unit");
+         System.out.println(s);
+         System.out.println(e.getMessage());
       }
       
-      data[2] = new String();
-      String nameToken = "<span class=\"name\">";
-      int name = s.indexOf(nameToken)+nameToken.length();
-      int endName = s.indexOf("</span>", name);
-      if (name != -1) {
-         data[2] = s.substring(name, endName);
-         s = s.substring(endName+7);
+      try{
+         data[2] = new String();
+         String nameToken = "<span class=\"name\">";
+         int name = s.indexOf(nameToken)+nameToken.length();
+         int endName = s.indexOf("</span>", name);
+         if (name != -1) {
+            data[2] = s.substring(name, endName);
+            s = s.substring(endName+7);
+         }
+      } catch(StringIndexOutOfBoundsException e){
+         System.out.println("No name");
+         System.out.println(s);
+         System.out.println(e.getMessage());
       }
       
       return new Ingredient(data[0], Unit.getUnit(data[1]), data[2]);
@@ -134,6 +153,7 @@ public class Ingredient {
       s.write("         <li>");
       s.write("<span class=\"qty\">" + getQuantity() + "</span> ");
       if(unit != null) s.write("<span class=\"unit\">" + getUnit().toString(quantity) +"</span> ");
+      else s.write("<span class=\"unit\"></span> ");
       s.write("<span class=\"name\">" + getName() + "</span>");
       s.write("</li>\n");
       return s.toString();
@@ -147,7 +167,7 @@ public class Ingredient {
    public String toString() {
       StringWriter s = new StringWriter();
       s.write(getQuantity()+" ");
-      s.write(getUnit().toString(quantity) + " ");
+      if(unit != null) s.write(getUnit().toString(quantity) + " ");
       s.write(getName() + " ");
       return s.toString();
    }
