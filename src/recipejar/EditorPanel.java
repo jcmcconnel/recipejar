@@ -41,7 +41,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.DefaultCellEditor;
 
 /**
- *
+ * Editor panel for Editing recipes.
  * @author  James McConnel
  */
 public class EditorPanel extends JPanel implements HyperlinkListener {
@@ -156,9 +156,10 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             notesField.setDocument(recipeModel.getNotesModel());
             iListTable1.setModel(recipeModel.getTableModel());
             procedureField.setDocument(recipeModel.getProcedureModel());
+            labelField.setDocument(recipeModel.getLabelsModel());
             Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
 
-            Kernel.programActions.get("save").setEnabled(true);
+            //Kernel.programActions.get("save").setEnabled(true);
             Kernel.programActions.get("delete").setEnabled(true);
             Kernel.programActions.get("change-title").setEnabled(true);
             Kernel.programActions.get("export-recipe").setEnabled(true);
@@ -169,6 +170,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
     /**
      * Intended as a listener for the IndexPane.
+     * @param e HyperlinkEvent
      */
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
@@ -177,7 +179,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    }
 
    /**
-    *
+    * Resets the panel fields to default values.
     *
     */
    public void clear() {
@@ -188,6 +190,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       iListTable1.setEnabled(false);
       procedureField.setText("");
       procedureField.setEditable(false);
+      labelField.setText("");
       saveButton.setEnabled(false);
       recipeModel = null;
    }
@@ -195,7 +198,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /**
    *
-   * @return
+   * @return True if successful
    * @throws java.io.FileNotFoundException
    * @throws java.io.IOException
    **/
@@ -223,6 +226,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /**
     * Renames a recipe
+    * @param newTitle The new title for the recipe
     * 
     **/
    public boolean reTitle(String newTitle) {
@@ -254,6 +258,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             notesField.setDocument(recipeModel.getNotesModel());
             iListTable1.setModel(recipeModel.getTableModel());
             procedureField.setDocument(recipeModel.getProcedureModel());
+            labelField.setDocument(recipeModel.getLabelsModel());
          } 
          catch(IOException ioe){}
          catch(BadLocationException ble){}

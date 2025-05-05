@@ -53,6 +53,8 @@ public class Recipe implements TableModelListener, DocumentListener {
     private String originalProcedure;
     private Document procedureModel;
 
+    private String originalLabels;
+    private Document labelsModel;
     private ArrayList<String> labels;
 
     private boolean tmodelChanged;
@@ -75,13 +77,16 @@ public class Recipe implements TableModelListener, DocumentListener {
        originalProcedure = recipejar.StringProcessor.convertToASCIILinebreaks(f.getProcedure());
        procedureModel = new PlainDocument();
        procedureModel.insertString(0, originalProcedure, null);
-       labels = f.getLabels();
+       originalLabels = getMetaData("labels");
+       labelsModel = new PlainDocument();
+       labelsModel.insertString(0, originalLabels, null);
 
        tmodelChanged = false;
 
        titleModel.addDocumentListener(this);
        notesModel.addDocumentListener(this);
        procedureModel.addDocumentListener(this);
+       labelsModel.addDocumentListener(this);
     }
 
    /**
@@ -111,19 +116,6 @@ public class Recipe implements TableModelListener, DocumentListener {
       Kernel.programActions.get("save").setEnabled(true);
    }
 
-    /**
-     */
-    public String getLabelsAsText() {
-       String l = "";
-       for (int i = 0; i < this.getLabels().size(); i++) {
-           l = l + this.getLabels().get(i);
-           if (i < this.getLabels().size() - 1) {
-               l = l + ", ";
-           }
-       }
-       return l;
-    }
-
    /**
    * Save the model to the backing file.
    **/
@@ -133,7 +125,7 @@ public class Recipe implements TableModelListener, DocumentListener {
       diskFile.setNotes(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(notesModel.getText(0, notesModel.getLength()))));
       diskFile.setIngredients(ingredients);
       diskFile.setProcedure(StringProcessor.convertToXMLLineBreaks(StringProcessor.fixInformalAnchors(procedureModel.getText(0, procedureModel.getLength()))));
-      //diskFile.setLabels(this.getLabelsAsText());
+      diskFile.setLabels(labelsModel.getText(0, labelsModel.getLength()));
 
       //updateMetaData();
 
@@ -149,14 +141,11 @@ public class Recipe implements TableModelListener, DocumentListener {
      * @return
      */
     public boolean isLabeled(String s) {
-        if (labels != null) {
-            for (int i = 0; i < labels.size(); i++) {
-                if (labels.get(i).equals(s)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+       String[] labels = labelsModel.getText(0, labelsModel.getLength()).split(",");
+       for(int i=0; i < labels.length; i++){
+          if(labels.equals(s)) return true;
+       }
+       return false;
     }
 
     /////Getters and Setters/////
@@ -167,6 +156,7 @@ public class Recipe implements TableModelListener, DocumentListener {
     public Document getTitleModel() {
        return titleModel;
     }
+
     public boolean hasTitleChanged() {
        try {
           return !originalTitle.equals(titleModel.getText(0, titleModel.getLength()));
@@ -184,6 +174,7 @@ public class Recipe implements TableModelListener, DocumentListener {
           return true;
        }
    }
+
    public boolean hasProcedureChanged() {
        try {
          return !originalProcedure.equals(procedureModel.getText(0, procedureModel.getLength()));
@@ -192,6 +183,7 @@ public class Recipe implements TableModelListener, DocumentListener {
           return true;
        }
    }
+
    public boolean hasRecipeChanged() {
       try{
          return hasTitleChanged() || hasNotesChanged() || hasProcedureChanged() || tmodelChanged;
@@ -218,49 +210,20 @@ public class Recipe implements TableModelListener, DocumentListener {
 
     /**
      *
-     * @param newNotes
-     */
-    //public void setNotes(String newNotes) {
-    //   originalNotes = recipejar.StringProcessor.convertToXMLLineBreaks(newNotes);
-    //}
-
-    /**
-     *
      * @return
      */
     public Document getProcedureModel() {
        return procedureModel;
     }
 
-    /**
-     *
-     * @param newProcedure
-     */
-    //public void setProcedure(String newProcedure) {
-    //   originalProcedure = recipejar.StringProcessor.convertToXMLLineBreaks(newProcedure);
-    //}
 
     /**
-     * Returns all the labels this recipe has, as a string array.
      *
-     * @return array of all the labels
-     */
-    public ArrayList<String> getLabels() {
-       return labels;
+     * */
+    public Document getLabelsModel(){
+       return labelsModel;
     }
-
-    public void addLabel(String s) {
-       labels.add(s);
-    }
-
-    /**
-     * Puts the given string into the labels data element.
-     *
-     * @param text
-     */
-    public void setLabels(String text) {
-    }
-
+    
     ///////////Ingredient Methods////////////
     public void swapIngredients(int a, int b) {
         if ((a >= 0 && a < ingredients.size()) && (b >= 0 && b < ingredients.size())) {

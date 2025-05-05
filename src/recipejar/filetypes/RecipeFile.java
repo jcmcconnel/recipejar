@@ -77,6 +77,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             //this.createNewFile();
         }
         setActiveFooter("program-footer");
+        System.out.println(getMetaData("labels"));
     }
 
     ////////Protected/////////
@@ -127,9 +128,9 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
             out.write("    " + processMacros(recipeTemplate.getDataElement("procedure-footer").toString()) + "\n");
         }
 
-        //if (recipeTemplate.dataElementExists(activeFooter)) {
-        //    out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
-        //}
+        if (recipeTemplate.dataElementExists(activeFooter)) {
+            out.write("    " + processMacros(recipeTemplate.getDataElement(activeFooter).toString()) + "\n");
+        }
         out.write("  </body>\n");
         return out.toString();
     }
@@ -243,7 +244,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         for (int i = 0; i < this.getIngredientListSize(); i++) {
             temp.setIngredient(i, this.getIngredient(i));
         }
-        temp.setLabels(this.getLabelsAsText());
+        temp.setLabels(getMetaData("labels"));
         temp.save();
         //temp.setActiveFooter("program-footer");
     }
@@ -264,7 +265,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         for (int i = 0; i < this.getIngredientListSize(); i++) {
             temp.setIngredient(i, this.getIngredient(i));
         }
-        temp.setLabels(this.getLabelsAsText());
+        temp.setLabels(getMetaData("labels"));
         temp.save();
         return temp;
     }
@@ -363,172 +364,162 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
       }
    }
 
-    public String getLabelsAsText() {
-       String l = "";
-       for (int i = 0; i < this.getLabels().size(); i++) {
-           l = l + this.getLabels().get(i);
-           if (i < this.getLabels().size() - 1) {
-               l = l + ", ";
+   /**
+    * Returns all the labels this recipe has, as a string array.
+    *
+    * @return array of all the labels
+    */
+   public ArrayList<String> getLabels() {
+      String allLabels = getMetaData("labels");
+      if (allLabels != null && !allLabels.isEmpty()) {
+          ArrayList<String> labels = new ArrayList<String>(Arrays.asList(allLabels.split(",")));
+          ArrayList<String> trimmed = new ArrayList<String>(labels.size());
+          for (int i = 0; i < labels.size(); i++) {
+              trimmed.add(i, labels.get(i).trim());
+          }
+          return trimmed;
+      }
+      return null;
+   }
+
+   public void addLabel(String s) {
+      this.setMetaData("labels", this.getMetaData("labels") + ", " + s);
+   }
+
+   /**
+    * Puts the given string into the labels data element.
+    *
+    * @param text
+    */
+   public void setLabels(String text) {
+       this.setMetaData("labels", text);
+   }
+
+   /////////////Ingredient Methods////////////
+
+   /**
+    *
+    * @param i
+    * @return
+    */
+   public Ingredient getIngredient(int i) {
+       return ingredients.get(i);
+   }
+   public ArrayList<Ingredient> getIngredients() {
+      return ingredients;
+   }
+   /**
+    * Sets the ingredients array
+    * @param l The given list
+    */
+   public void setIngredients(ArrayList<Ingredient> l){
+      ingredients = l;
+   }
+
+   /**
+    * Replaces Ingredient at index i, with Ingredient I.
+    *
+    * @param i
+    * @param I
+    */
+   public void setIngredient(int i, Ingredient I) {
+      if(i >= ingredients.size()) ingredients.add(I);
+      else ingredients.set(i, I);
+   }
+
+   /**
+    * Appends ingredient to the end of the list.
+    *
+    * @param I
+    */
+   public void addIngredient(Ingredient I) {
+       ingredients.add(I);
+   }
+
+   protected Ingredient removeIngredient(int i) {
+       return ingredients.remove(i);
+   }
+
+   public int getIngredientListSize() {
+       return ingredients.size();
+   }
+
+   /**
+    * Translates the ingredient array into an HTML list.
+    *
+    * @return
+    */
+   private String getIngredientsAsHTML() {
+       //Remove empty ingredients first.
+       for (int i = 0; i < ingredients.size() - 1; i++) {
+           if (ingredients.get(i).getName().toString().isEmpty()) {
+               ingredients.remove(i);
+               i--;
            }
        }
-       return l;
-    }
-    /**
-     * Returns all the labels this recipe has, as a string array.
-     *
-     * @return array of all the labels
-     */
-    public ArrayList<String> getLabels() {
-        String allLabels = getMetaData("labels");
-        if (allLabels != null && !allLabels.isEmpty()) {
-            ArrayList<String> labels = new ArrayList<String>(Arrays.asList(allLabels.split(",")));
-            ArrayList<String> trimmed = new ArrayList<String>(labels.size());
-            for (int i = 0; i < labels.size(); i++) {
-                trimmed.add(i, labels.get(i).trim());
-            }
-            return trimmed;
-        }
-        return null;
-    }
+       StringWriter s = new StringWriter();
+       s.write("\n      <ul>\n");
+       for (int i = 0; i < ingredients.size(); i++) {
+           s.write(ingredients.get(i).toXHTMLString());
+       }
+       s.write("      </ul>");
+       return s.toString();
+   }
 
-    public void addLabel(String s) {
-        this.setMetaData("labels", this.getMetaData("labels") + ", " + s);
-    }
+   /**
+    * Loads the contents of the ingredients div into the ingredients array.
+    *
+    * @param s the div contents
+    */
+   private void setIngredientsFromHTML(String s) {
+       if (ingredients == null) {
+           ingredients = new ArrayList<Ingredient>();
+       }
+       int next = s.indexOf("<li>");
+       while (next != -1) {
+           next = next + 4;//# of chars in "<li>"
+           System.out.println(s.substring(next, s.indexOf("</li>", next)));
+           ingredients.add(Ingredient.parse(s.substring(next, s.indexOf("</li>", next))));
+           next = s.indexOf("<li>", next);
+       }
+   }
 
-    /**
-     * Puts the given string into the labels data element.
-     *
-     * @param text
-     */
-    public void setLabels(String text) {
-        this.setMetaData("labels", text);
-    }
+   private void setActiveFooter(String string) {
+      activeFooter = string;
+   }
 
-    /////////////Ingredient Methods////////////
+   @Override
+   protected void prepforSave() {
+      setActiveFooter("browser-footer");
+   }
 
-    /**
-     *
-     * @param i
-     * @return
-     */
-    public Ingredient getIngredient(int i) {
-        return ingredients.get(i);
-    }
-    public ArrayList<Ingredient> getIngredients() {
-       return ingredients;
-    }
-    /**
-     * Sets the ingredients array
-     * @param l The given list
-     */
-    public void setIngredients(ArrayList<Ingredient> l){
-       ingredients = l;
-    }
+   @Override
+   protected void cleanUpAfterSave() {
+      setActiveFooter("program-footer");
+   }
 
-    /**
-     * Replaces Ingredient at index i, with Ingredient I.
-     *
-     * @param i
-     * @param I
-     */
-    public void setIngredient(int i, Ingredient I) {
-       if(i >= ingredients.size()) ingredients.add(I);
-       else ingredients.set(i, I);
-    }
+   public String getLabelsAsString() {
+      String l = "";
+      for (int i = 0; i < this.getLabels().size(); i++) {
+          l = l + this.getLabels().get(i);
+          if (i < this.getLabels().size() - 1) {
+              l = l + ", ";
+          }
+      }
+      return l;
+   }
+   public enum Section {
 
-    /**
-     * Appends ingredient to the end of the list.
-     *
-     * @param I
-     */
-    public void addIngredient(Ingredient I) {
-        ingredients.add(I);
-    }
+       NOTES("notes"), INGREDIENTS("ingredients"), PROCEDURE("procedure");
+       private final String id;
 
-    protected Ingredient removeIngredient(int i) {
-        return ingredients.remove(i);
-    }
+       Section(String s) {
+           id = s;
+       }
 
-    public int getIngredientListSize() {
-        return ingredients.size();
-    }
-
-    /**
-     * Translates the ingredient array into an HTML list.
-     *
-     * @return
-     */
-    private String getIngredientsAsHTML() {
-        //Remove empty ingredients first.
-        for (int i = 0; i < ingredients.size() - 1; i++) {
-            if (ingredients.get(i).getName().toString().isEmpty()) {
-                ingredients.remove(i);
-                i--;
-            }
-        }
-        StringWriter s = new StringWriter();
-        s.write("\n      <ul>\n");
-        for (int i = 0; i < ingredients.size(); i++) {
-            s.write(ingredients.get(i).toXHTMLString());
-        }
-        s.write("      </ul>");
-        return s.toString();
-    }
-
-    /**
-     * Loads the contents of the ingredients div into the ingredients array.
-     *
-     * @param s the div contents
-     */
-    private void setIngredientsFromHTML(String s) {
-        if (ingredients == null) {
-            ingredients = new ArrayList<Ingredient>();
-        }
-        int next = s.indexOf("<li>");
-        while (next != -1) {
-            next = next + 4;//# of chars in "<li>"
-            System.out.println(s.substring(next, s.indexOf("</li>", next)));
-            ingredients.add(Ingredient.parse(s.substring(next, s.indexOf("</li>", next))));
-            next = s.indexOf("<li>", next);
-        }
-    }
-
-    private void setActiveFooter(String string) {
-        activeFooter = string;
-    }
-
-    @Override
-    protected void prepforSave() {
-        setActiveFooter("browser-footer");
-    }
-
-    @Override
-    protected void cleanUpAfterSave() {
-        setActiveFooter("program-footer");
-    }
-
-    public String getLabelsAsString() {
-        String l = "";
-        for (int i = 0; i < this.getLabels().size(); i++) {
-            l = l + this.getLabels().get(i);
-            if (i < this.getLabels().size() - 1) {
-                l = l + ", ";
-            }
-        }
-        return l;
-    }
-    public enum Section {
-
-        NOTES("notes"), INGREDIENTS("ingredients"), PROCEDURE("procedure");
-        private final String id;
-
-        Section(String s) {
-            id = s;
-        }
-
-        @Override
-        public String toString() {
-            return id;
-        }
-    }
+       @Override
+       public String toString() {
+           return id;
+       }
+   }
 }

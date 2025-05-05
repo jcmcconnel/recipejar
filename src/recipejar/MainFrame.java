@@ -86,12 +86,10 @@ public class MainFrame extends JFrame {
                this.putValue(AbstractAction.NAME, "Open");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
                Kernel.programActions.get("save").setEnabled(false);
-               //Kernel.programActions.get("delete").setEnabled(true);
             } else {
                splitPane.setRightComponent(ePanel);
                this.putValue(AbstractAction.NAME, "Close");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-               //Kernel.programActions.get("delete").setEnabled(false);
             }
          }
       });
@@ -109,6 +107,7 @@ public class MainFrame extends JFrame {
             try{
                ePanel.save();
                readerPane.setPage(ePanel.getDiskFile());
+               IndexFile.getIndexFile().updateCategories(ePanel.getDiskFile());
                tabbedPane.reload();
                Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
             }
@@ -158,6 +157,7 @@ public class MainFrame extends JFrame {
                      System.out.println("Import failed");
                      System.out.println(ex.getMessage());
                   }
+                  tabbedPane.reload();
                }
             }
          }
@@ -369,43 +369,6 @@ public class MainFrame extends JFrame {
       f.setVisible(true);
    }
 
-   /**
-    * Checks to make sure the program resources have been installed, and
-    * if they haven't then it installs them.
-    * @param workingPath
-    */
-//   public static void unpack(String workingPath) {
-//      try {
-//         File p = new File(workingPath);
-//         if (!p.exists()) {
-//            p.mkdir();
-//         }
-//         InputStream in = ClassLoader.getSystemResourceAsStream("filetree.txt");
-//         String s = new String();
-//         int c = in.read();
-//         while (c != -1) {
-//            s = s + (char) c;
-//            c = in.read();
-//         }
-//         if (!s.isEmpty()) {
-//            String[] files = s.split("\n");
-//            for (int i = 0; i < files.length; i++) {
-//               File test = new File(p.getPath() + File.separator+ files[i].trim());
-//               if (!test.exists()) {
-//                  extractFile(test);
-//               }
-//            }
-//         }
-//      } catch (IOException ex) {
-//         JOptionPane.showMessageDialog(null, "Unpacking Failed. IOE");
-//         System.exit(1);
-//      } catch (NullPointerException npe) {
-//         JOptionPane.showMessageDialog(null, "Unpacking Failed. NPE");
-//         System.exit(1);
-//      } finally {
-//         System.gc();
-//      }
-//   }
 
    /**
     * Extracts files from the system resources
