@@ -107,7 +107,7 @@ public class MainFrame extends JFrame {
             try{
                ePanel.save();
                readerPane.setPage(ePanel.getDiskFile());
-               IndexFile.getIndexFile().updateCategories(ePanel.getDiskFile());
+               IndexFile.getIndexFile().updateCategoriesOf(ePanel.getDiskFile());
                tabbedPane.reload();
                Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
             }

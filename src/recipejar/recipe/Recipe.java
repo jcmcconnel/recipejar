@@ -77,7 +77,7 @@ public class Recipe implements TableModelListener, DocumentListener {
        originalProcedure = recipejar.StringProcessor.convertToASCIILinebreaks(f.getProcedure());
        procedureModel = new PlainDocument();
        procedureModel.insertString(0, originalProcedure, null);
-       originalLabels = getMetaData("labels");
+       originalLabels = f.getMetaData("labels");
        labelsModel = new PlainDocument();
        labelsModel.insertString(0, originalLabels, null);
 
@@ -140,7 +140,7 @@ public class Recipe implements TableModelListener, DocumentListener {
      * @param s the label
      * @return
      */
-    public boolean isLabeled(String s) {
+    public boolean isLabeled(String s) throws BadLocationException {
        String[] labels = labelsModel.getText(0, labelsModel.getLength()).split(",");
        for(int i=0; i < labels.length; i++){
           if(labels.equals(s)) return true;
