@@ -4,8 +4,7 @@
  * October 1, 2008
  * @Author James McConnel
  *
- * License: Artistic, http://www.opensource.org/licenses/artistic-license-2.0.php
- */
+ * */
 package recipejar.lib;
 
 import java.io.File;
@@ -186,7 +185,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
       } else if (getMetaData("created") == null) {
          e = new Element("meta");
          e.setAttribute("name", "created");
-         e.setAttribute("content", "Sometime before, " + Calendar.getInstance().getTime().toString());
+         e.setAttribute("content", Calendar.getInstance().getTime().toString());
          MetaData.add(e);
       }
       if ((e = getMetaElement("last saved")) == null) {
@@ -196,6 +195,9 @@ public abstract class AbstractXHTMLBasedFile extends File {
       }
       e.setAttribute("content", Calendar.getInstance().getTime().toString());
       FileWriter out = new FileWriter(this);
+      System.out.println("Abstract: "+getAbsolutePath());
+      System.out.println(getName());
+      //System.out.println(toString());
       out.write(toString());
       out.close();
       cleanUpAfterSave();
@@ -220,7 +222,7 @@ public abstract class AbstractXHTMLBasedFile extends File {
       } else if (getMetaData("created") == null) {
          e = new Element("meta");
          e.setAttribute("name", "created");
-         e.setAttribute("content", "Sometime before, " + Calendar.getInstance().getTime().toString());
+         e.setAttribute("content", Calendar.getInstance().getTime().toString());
          MetaData.add(e);
       }
       if ((e = getMetaElement("last saved")) == null) {

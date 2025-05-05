@@ -232,8 +232,8 @@ public class IndexFile extends AbstractXHTMLBasedFile {
       if (!getList(sec, "DEFAULT").contains(a)) {
          getList(sec, "DEFAULT").add(a);
       }
-      this.save();
       this.updateCategoriesOf(newfile);
+      this.save();
    }
 
    /**
