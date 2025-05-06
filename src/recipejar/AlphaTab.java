@@ -5,6 +5,7 @@
  */
 package recipejar;
 
+import java.io.File;
 import java.awt.geom.Rectangle2D;
 import java.awt.Rectangle;
 import java.awt.event.KeyListener;
@@ -37,13 +38,14 @@ public class AlphaTab extends JTabbedPane {
     public AlphaTab(IndexFile s) {
         index = s;
         initComponents();
+        setStyle(new File(ProgramVariables.CSS_INDEX.toString()));
         setPreferredSize(new java.awt.Dimension(500, 500));
     }
 
-    public void setStyle(FileReader in) {
+    public void setStyle(File f) {
         css = new StyleSheet();
         try {
-            css.loadRules(in, null);
+            css.loadRules(new FileReader(f), null);
         } catch (IOException ex) {
             Logger.getLogger(AlphaTab.class.getName()).log(Level.SEVERE, null, ex);
         }

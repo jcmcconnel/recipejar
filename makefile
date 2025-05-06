@@ -3,6 +3,7 @@
 SOURCEPATH=src
 COMPILER=javac -sourcepath $(SOURCEPATH) -classpath build -d build
 BUILDPATH=build
+UNPACKTESTPATH=test-unpack
 
 all: 
 	$(COMPILER) @source_files 
@@ -24,6 +25,9 @@ clean:
 ifneq ("$(wildcard $(BUILDPATH))","")
 	@echo test
 	rm -r build
+endif
+ifneq ("$(wildcard $(UNPACKTESTPATH))","")
+	@echo test
 	rm -r test-unpack
 endif
 
@@ -46,4 +50,8 @@ test-unpack:
 .PHONY: test-ingredient
 test-ingredient:
 	cd build && java recipejar.test.testRecipe parse-ingredient
+
+.PHONY: test-unit
+test-unit:
+	cd build && java recipejar.test.testRecipe convert 25 cc ml
 

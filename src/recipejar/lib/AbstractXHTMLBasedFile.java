@@ -367,6 +367,10 @@ public abstract class AbstractXHTMLBasedFile extends File {
                      //} catch (IOException ex) {
                      //   textStroke.write("RecipeJar");
                      //}
+               } else if (s.toString().toUpperCase().equals("[CURRENT-TIME]")) {
+                   return java.time.Clock.systemDefaultZone().instant().now().toString();
+               } else if (s.toString().toUpperCase().equals("[ABOUT]")) {
+                   return recipejar.ProgramVariables.ABOUT.toString();
                } else {
                   textStroke.write(getMacroText(s.toString()));
                }

@@ -394,7 +394,7 @@ public class Unit implements Comparable<Unit> {
       if (qty.isEmpty()) {
          x = 0;
       } else {//Parse out the value of qty
-         if (qty.trim().split("-")[0].length() > 0) {
+         if (qty.trim().split("-").length > 1) {
             System.out.print("range detected");
             //A range
             return (convert(qty.substring(0, qty.indexOf("-")).trim(), factor, outputFraction) + "-"

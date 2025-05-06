@@ -204,6 +204,10 @@ public class MainFrame extends JFrame {
          }
       });
       Kernel.programActions.get("delete").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_R);
+      Kernel.programActions.get("delete").putValue(
+                                                 Action.ACCELERATOR_KEY,
+                                                 KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
+                                                 );
       Kernel.programActions.get("delete").setEnabled(false);
       fileMenu.add(Kernel.programActions.get("delete"));
 
@@ -216,6 +220,11 @@ public class MainFrame extends JFrame {
          }
       );
       Kernel.programActions.get("print-recipe").setEnabled(false);
+      Kernel.programActions.get("print-recipe").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
+      Kernel.programActions.get("print-recipe").putValue(
+                                                 Action.ACCELERATOR_KEY,
+                                                 KeyStroke.getKeyStroke(KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+                                                 );
       fileMenu.add(Kernel.programActions.get("print-recipe"));
       fileMenu.addSeparator();
 
