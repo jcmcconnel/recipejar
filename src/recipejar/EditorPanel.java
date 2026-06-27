@@ -41,6 +41,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.DefaultCellEditor;
 import recipejar.actions.ActionIds;
 import recipejar.actions.ActionRegistry;
+import recipejar.actions.FileRecipeActions;
 
 /**
  * Editor panel for Editing recipes.
@@ -164,9 +165,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             labelField.setDocument(recipeModel.getLabelsModel());
             Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
 
-            Kernel.programActions.get("delete").setEnabled(true);
-            Kernel.programActions.get("change-title").setEnabled(true);
-            Kernel.programActions.get("export-recipe").setEnabled(true);
+            FileRecipeActions.setRecipeOpen(actionRegistry, true);
+            recipeModel.setSaveEnabler(actionRegistry.require(ActionIds.FILE_SAVE));
         } 
         catch(IOException ioe){}
         catch(BadLocationException ble){}
@@ -195,8 +195,9 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       procedureField.setText("");
       procedureField.setEditable(false);
       labelField.setText("");
-      saveButton.setEnabled(false);
       recipeModel = null;
+      FileRecipeActions.setRecipeOpen(actionRegistry, false);
+      actionRegistry.require(ActionIds.FILE_SAVE).setEnabled(false);
    }
 
 
@@ -257,6 +258,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          try {
             diskFile = new recipejar.filetypes.RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString());
             recipeModel = new Recipe(diskFile);
+            recipeModel.setSaveEnabler(actionRegistry.require(ActionIds.FILE_SAVE));
             titleField.setDocument(recipeModel.getTitleModel());
             titleField.setEditable(true);
             notesField.setDocument(recipeModel.getNotesModel());
@@ -267,9 +269,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          catch(IOException ioe){}
          catch(BadLocationException ble){}
 
-         Kernel.programActions.get("save").setEnabled(false);
-         Kernel.programActions.get("delete").setEnabled(false);
-         Kernel.programActions.get("change-title").setEnabled(false);
+         FileRecipeActions.setRecipeOpen(actionRegistry, false);
+         actionRegistry.require(ActionIds.FILE_SAVE).setEnabled(false);
 
          return true;
       } else {
@@ -288,11 +289,9 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       return procedureField;
    }
 
-   public void setSaveAction(Action a) {
-      saveButton.setAction(a);
-   }
-   public void setCancelAction(Action a) {
-      cancelButton.setAction(a);
+   public void bindButtons(ActionRegistry registry) {
+      saveButton.setAction(registry.require(ActionIds.FILE_SAVE));
+      cancelButton.setAction(registry.require(ActionIds.FILE_TOGGLE_EDIT));
    }
 
    /****************Other********************/
@@ -619,10 +618,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          popupTextActionsMenu.add(newMacro);
       }
 
-   }
-
-   public JMenu getTextActionsMenu() {
-      return textActionsMenu;
    }
 
    public RecipeFile getDiskFile() {

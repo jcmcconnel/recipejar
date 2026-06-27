@@ -16,7 +16,7 @@ import recipejar.recipe.IngredientTableModel;
 import recipejar.filetypes.RecipeFile;
 import recipejar.StringProcessor;
 import recipejar.ProgramVariables;
-import recipejar.Kernel;
+import javax.swing.Action;
 import javax.swing.event.TableModelListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.text.Document;
@@ -59,6 +59,8 @@ public class Recipe implements TableModelListener, DocumentListener {
 
     private boolean tmodelChanged;
 
+    private Action saveEnabler;
+
     ////////Public///////////
     //Constructors
     public Recipe(RecipeFile f) throws BadLocationException {
@@ -95,25 +97,25 @@ public class Recipe implements TableModelListener, DocumentListener {
    public void tableChanged(TableModelEvent e){
       System.out.println("Table Changed");
       tmodelChanged = true;
-      Kernel.programActions.get("save").setEnabled(true);
+      if (saveEnabler != null) saveEnabler.setEnabled(true);
    }
 
    @Override
    public void changedUpdate(DocumentEvent e) {
       System.out.println("Recipe Model Document Changed");
-      Kernel.programActions.get("save").setEnabled(true);
+      if (saveEnabler != null) saveEnabler.setEnabled(true);
    }
 
    @Override
    public void removeUpdate(DocumentEvent e) {
       System.out.println("Recipe Model Document Changed-removed");
-      Kernel.programActions.get("save").setEnabled(true);
+      if (saveEnabler != null) saveEnabler.setEnabled(true);
    }
 
    @Override
    public void insertUpdate(DocumentEvent e) {
       System.out.println("Recipe Model Document Changed-insert");
-      Kernel.programActions.get("save").setEnabled(true);
+      if (saveEnabler != null) saveEnabler.setEnabled(true);
    }
 
    /**
@@ -222,6 +224,10 @@ public class Recipe implements TableModelListener, DocumentListener {
      * */
     public Document getLabelsModel(){
        return labelsModel;
+    }
+
+    public void setSaveEnabler(Action saveEnabler) {
+       this.saveEnabler = saveEnabler;
     }
     
     ///////////Ingredient Methods////////////

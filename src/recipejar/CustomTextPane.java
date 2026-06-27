@@ -19,6 +19,8 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.StyleSheet;
+import recipejar.actions.ActionRegistry;
+import recipejar.actions.FileRecipeActions;
 
 /**
  *
@@ -29,8 +31,11 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
    private JPopupMenu popup;
    private StyleSheet css;
 
+   private final ActionRegistry actionRegistry;
+
    /** Creates new form ViewerPanel */
-   public CustomTextPane() {
+   public CustomTextPane(ActionRegistry registry) {
+      this.actionRegistry = registry;
       
       initComponents();
       jTextPane1.setContentType("text/html");
@@ -51,7 +56,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
        try {
            recipejar.filetypes.RecipeFile f = new recipejar.filetypes.RecipeFile(recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+fileName);
            setPage(f);
-           Kernel.programActions.get("delete").setEnabled(true);
+           FileRecipeActions.setRecipeOpen(actionRegistry, true);
        }catch(IOException ioe){
           System.out.println(ioe.getMessage());
           ioe.printStackTrace();

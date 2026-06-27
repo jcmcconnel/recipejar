@@ -58,7 +58,7 @@ public class MainFrame extends JFrame {
       // Component initialization
       tabbedPane = new AlphaTab(IndexFile.getIndexFile());
 
-      readerPane = new CustomTextPane();
+      readerPane = new CustomTextPane(actionRegistry);
       ePanel = new EditorPanel(actionRegistry);
       tabbedPane.addHyperlinkListener(readerPane);
       tabbedPane.addHyperlinkListener(ePanel);
@@ -111,7 +111,6 @@ public class MainFrame extends JFrame {
                                                 Action.ACCELERATOR_KEY,
                                                 KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
                                                 );
-      ePanel.setCancelAction(Kernel.programActions.get("toggle-edit-mode"));
       fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
 
       //Save
@@ -142,8 +141,8 @@ public class MainFrame extends JFrame {
                                                  Action.ACCELERATOR_KEY,
                                                  KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
                                                  );
-      ePanel.setSaveAction(Kernel.programActions.get("save"));
       Kernel.programActions.get("save").setEnabled(false);
+      ePanel.bindButtons(actionRegistry);
       fileMenu.add(Kernel.programActions.get("save"));
 
       // Rename
@@ -270,7 +269,7 @@ public class MainFrame extends JFrame {
       editMenu.add(actionRegistry.require(ActionIds.EDIT_SELECT_ALL));
       editMenu.addSeparator();
 
-      editMenu.add(ePanel.getTextActionsMenu());
+      editMenu.add(actionRegistry.requireMenu(ActionIds.EDIT_MACROS));
       menus.add(editMenu);
       editMenu.addSeparator();
 
