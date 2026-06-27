@@ -32,6 +32,9 @@ public interface RecipeRepository {
     /** Transition: add a RecipeFile to the index (will be internalized later). */
     void addToIndex(RecipeFile rf);
 
-    /** Delete by filename (transition to reduce direct File exposure). */
-    void deleteByName(String name);
+    /** Update index categories for an existing recipe file. */
+    void updateIndexFor(RecipeFile rf);
+
+    /** Remove from index and delete the recipe file from disk. */
+    void deleteRecipeFile(RecipeFile rf);
 }

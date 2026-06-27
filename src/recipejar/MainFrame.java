@@ -22,8 +22,8 @@ import javax.swing.text.BadLocationException;
 import recipejar.filetypes.*;
 import recipejar.actions.ActionIds;
 import recipejar.actions.ActionRegistry;
-import recipejar.persistence.FileSystemRecipeRepository;
 import recipejar.persistence.RecipeRepository;
+import recipejar.util.Debug;
 
 public class MainFrame extends JFrame {
 
@@ -138,13 +138,13 @@ public class MainFrame extends JFrame {
             try{
                ePanel.save();
                readerPane.setPage(ePanel.getDiskFile());
-               if (recipeRepository != null && recipeRepository instanceof FileSystemRecipeRepository) {
-                  ((FileSystemRecipeRepository) recipeRepository).updateIndexFor(ePanel.getDiskFile());
+               if (recipeRepository != null) {
+                  recipeRepository.updateIndexFor(ePanel.getDiskFile());
                } else {
                   IndexFile.getIndexFile().updateCategoriesOf(ePanel.getDiskFile());
                   IndexFile.getIndexFile().save();
                }
-               System.out.println("Save Action: "+IndexFile.getIndexFile().getAbsolutePath());
+               Debug.log("MainFrame", "Save Action: " + IndexFile.getIndexFile().getAbsolutePath());
                tabbedPane.reload();
                actionRegistry.require(ActionIds.FILE_TOGGLE_EDIT).actionPerformed(e);
             }
@@ -223,16 +223,20 @@ public class MainFrame extends JFrame {
 
       AbstractAction deleteAction = new AbstractAction("Remove") {
          public void actionPerformed(ActionEvent e) {
-            System.out.println("Attempted to delete");
+            Debug.log("MainFrame", "Attempted to delete");
             RecipeFile df = ePanel.getDiskFile();
-            if (recipeRepository != null) {
-               if (df != null) {
-                  recipeRepository.deleteByName(df.getName());
-               }
-            }
             if (df != null) {
-               IndexFile.getIndexFile().remove(df);
-               df.delete();
+               if (recipeRepository != null) {
+                  recipeRepository.deleteRecipeFile(df);
+               } else {
+                  try {
+                     IndexFile.getIndexFile().remove(df);
+                     df.delete();
+                     IndexFile.getIndexFile().save();
+                  } catch (IOException ex) {
+                     Debug.log("MainFrame", "Delete failed: " + ex.getMessage());
+                  }
+               }
             }
             ePanel.clear();
             tabbedPane.reload();

@@ -9,6 +9,7 @@ import recipejar.filetypes.RecipeFile;
 import recipejar.lib.Anchor;
 import recipejar.ProgramVariables;
 import recipejar.StringProcessor;
+import recipejar.util.Debug;
 
 /**
  * File system based repository using existing HTML files.
@@ -25,7 +26,9 @@ public class FileSystemRecipeRepository implements RecipeRepository {
         this.indexFile = IndexFile.getIndexFile();
         try {
             RecipeFile.setTemplate(new RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString()));
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Debug.log("FileSystemRecipeRepository", "Failed to set recipe template: " + e.getMessage());
+        }
     }
 
     @Override
@@ -79,15 +82,13 @@ public class FileSystemRecipeRepository implements RecipeRepository {
 
     @Override
     public void deleteRecipe(Recipe recipe) {
+        if (recipe == null) return;
         try {
             String safeName = StringProcessor.removeBadChars(recipe.getTitle()) + ".html";
-            java.io.File f = new java.io.File(baseDir + safeName);
-            if (f.exists()) f.delete();
-            // Note: proper impl would use the file from anchor
-            indexFile.remove( /* need the RecipeFile */ null); // placeholder - real impl needs better id
-            indexFile.save();
-        } catch (Exception e) {
-            // log
+            RecipeFile rf = new RecipeFile(baseDir + safeName);
+            deleteRecipeFile(rf);
+        } catch (IOException e) {
+            Debug.log("FileSystemRecipeRepository", "Failed to delete recipe: " + e.getMessage());
         }
     }
 
@@ -107,25 +108,33 @@ public class FileSystemRecipeRepository implements RecipeRepository {
             try {
                 indexFile.add(rf);
                 indexFile.save();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                Debug.log("FileSystemRecipeRepository", "Failed to add to index: " + e.getMessage());
+            }
         }
     }
 
-    /** Transition helper. */
+    @Override
     public void updateIndexFor(RecipeFile rf) {
         if (indexFile != null && rf != null) {
             try {
                 indexFile.updateCategoriesOf(rf);
                 indexFile.save();
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                Debug.log("FileSystemRecipeRepository", "Failed to update index: " + e.getMessage());
+            }
         }
     }
 
     @Override
-    public void deleteByName(String name) {
-        if (name == null) return;
-        java.io.File f = new java.io.File(baseDir + name);
-        if (f.exists()) f.delete();
-        // index update done by caller for transition
+    public void deleteRecipeFile(RecipeFile rf) {
+        if (rf == null) return;
+        try {
+            indexFile.remove(rf);
+            rf.delete();
+            indexFile.save();
+        } catch (Exception e) {
+            Debug.log("FileSystemRecipeRepository", "Failed to delete recipe file: " + e.getMessage());
+        }
     }
 }
