@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import recipejar.lib.AbstractXHTMLBasedFile;
 import recipejar.lib.Element;
 import recipejar.recipe.Ingredient;
+import recipejar.util.LabelUtils;
 
 /**
  * The purpose of this class is to provide fundamental capabilities for an HTML
@@ -280,7 +281,7 @@ public class RecipeFile extends AbstractXHTMLBasedFile {
         ArrayList<String> labels = getLabels();
         if (labels != null) {
             for (int i = 0; i < labels.size(); i++) {
-                if (labels.get(i).equals(s)) {
+                if (LabelUtils.matches(labels.get(i), s)) {
                     return true;
                 }
             }

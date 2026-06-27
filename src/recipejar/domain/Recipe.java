@@ -3,6 +3,7 @@ package recipejar.domain;
 import java.util.ArrayList;
 import java.util.List;
 import recipejar.recipe.Ingredient;
+import recipejar.util.LabelUtils;
 
 /**
  * Simple domain model for a recipe (data only, no UI or persistence concerns).
@@ -44,10 +45,10 @@ public class Recipe {
     }
 
     public boolean isLabeled(String label) {
-        if (label == null) return false;
-        String l = label.trim();
         for (String existing : labels) {
-            if (existing.trim().equalsIgnoreCase(l)) return true;
+            if (LabelUtils.matches(existing, label)) {
+                return true;
+            }
         }
         return false;
     }

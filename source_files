@@ -19,6 +19,7 @@ src/recipejar/persistence/RecipeRepository.java
 src/recipejar/persistence/FileSystemRecipeRepository.java
 
 src/recipejar/util/Debug.java
+src/recipejar/util/LabelUtils.java
 
 src/recipejar/actions/ActionRegistry.java
 src/recipejar/actions/ActionIds.java
