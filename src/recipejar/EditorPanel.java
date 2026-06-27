@@ -70,14 +70,13 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       initComponents();
       jScrollPane3.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-      try {
-         textActionsMenu = new JMenu("Macros");
-         textActionsMenu.setMnemonic('M');
-         popupTextActionsMenu = new JMenu("Macros");
-         popupTextActionsMenu.setMnemonic('M');
-         popupMenu = new JPopupMenu();
+      textActionsMenu = new JMenu("Macros");
+      textActionsMenu.setMnemonic('M');
+      popupTextActionsMenu = new JMenu("Macros");
+      popupTextActionsMenu.setMnemonic('M');
+      popupMenu = new JPopupMenu();
 
-         AbstractTextAction creationBuffer = new AbstractTextAction("Cut"){
+      AbstractTextAction creationBuffer = new AbstractTextAction("Cut"){
             public void actionPerformed(ActionEvent e) {
                this.text.cut();
             }
@@ -144,12 +143,13 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          popupMenu.add(creationBuffer);
          popupMenu.addSeparator();
 
-         readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
          actionRegistry.registerMenu(ActionIds.EDIT_MACROS, textActionsMenu);
+         try {
+            readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
+         } catch (FileNotFoundException fnf) {
+            actionRegistry.registerMenu(ActionIds.EDIT_MACROS, textActionsMenu);
+         }
          popupMenu.add(popupTextActionsMenu);
-      } catch(FileNotFoundException fnf) {
-
-      }
    }
 
 
@@ -613,7 +613,14 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          newMacro.addField(notesField);
          newMacro.addField(procedureField);
          macroActions.add(newMacro);
-         actionRegistry.register("macro." + ActionRegistry.sanitizeId(macroTextActionsFile.getLine(i)[0]), newMacro);
+         String sanitizedName = ActionRegistry.sanitizeId(macroTextActionsFile.getLine(i)[0]);
+         String macroId = "macro." + sanitizedName;
+         int suffix = 2;
+         while (actionRegistry.find(macroId).isPresent()) {
+            macroId = "macro." + sanitizedName + suffix;
+            suffix++;
+         }
+         actionRegistry.register(macroId, newMacro);
          textActionsMenu.add(newMacro);
          popupTextActionsMenu.add(newMacro);
       }

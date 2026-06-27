@@ -23,7 +23,11 @@ public class ActionRegistry {
     }
 
     public void registerMenu(String id, JMenu menu) {
-        if (menus.containsKey(id)) {
+        JMenu existing = menus.get(id);
+        if (existing != null) {
+            if (existing == menu) {
+                return;
+            }
             throw new IllegalStateException("Duplicate menu id: " + id);
         }
         menus.put(id, menu);
