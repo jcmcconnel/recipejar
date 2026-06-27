@@ -17,6 +17,7 @@ src/recipejar/domain/Recipe.java
 
 src/recipejar/persistence/RecipeRepository.java
 src/recipejar/persistence/FileSystemRecipeRepository.java
+src/recipejar/persistence/RecipeMapper.java
 
 src/recipejar/util/Debug.java
 src/recipejar/util/LabelUtils.java

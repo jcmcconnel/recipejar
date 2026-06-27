@@ -1,5 +1,6 @@
 package recipejar.persistence;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,16 +42,8 @@ public class FileSystemRecipeRepository implements RecipeRepository {
     @Override
     public Recipe loadRecipe(String link) {
         try {
-            RecipeFile rf = new RecipeFile(baseDir + link);
-            // Convert to domain (simple copy for now)
-            Recipe d = new Recipe();
-            d.setTitle(rf.getTitle());
-            d.setNotes(rf.getNotes());
-            d.setProcedure(rf.getProcedure());
-            d.setIngredients(rf.getIngredients());
-            List<String> lbls = rf.getLabels();
-            if (lbls != null) d.setLabels(lbls);
-            return d;
+            RecipeFile recipeFile = new RecipeFile(baseDir + link);
+            return RecipeMapper.toDomain(recipeFile);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load " + link, e);
         }
@@ -58,22 +51,17 @@ public class FileSystemRecipeRepository implements RecipeRepository {
 
     @Override
     public void saveRecipe(Recipe recipe) {
+        if (recipe == null) {
+            return;
+        }
         try {
             String safeName = StringProcessor.removeBadChars(recipe.getTitle()) + ".html";
             String path = baseDir + safeName;
-            RecipeFile rf = RecipeFile.newFromTemplate(path);  // or load if exists
-            rf.setTitle(recipe.getTitle());
-            rf.setNotes(recipe.getNotes());
-            rf.setProcedure(recipe.getProcedure());
-            rf.setIngredients(new ArrayList<>(recipe.getIngredients()));
-            if (recipe.getLabels() != null) {
-                String joined = String.join(", ", recipe.getLabels());
-                rf.setLabels(joined);
-            }
-            rf.save();
+            RecipeFile recipeFile = resolveOrCreateRecipeFile(path);
+            RecipeMapper.applyToRecipeFile(recipe, recipeFile);
+            recipeFile.save();
 
-            // Update index
-            indexFile.add(rf);  // this handles category update
+            indexFile.add(recipeFile);
             indexFile.save();
         } catch (IOException e) {
             throw new RuntimeException("Failed to save recipe", e);
@@ -82,14 +70,23 @@ public class FileSystemRecipeRepository implements RecipeRepository {
 
     @Override
     public void deleteRecipe(Recipe recipe) {
-        if (recipe == null) return;
+        if (recipe == null) {
+            return;
+        }
         try {
             String safeName = StringProcessor.removeBadChars(recipe.getTitle()) + ".html";
-            RecipeFile rf = new RecipeFile(baseDir + safeName);
-            deleteRecipeFile(rf);
+            RecipeFile recipeFile = new RecipeFile(baseDir + safeName);
+            deleteRecipeFile(recipeFile);
         } catch (IOException e) {
             Debug.log("FileSystemRecipeRepository", "Failed to delete recipe: " + e.getMessage());
         }
+    }
+
+    private RecipeFile resolveOrCreateRecipeFile(String path) throws IOException {
+        if (new File(path).exists()) {
+            return new RecipeFile(path);
+        }
+        return RecipeFile.newFromTemplate(path);
     }
 
     @Override
