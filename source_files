@@ -13,6 +13,13 @@ src/recipejar/recipe/Unit.java
 src/recipejar/filetypes/IndexFile.java
 src/recipejar/filetypes/RecipeFile.java
 
+src/recipejar/domain/Recipe.java
+
+src/recipejar/persistence/RecipeRepository.java
+src/recipejar/persistence/FileSystemRecipeRepository.java
+
+src/recipejar/util/Debug.java
+
 src/recipejar/EditorPanel.java
 src/recipejar/UnitConverterDialog.java
 src/recipejar/SearchDialog.java
