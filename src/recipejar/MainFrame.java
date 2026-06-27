@@ -8,8 +8,6 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
@@ -24,6 +22,7 @@ import javax.swing.text.BadLocationException;
 import recipejar.filetypes.*;
 import recipejar.actions.ActionIds;
 import recipejar.actions.ActionRegistry;
+import recipejar.persistence.FileSystemRecipeRepository;
 import recipejar.persistence.RecipeRepository;
 
 public class MainFrame extends JFrame {
@@ -34,10 +33,16 @@ public class MainFrame extends JFrame {
    public AlphaTab tabbedPane;
 
    private final ActionRegistry actionRegistry;
+   private JSplitPane splitPane;
+   private SearchDialog searchDialog;
    private RecipeRepository recipeRepository;
 
    public void setRecipeRepository(RecipeRepository repo) {
       this.recipeRepository = repo;
+   }
+
+   public ActionRegistry getActionRegistry() {
+      return actionRegistry;
    }
 
    /**
@@ -47,84 +52,101 @@ public class MainFrame extends JFrame {
       super(name);
 
       Kernel.topLevelFrame = this;
-      actionRegistry = new ActionRegistry();
-      // Frame configuration
       setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       this.setLocation(new Point(10, 20));
       this.setIconImage(Toolkit.getDefaultToolkit().getImage(ClassLoader.getSystemClassLoader().getResource("recipejar.gif")));
       if(ProgramVariables.LAF.toString().equals(recipejar.lib.LAFType.METAL.toString())) this.setUndecorated(true);
       this.getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
 
-      // Component initialization
-      tabbedPane = new AlphaTab(IndexFile.getIndexFile());
+      // Phase 1: action registry
+      actionRegistry = new ActionRegistry();
 
-      readerPane = new CustomTextPane(actionRegistry);
+      // Phase 2: editor panel registers edit.* and macro.*
       ePanel = new EditorPanel(actionRegistry);
-      tabbedPane.addHyperlinkListener(readerPane);
+
+      // Phase 3: search dialog registers find.* and edit.find
+      searchDialog = new SearchDialog(this, false, actionRegistry);
+      UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
+
+      tabbedPane = new AlphaTab(IndexFile.getIndexFile());
       tabbedPane.addHyperlinkListener(ePanel);
 
-      JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, readerPane);
+      // Phase 4: file, tools, and help actions
+      registerFileActions(converterDialog);
+      registerToolsActions(converterDialog);
+      registerHelpActions();
+
+      // Phase 5: bind buttons and create reader pane after file actions exist
+      ePanel.bindButtons(actionRegistry);
+      readerPane = new CustomTextPane(actionRegistry);
+      tabbedPane.addHyperlinkListener(readerPane);
+
+      splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane, readerPane);
       splitPane.setOneTouchExpandable(true);
       this.getContentPane().add(splitPane, BorderLayout.CENTER);
 
-      UnitConverterDialog converterDialog = new UnitConverterDialog(this, false);
-      SearchDialog searchDialog = new SearchDialog(this, false, actionRegistry);
+      // Phase 6: menu bar from registry only
+      buildMenuBar();
 
-      /** Action Definitions **/
-      ArrayList<JMenu> menus = new ArrayList<JMenu>();
-
-      JMenu fileMenu = new JMenu("Recipe");
-      fileMenu.setMnemonic('R');
-      // New 
-      Kernel.programActions.put("new", new AbstractAction("New") {
-         public void actionPerformed(ActionEvent e) {
-            Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
-            ePanel.startNew();
+      this.addWindowListener(new WindowAdapter() {
+         public void windowClosed(WindowEvent e) {
+            actionRegistry.require(ActionIds.FILE_EXIT)
+               .actionPerformed(new ActionEvent(e.getWindow(), ActionEvent.ACTION_PERFORMED, "Exit"));
          }
       });
-      actionRegistry.register(ActionIds.FILE_NEW, Kernel.programActions.get("new"));
-      Kernel.programActions.get("new").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
-      Kernel.programActions.get("new").putValue(
-                                                Action.ACCELERATOR_KEY,
-                                                KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-                                                );
-      fileMenu.add(Kernel.programActions.get("new"));
 
-      // Edit Mode
-      Kernel.programActions.put("toggle-edit-mode", new AbstractAction("Open") {
+      pack();
+   }
+
+   private void registerFileActions(UnitConverterDialog converterDialog) {
+      AbstractAction newAction = new AbstractAction("New") {
+         public void actionPerformed(ActionEvent e) {
+            actionRegistry.require(ActionIds.FILE_TOGGLE_EDIT).actionPerformed(e);
+            ePanel.startNew();
+         }
+      };
+      newAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+      newAction.putValue(
+            Action.ACCELERATOR_KEY,
+            KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+      );
+      actionRegistry.register(ActionIds.FILE_NEW, newAction);
+
+      AbstractAction toggleEditAction = new AbstractAction("Open") {
          public void actionPerformed(ActionEvent e) {
             if (splitPane.getRightComponent().equals(ePanel)) {
                splitPane.setRightComponent(readerPane);
                this.putValue(AbstractAction.NAME, "Open");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
-               Kernel.programActions.get("save").setEnabled(false);
+               actionRegistry.require(ActionIds.FILE_SAVE).setEnabled(false);
             } else {
                splitPane.setRightComponent(ePanel);
                this.putValue(AbstractAction.NAME, "Close");
                this.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
             }
          }
-      });
-      actionRegistry.register(ActionIds.FILE_TOGGLE_EDIT, Kernel.programActions.get("toggle-edit-mode"));
-      Kernel.programActions.get("toggle-edit-mode").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
-      Kernel.programActions.get("toggle-edit-mode").putValue(
-                                                Action.ACCELERATOR_KEY,
-                                                KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-                                                );
-      fileMenu.add(Kernel.programActions.get("toggle-edit-mode"));
+      };
+      toggleEditAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
+      toggleEditAction.putValue(
+            Action.ACCELERATOR_KEY,
+            KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+      );
+      actionRegistry.register(ActionIds.FILE_TOGGLE_EDIT, toggleEditAction);
 
-      //Save
-      Kernel.programActions.put("save", new AbstractAction("Save") {
+      AbstractAction saveAction = new AbstractAction("Save") {
          public void actionPerformed(ActionEvent e) {
             try{
                ePanel.save();
                readerPane.setPage(ePanel.getDiskFile());
-               IndexFile.getIndexFile().updateCategoriesOf(ePanel.getDiskFile());
-               IndexFile.getIndexFile().save();
-               //System.out.println(IndexFile.getIndexFile().toString());
+               if (recipeRepository != null && recipeRepository instanceof FileSystemRecipeRepository) {
+                  ((FileSystemRecipeRepository) recipeRepository).updateIndexFor(ePanel.getDiskFile());
+               } else {
+                  IndexFile.getIndexFile().updateCategoriesOf(ePanel.getDiskFile());
+                  IndexFile.getIndexFile().save();
+               }
                System.out.println("Save Action: "+IndexFile.getIndexFile().getAbsolutePath());
                tabbedPane.reload();
-               Kernel.programActions.get("toggle-edit-mode").actionPerformed(e);
+               actionRegistry.require(ActionIds.FILE_TOGGLE_EDIT).actionPerformed(e);
             }
             catch (FileNotFoundException fne) {}
             catch (IOException ioe) {
@@ -134,162 +156,130 @@ public class MainFrame extends JFrame {
             }
             catch (BadLocationException ble) {}
          }
-      });
-      actionRegistry.register(ActionIds.FILE_SAVE, Kernel.programActions.get("save"));
-      Kernel.programActions.get("save").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
-      Kernel.programActions.get("save").putValue(
-                                                 Action.ACCELERATOR_KEY,
-                                                 KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-                                                 );
-      Kernel.programActions.get("save").setEnabled(false);
-      ePanel.bindButtons(actionRegistry);
-      fileMenu.add(Kernel.programActions.get("save"));
+      };
+      saveAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
+      saveAction.putValue(
+            Action.ACCELERATOR_KEY,
+            KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+      );
+      saveAction.setEnabled(false);
+      actionRegistry.register(ActionIds.FILE_SAVE, saveAction);
 
-      // Rename
-      Kernel.programActions.put("change-title", new AbstractAction("Rename"){
+      AbstractAction renameAction = new AbstractAction("Rename"){
          public void actionPerformed(ActionEvent e) {
             ePanel.reTitle(JOptionPane.showInputDialog(Kernel.topLevelFrame, "New Title", "New Title Text:", JOptionPane.INFORMATION_MESSAGE));
          }
-      });
-      actionRegistry.register(ActionIds.FILE_RENAME, Kernel.programActions.get("change-title"));
-      Kernel.programActions.get("change-title").setEnabled(false);
-      fileMenu.add(Kernel.programActions.get("change-title"));
-      fileMenu.addSeparator();
+      };
+      renameAction.setEnabled(false);
+      actionRegistry.register(ActionIds.FILE_RENAME, renameAction);
 
-      //Import 
-      Kernel.programActions.put("import-recipe",
-         new AbstractAction("Import"){
-            public void actionPerformed(ActionEvent e) {
-               JFileChooser fc = new JFileChooser();
-               fc.setMultiSelectionEnabled(false);
-               fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-               if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
-                  System.out.println(fc.getSelectedFile());
-                  try{
-                     RecipeFile f = new RecipeFile(fc.getSelectedFile());
-                     IndexFile.getIndexFile().add(f.importRecipe());
-                     System.out.println(f.getTitle());
+      AbstractAction importAction = new AbstractAction("Import"){
+         public void actionPerformed(ActionEvent e) {
+            JFileChooser fc = new JFileChooser();
+            fc.setMultiSelectionEnabled(false);
+            fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
+               System.out.println(fc.getSelectedFile());
+               try{
+                  RecipeFile f = new RecipeFile(fc.getSelectedFile());
+                  RecipeFile imported = f.importRecipe();
+                  if (recipeRepository != null) {
+                     recipeRepository.addToIndex(imported);
+                  } else {
+                     IndexFile.getIndexFile().add(imported);
                   }
-                  catch(IOException ex){
-                     System.out.println("Import failed");
-                     System.out.println(ex.getMessage());
-                  }
-                  tabbedPane.reload();
+                  System.out.println(f.getTitle());
+               }
+               catch(IOException ex){
+                  System.out.println("Import failed");
+                  System.out.println(ex.getMessage());
+               }
+               tabbedPane.reload();
+            }
+         }
+      };
+      actionRegistry.register(ActionIds.FILE_IMPORT, importAction);
+
+      AbstractAction exportAction = new AbstractAction("Export"){
+         public void actionPerformed(ActionEvent e) {
+            JFileChooser fc = new JFileChooser();
+            fc.setMultiSelectionEnabled(false);
+            fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
+               System.out.println(fc.getSelectedFile());
+               File f = fc.getSelectedFile();
+               try{
+                  ePanel.getDiskFile().export(f);
+               }
+               catch(IOException ex){
+                  System.out.println("Export failed");
+                  System.out.println(ex.getMessage());
                }
             }
          }
-      );
-      actionRegistry.register(ActionIds.FILE_IMPORT, Kernel.programActions.get("import-recipe"));
-      //Kernel.programActions.get("import-recipe").setEnabled(false);
-      fileMenu.add(Kernel.programActions.get("import-recipe"));
-      //Export
-      Kernel.programActions.put("export-recipe",
-         new AbstractAction("Export"){
-            public void actionPerformed(ActionEvent e) {
-               JFileChooser fc = new JFileChooser();
-               fc.setMultiSelectionEnabled(false);
-               fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-               if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
-                  System.out.println(fc.getSelectedFile());
-                  File f = fc.getSelectedFile();
-                  try{
-                     ePanel.getDiskFile().export(f);
-                  }
-                  catch(IOException ex){
-                     System.out.println("Export failed");
-                     System.out.println(ex.getMessage());
-                  }
-               }
-            }
-         }
-      );
-      actionRegistry.register(ActionIds.FILE_EXPORT, Kernel.programActions.get("export-recipe"));
-      Kernel.programActions.get("export-recipe").setEnabled(false);
-      fileMenu.add(Kernel.programActions.get("export-recipe"));
-      fileMenu.addSeparator();
+      };
+      exportAction.setEnabled(false);
+      actionRegistry.register(ActionIds.FILE_EXPORT, exportAction);
 
-      // Delete 
-      Kernel.programActions.put("delete", new AbstractAction("Remove") {
+      AbstractAction deleteAction = new AbstractAction("Remove") {
          public void actionPerformed(ActionEvent e) {
             System.out.println("Attempted to delete");
-            IndexFile.getIndexFile().remove(ePanel.getDiskFile());
-            ePanel.getDiskFile().delete();
+            RecipeFile df = ePanel.getDiskFile();
+            if (recipeRepository != null) {
+               if (df != null) {
+                  recipeRepository.deleteByName(df.getName());
+               }
+            }
+            if (df != null) {
+               IndexFile.getIndexFile().remove(df);
+               df.delete();
+            }
             ePanel.clear();
             tabbedPane.reload();
             readerPane.setPage("");
          }
-      });
-      actionRegistry.register(ActionIds.FILE_DELETE, Kernel.programActions.get("delete"));
-      Kernel.programActions.get("delete").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_R);
-      Kernel.programActions.get("delete").putValue(
-                                                 Action.ACCELERATOR_KEY,
-                                                 KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
-                                                 );
-      Kernel.programActions.get("delete").setEnabled(false);
-      fileMenu.add(Kernel.programActions.get("delete"));
-
-      //Print
-      Kernel.programActions.put("print-recipe", 
-         new AbstractAction("Print"){
-            public void actionPerformed(ActionEvent e) {
-               //TODO
-            }
-         }
+      };
+      deleteAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_R);
+      deleteAction.putValue(
+            Action.ACCELERATOR_KEY,
+            KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)
       );
-      actionRegistry.register(ActionIds.FILE_PRINT, Kernel.programActions.get("print-recipe"));
-      Kernel.programActions.get("print-recipe").setEnabled(false);
-      Kernel.programActions.get("print-recipe").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
-      Kernel.programActions.get("print-recipe").putValue(
-                                                 Action.ACCELERATOR_KEY,
-                                                 KeyStroke.getKeyStroke(KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
-                                                 );
-      fileMenu.add(Kernel.programActions.get("print-recipe"));
-      fileMenu.addSeparator();
+      deleteAction.setEnabled(false);
+      actionRegistry.register(ActionIds.FILE_DELETE, deleteAction);
 
-      // Exit
-      Kernel.programActions.put("exit-program", new AbstractAction("Exit") {
-            public void actionPerformed(ActionEvent e) {
-                     System.exit(0);
-            }
-      });
-      actionRegistry.register(ActionIds.FILE_EXIT, Kernel.programActions.get("exit-program"));
-      Kernel.programActions.get("exit-program").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_X);
-      fileMenu.add(Kernel.programActions.get("exit-program"));
-      menus.add(fileMenu);
+      AbstractAction printAction = new AbstractAction("Print"){
+         public void actionPerformed(ActionEvent e) {
+            //TODO
+         }
+      };
+      printAction.setEnabled(false);
+      printAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
+      printAction.putValue(
+            Action.ACCELERATOR_KEY,
+            KeyStroke.getKeyStroke(KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
+      );
+      actionRegistry.register(ActionIds.FILE_PRINT, printAction);
 
-      JMenu editMenu = new JMenu("Edit"); 
-      editMenu.setMnemonic('E');
-      //Cut
-      editMenu.add(actionRegistry.require(ActionIds.EDIT_CUT));
-      //Copy
-      editMenu.add(actionRegistry.require(ActionIds.EDIT_COPY));
-      //Paste
-      editMenu.add(actionRegistry.require(ActionIds.EDIT_PASTE));
-      //Select All
-      editMenu.add(actionRegistry.require(ActionIds.EDIT_SELECT_ALL));
-      editMenu.addSeparator();
+      AbstractAction exitAction = new AbstractAction("Exit") {
+         public void actionPerformed(ActionEvent e) {
+            System.exit(0);
+         }
+      };
+      exitAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_X);
+      actionRegistry.register(ActionIds.FILE_EXIT, exitAction);
+   }
 
-      editMenu.add(actionRegistry.requireMenu(ActionIds.EDIT_MACROS));
-      menus.add(editMenu);
-      editMenu.addSeparator();
-
-      //Find
-      editMenu.add(actionRegistry.requireMenu(ActionIds.EDIT_FIND));
-
-      JMenu toolsMenu = new JMenu("Tools");
-      toolsMenu.setMnemonic('T');
-      Kernel.programActions.put("toggle-converter-dialog", new AbstractAction("Unit Converter") {
+   private void registerToolsActions(UnitConverterDialog converterDialog) {
+      AbstractAction converterAction = new AbstractAction("Unit Converter") {
          public void actionPerformed(ActionEvent e) {
             converterDialog.setLocationRelativeTo(Kernel.topLevelFrame);
             converterDialog.setVisible(!converterDialog.isVisible());
          }
-      });
-      actionRegistry.register(ActionIds.TOOLS_CONVERTER, Kernel.programActions.get("toggle-converter-dialog"));
-      Kernel.programActions.get("toggle-converter-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-      toolsMenu.add(Kernel.programActions.get("toggle-converter-dialog"));
+      };
+      converterAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
+      actionRegistry.register(ActionIds.TOOLS_CONVERTER, converterAction);
 
-      toolsMenu.addSeparator();
-      Kernel.programActions.put("preferences-dialog", new AbstractAction("Preferences"){
+      AbstractAction preferencesAction = new AbstractAction("Preferences"){
          public void actionPerformed(ActionEvent e) {
             if(prefDialog == null) {
                prefDialog = new recipejar.PreferencesDialog(Kernel.topLevelFrame, true);
@@ -297,17 +287,13 @@ public class MainFrame extends JFrame {
             prefDialog.setLocationRelativeTo(Kernel.topLevelFrame);
             prefDialog.setVisible(true);
          }
-      });
-      actionRegistry.register(ActionIds.TOOLS_PREFERENCES, Kernel.programActions.get("preferences-dialog"));
-      Kernel.programActions.get("preferences-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
-      toolsMenu.add(Kernel.programActions.get("preferences-dialog"));
-      menus.add(toolsMenu);
+      };
+      preferencesAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_P);
+      actionRegistry.register(ActionIds.TOOLS_PREFERENCES, preferencesAction);
+   }
 
-      JMenu helpMenu = new JMenu("Help");
-      helpMenu.setMnemonic('H');
-
-      //On the Web
-      Kernel.programActions.put("help-dialog", new AbstractAction("On the Web") {
+   private void registerHelpActions() {
+      AbstractAction helpAction = new AbstractAction("On the Web") {
          public void actionPerformed(ActionEvent e) {
             if (java.awt.Desktop.isDesktopSupported()) {
                 try {
@@ -321,87 +307,73 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(Kernel.topLevelFrame, "You can get help, by visiting \"" + ProgramVariables.HELP_URL.toString() + "\"\n Thanks, \n   -mgmt");
             }
          }
-      });
-      actionRegistry.register(ActionIds.HELP_WEB, Kernel.programActions.get("help-dialog"));
-      Kernel.programActions.get("help-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_W);
-      helpMenu.add(Kernel.programActions.get("help-dialog"));
+      };
+      helpAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_W);
+      actionRegistry.register(ActionIds.HELP_WEB, helpAction);
 
-      //About
-      Kernel.programActions.put("about-dialog", new AbstractAction("About") {
+      AbstractAction aboutAction = new AbstractAction("About") {
          public void actionPerformed(ActionEvent e) {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, ProgramVariables.ABOUT+"\n"+ProgramVariables.VERSION);
          }
-      });
-      actionRegistry.register(ActionIds.HELP_ABOUT, Kernel.programActions.get("about-dialog"));
-      Kernel.programActions.get("about-dialog").putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
-      helpMenu.add(Kernel.programActions.get("about-dialog"));
+      };
+      aboutAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+      actionRegistry.register(ActionIds.HELP_ABOUT, aboutAction);
+   }
+
+   private void buildMenuBar() {
+      ArrayList<JMenu> menus = new ArrayList<JMenu>();
+
+      JMenu fileMenu = new JMenu("Recipe");
+      fileMenu.setMnemonic('R');
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_NEW));
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_TOGGLE_EDIT));
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_SAVE));
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_RENAME));
+      fileMenu.addSeparator();
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_IMPORT));
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_EXPORT));
+      fileMenu.addSeparator();
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_DELETE));
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_PRINT));
+      fileMenu.addSeparator();
+      fileMenu.add(actionRegistry.require(ActionIds.FILE_EXIT));
+      menus.add(fileMenu);
+
+      JMenu editMenu = new JMenu("Edit");
+      editMenu.setMnemonic('E');
+      editMenu.add(actionRegistry.require(ActionIds.EDIT_CUT));
+      editMenu.add(actionRegistry.require(ActionIds.EDIT_COPY));
+      editMenu.add(actionRegistry.require(ActionIds.EDIT_PASTE));
+      editMenu.add(actionRegistry.require(ActionIds.EDIT_SELECT_ALL));
+      editMenu.addSeparator();
+      editMenu.add(actionRegistry.requireMenu(ActionIds.EDIT_MACROS));
+      editMenu.addSeparator();
+      editMenu.add(actionRegistry.requireMenu(ActionIds.EDIT_FIND));
+      menus.add(editMenu);
+
+      JMenu toolsMenu = new JMenu("Tools");
+      toolsMenu.setMnemonic('T');
+      toolsMenu.add(actionRegistry.require(ActionIds.TOOLS_CONVERTER));
+      toolsMenu.addSeparator();
+      toolsMenu.add(actionRegistry.require(ActionIds.TOOLS_PREFERENCES));
+      menus.add(toolsMenu);
+
+      JMenu helpMenu = new JMenu("Help");
+      helpMenu.setMnemonic('H');
+      helpMenu.add(actionRegistry.require(ActionIds.HELP_WEB));
+      helpMenu.add(actionRegistry.require(ActionIds.HELP_ABOUT));
       menus.add(helpMenu);
-      /*** End Menubar ***/
 
-      // Close window button
-      this.addWindowListener(new WindowAdapter() {
-         public void windowClosed(WindowEvent e) {
-            Kernel.programActions.get("exit-program")
-               .actionPerformed(new ActionEvent(e.getWindow(), ActionEvent.ACTION_PERFORMED, "Exit"));
-         }
-      });
-
-      JMenu[] menuArray = new JMenu[menus.size()];
-      menuArray = menus.toArray(menuArray);
+      JMenu[] menuArray = menus.toArray(new JMenu[menus.size()]);
       this.setJMenuBar(Kernel.getJMenuBar(menuArray));
-      pack();
    }
 
    /********** Main ***********/
    public static void main(String[] argv) {
-      Kernel.configDir = new File("%HOME/.RecipeJar");
-      if (argv.length > 1) {
-         if (argv[0].contains("-d")) {
-            Kernel.configDir = new File(argv[1]);
-            if (!Kernel.configDir.exists()) {
-               Kernel.configDir.mkdir();
-               try {
-                  System.out.println("Unpack");
-                  BufferedReader r = new BufferedReader(new InputStreamReader(ClassLoader.getSystemClassLoader().getResourceAsStream("unpackingList.txt")));
-                  while(r.ready()){
-                     String line = r.readLine();
-                     System.out.println(line);
-                     String[] lineComps = line.split(" ");
-                     if(lineComps.length == 2) extractFile(new File(Kernel.configDir.getAbsolutePath()+"/"+lineComps[1]), line.split(" ")[0]);
-                     else new File(Kernel.configDir.getAbsolutePath()+"/"+line).mkdir();
-                  }
-                  r.close();
-               } catch (IOException e) {
-                  System.out.println("Unpacking failed");
-               }
-            }
-         }
+      MainFrame f = ApplicationBootstrap.bootstrap(argv);
+      if (f != null) {
+         f.setVisible(true);
       }
-      System.setProperty("java.util.prefs.userRoot", Kernel.configDir.getAbsolutePath());
-      ProgramVariables.DIR_PROGRAM.set(Kernel.configDir.getAbsolutePath()+"/");
-      try {
-          UIManager.setLookAndFeel(ProgramVariables.LAF.toString());
-      } 
-      catch(UnsupportedLookAndFeelException e){}
-      catch(ClassNotFoundException e){}
-      catch(InstantiationException e){}
-      catch(IllegalAccessException e){}
-
-      try {
-         recipejar.recipe.Unit.readUnitsFromFile(ProgramVariables.FILE_UNIT.toString());
-      } catch (FileNotFoundException e) {
-         e.printStackTrace();
-         return;
-      }
-      IndexFile.setIndexFileLocation(ProgramVariables.DIR_DB.toString());
-      try {
-         RecipeFile.setTemplate(new RecipeFile(ProgramVariables.TEMPLATE_RECIPE.toString()));
-      } catch (IOException e) {
-      } catch (NullPointerException e) {
-      }
-
-      MainFrame f = new MainFrame("RecipeJar");
-      f.setVisible(true);
    }
 
 

@@ -3,10 +3,7 @@
  * other application general functions without requiring any one system to be aware of where
  * the request is actually handled.
  *
- * To add an action call: kernel.programActions.put([NAME], <AbstractAction>);
- * To call an action call: kernel.programActions.get([NAME]).actionPerformed(<ActionEvent>);
- * To get a reference to the AbstractAction to for instance, bind it to a button...
- * call: kernel.programActions.get([NAME])
+ * Action registration is handled by ActionRegistry (instance-scoped per MainFrame).
  *
  * You can have a hashmap of lambda functions by defining an interface with one function prototype.
  * The syntax is [type/interface name] varName = (param1, param2, ... paramn)->{ function here...};
@@ -15,14 +12,12 @@ package recipejar;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.util.HashMap;
 import java.io.File;
 
 public class Kernel {
 
 
    protected static File configDir;
-   public static HashMap<String, AbstractAction> programActions = new HashMap<String, AbstractAction>();
    protected static JMenuBar menuBar = new JMenuBar();
    protected static MainFrame topLevelFrame;
 
