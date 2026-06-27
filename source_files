@@ -37,3 +37,8 @@ src/recipejar/PreferencesDialog.java
 src/recipejar/ProgramVariables.java
 
 src/recipejar/test/testRecipe.java
+
+src/recipejar/test/actions/HeadlessSwingUnlocker.java
+src/recipejar/test/actions/ActionTestHarness.java
+src/recipejar/test/actions/MenuAssemblyVerifier.java
+src/recipejar/test/actions/ActionRegistryTest.java

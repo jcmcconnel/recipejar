@@ -55,3 +55,7 @@ test-ingredient:
 test-unit:
 	cd build && java recipejar.test.testRecipe convert 25 cc ml
 
+.PHONY: test-actions
+test-actions:
+	cd build && java -Djava.awt.headless=true recipejar.test.actions.ActionRegistryTest
+
