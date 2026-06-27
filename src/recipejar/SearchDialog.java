@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import recipejar.filetypes.*;
+import recipejar.actions.ActionIds;
+import recipejar.actions.ActionRegistry;
 
 /**
  *
@@ -96,7 +98,7 @@ public class SearchDialog extends javax.swing.JDialog {
     * @param parent
     * @param modal
     */
-   public SearchDialog(MainFrame parent, boolean modal) {
+   public SearchDialog(MainFrame parent, boolean modal, ActionRegistry registry) {
       super(parent);
       if(ProgramVariables.LAF.toString().equals(recipejar.lib.LAFType.METAL.toString())) this.setUndecorated(true);
       this.getRootPane().setWindowDecorationStyle(javax.swing.JRootPane.PLAIN_DIALOG);
@@ -106,16 +108,32 @@ public class SearchDialog extends javax.swing.JDialog {
       jList1.setEnabled(false);
       jList1.setCellRenderer(new ListRenderer());
       findMenu = new JMenu("Find In...");
-      findMenu.add(new FindAction("All"));
-      findMenu.add(new FindAction("Titles"));
-      findMenu.add(new FindAction("Labels"));
-      findMenu.add(new FindAction("Notes"));
-      findMenu.add(new FindAction("Ingredients"));
-      findMenu.add(new FindAction("Procedures"));
-   }
 
-   public JMenu getFindMenu(){
-      return findMenu;
+      AbstractAction allAction = new FindAction("All");
+      registry.register(ActionIds.FIND_ALL, allAction);
+      findMenu.add(allAction);
+
+      AbstractAction titlesAction = new FindAction("Titles");
+      registry.register(ActionIds.FIND_TITLES, titlesAction);
+      findMenu.add(titlesAction);
+
+      AbstractAction labelsAction = new FindAction("Labels");
+      registry.register(ActionIds.FIND_LABELS, labelsAction);
+      findMenu.add(labelsAction);
+
+      AbstractAction notesAction = new FindAction("Notes");
+      registry.register(ActionIds.FIND_NOTES, notesAction);
+      findMenu.add(notesAction);
+
+      AbstractAction ingredientsAction = new FindAction("Ingredients");
+      registry.register(ActionIds.FIND_INGREDIENTS, ingredientsAction);
+      findMenu.add(ingredientsAction);
+
+      AbstractAction proceduresAction = new FindAction("Procedures");
+      registry.register(ActionIds.FIND_PROCEDURES, proceduresAction);
+      findMenu.add(proceduresAction);
+
+      registry.registerMenu(ActionIds.EDIT_FIND, findMenu);
    }
 
    private Element getListElement(HTMLDocument doc, String address) {

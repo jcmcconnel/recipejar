@@ -20,6 +20,11 @@ src/recipejar/persistence/FileSystemRecipeRepository.java
 
 src/recipejar/util/Debug.java
 
+src/recipejar/actions/ActionRegistry.java
+src/recipejar/actions/ActionIds.java
+src/recipejar/actions/FileRecipeActions.java
+src/recipejar/ApplicationBootstrap.java
+
 src/recipejar/EditorPanel.java
 src/recipejar/UnitConverterDialog.java
 src/recipejar/SearchDialog.java

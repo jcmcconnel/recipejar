@@ -39,6 +39,8 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.event.HyperlinkEvent;
 
 import javax.swing.DefaultCellEditor;
+import recipejar.actions.ActionIds;
+import recipejar.actions.ActionRegistry;
 
 /**
  * Editor panel for Editing recipes.
@@ -47,6 +49,7 @@ import javax.swing.DefaultCellEditor;
 public class EditorPanel extends JPanel implements HyperlinkListener {
 
    /************Instance Variables*****************/
+    private final ActionRegistry actionRegistry;
     private Recipe recipeModel;
     private RecipeFile diskFile;
     private Boolean recipeChanged;
@@ -61,7 +64,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
     * Creates new EditorPanel
     * 
     */
-   public EditorPanel() {
+   public EditorPanel(ActionRegistry registry) {
+      this.actionRegistry = registry;
       initComponents();
       jScrollPane3.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
       jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
@@ -86,8 +90,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
              Action.ACCELERATOR_KEY,
              KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
          );
-         Kernel.programActions.put("edit-cut", creationBuffer);
-         popupMenu.add(Kernel.programActions.get("edit-cut"));
+         actionRegistry.register(ActionIds.EDIT_CUT, creationBuffer);
+         popupMenu.add(creationBuffer);
 
          creationBuffer = new AbstractTextAction("Copy"){
             public void actionPerformed(ActionEvent e) {
@@ -103,8 +107,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
              Action.ACCELERATOR_KEY,
              KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
          );
-         Kernel.programActions.put("edit-copy", creationBuffer);
-         popupMenu.add(Kernel.programActions.get("edit-copy"));
+         actionRegistry.register(ActionIds.EDIT_COPY, creationBuffer);
+         popupMenu.add(creationBuffer);
 
          creationBuffer = new AbstractTextAction("Paste"){
             public void actionPerformed(ActionEvent e) {
@@ -119,8 +123,8 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
              Action.ACCELERATOR_KEY,
              KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
          );
-         Kernel.programActions.put("edit-paste", creationBuffer);
-         popupMenu.add(Kernel.programActions.get("edit-paste"));
+         actionRegistry.register(ActionIds.EDIT_PASTE, creationBuffer);
+         popupMenu.add(creationBuffer);
 
          creationBuffer = new AbstractTextAction("Select All"){
             public void actionPerformed(ActionEvent e) {
@@ -135,11 +139,12 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
              Action.ACCELERATOR_KEY,
              KeyStroke.getKeyStroke(KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx())
          );
-         Kernel.programActions.put("edit-select-all", creationBuffer);
-         popupMenu.add(Kernel.programActions.get("edit-select-all"));
+         actionRegistry.register(ActionIds.EDIT_SELECT_ALL, creationBuffer);
+         popupMenu.add(creationBuffer);
          popupMenu.addSeparator();
 
          readMacrosFromFile(ProgramVariables.FILE_MACRO.toString());
+         actionRegistry.registerMenu(ActionIds.EDIT_MACROS, textActionsMenu);
          popupMenu.add(popupTextActionsMenu);
       } catch(FileNotFoundException fnf) {
 
@@ -159,7 +164,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
             labelField.setDocument(recipeModel.getLabelsModel());
             Kernel.topLevelFrame.setTitle(diskFile.getTitle()+" - "+"RecipeJar");
 
-            //Kernel.programActions.get("save").setEnabled(true);
             Kernel.programActions.get("delete").setEnabled(true);
             Kernel.programActions.get("change-title").setEnabled(true);
             Kernel.programActions.get("export-recipe").setEnabled(true);
@@ -284,10 +288,6 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       return procedureField;
    }
 
-   /**
-    *
-    * @return
-    */
    public void setSaveAction(Action a) {
       saveButton.setAction(a);
    }
@@ -614,6 +614,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
          newMacro.addField(notesField);
          newMacro.addField(procedureField);
          macroActions.add(newMacro);
+         actionRegistry.register("macro." + ActionRegistry.sanitizeId(macroTextActionsFile.getLine(i)[0]), newMacro);
          textActionsMenu.add(newMacro);
          popupTextActionsMenu.add(newMacro);
       }
