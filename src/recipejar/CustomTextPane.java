@@ -21,6 +21,7 @@ import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.StyleSheet;
 import recipejar.actions.ActionRegistry;
 import recipejar.actions.FileRecipeActions;
+import recipejar.util.Debug;
 
 /**
  *
@@ -58,8 +59,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
            setPage(f);
            FileRecipeActions.setRecipeOpen(actionRegistry, true);
        }catch(IOException ioe){
-          System.out.println(ioe.getMessage());
-          ioe.printStackTrace();
+          Debug.log("CustomTextPane", "Failed to open recipe page: " + ioe.getMessage());
        }
    }
 
@@ -68,7 +68,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
      */
    public void hyperlinkUpdate(HyperlinkEvent e){
        if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
-          System.out.println("Opening: "+recipejar.filetypes.IndexFile.getDatabaseLocation()+"/"+e.getDescription());
+          Debug.log("CustomTextPane", "Opening: " + recipejar.filetypes.IndexFile.getDatabaseLocation() + "/" + e.getDescription());
           setRecipePage(e.getDescription());
        }
    }
@@ -85,7 +85,7 @@ public class CustomTextPane extends javax.swing.JPanel implements HyperlinkListe
    }
 
    public void setPage(recipejar.filetypes.RecipeFile f) {
-      System.out.println(f.toTextPaneFriendlyString());
+      Debug.log("CustomTextPane", f.toTextPaneFriendlyString());
       jTextPane1.setText(f.toTextPaneFriendlyString());
       jTextPane1.setCaretPosition(0);
    }

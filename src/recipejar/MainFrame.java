@@ -152,9 +152,7 @@ public class MainFrame extends JFrame {
             }
             catch (FileNotFoundException fne) {}
             catch (IOException ioe) {
-               System.out.println("there has been an error saving: Mainframe");
-               System.out.println(ioe.getCause());
-               System.out.println(ioe.getMessage());
+               Debug.log("MainFrame", "Error saving: " + ioe.getMessage());
             }
             catch (BadLocationException ble) {}
          }
@@ -181,7 +179,7 @@ public class MainFrame extends JFrame {
             fc.setMultiSelectionEnabled(false);
             fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
             if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
-               System.out.println(fc.getSelectedFile());
+               Debug.log("MainFrame", "Import: " + fc.getSelectedFile());
                try{
                   RecipeFile f = new RecipeFile(fc.getSelectedFile());
                   RecipeFile imported = f.importRecipe();
@@ -190,11 +188,10 @@ public class MainFrame extends JFrame {
                   } else {
                      IndexFile.getIndexFile().add(imported);
                   }
-                  System.out.println(f.getTitle());
+                  Debug.log("MainFrame", "Imported: " + f.getTitle());
                }
                catch(IOException ex){
-                  System.out.println("Import failed");
-                  System.out.println(ex.getMessage());
+                  Debug.log("MainFrame", "Import failed: " + ex.getMessage());
                }
                tabbedPane.reload();
             }
@@ -208,14 +205,13 @@ public class MainFrame extends JFrame {
             fc.setMultiSelectionEnabled(false);
             fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
             if(fc.showOpenDialog(Kernel.topLevelFrame) == JFileChooser.APPROVE_OPTION){
-               System.out.println(fc.getSelectedFile());
+               Debug.log("MainFrame", "Export to: " + fc.getSelectedFile());
                File f = fc.getSelectedFile();
                try{
                   ePanel.getCurrentRecipeFile().export(f);
                }
                catch(IOException ex){
-                  System.out.println("Export failed");
-                  System.out.println(ex.getMessage());
+                  Debug.log("MainFrame", "Export failed: " + ex.getMessage());
                }
             }
          }

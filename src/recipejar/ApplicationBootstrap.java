@@ -9,6 +9,7 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import recipejar.persistence.FileSystemRecipeRepository;
 import recipejar.persistence.RecipeRepository;
+import recipejar.util.Debug;
 
 public class ApplicationBootstrap {
 
@@ -20,12 +21,12 @@ public class ApplicationBootstrap {
                 if (!Kernel.configDir.exists()) {
                     Kernel.configDir.mkdir();
                     try {
-                        System.out.println("Unpack");
+                        Debug.log("ApplicationBootstrap", "Unpack");
                         BufferedReader r = new BufferedReader(new InputStreamReader(
                                 ClassLoader.getSystemClassLoader().getResourceAsStream("unpackingList.txt")));
                         while (r.ready()) {
                             String line = r.readLine();
-                            System.out.println(line);
+                            Debug.log("ApplicationBootstrap", line);
                             String[] lineComps = line.split(" ");
                             if (lineComps.length == 2) {
                                 MainFrame.extractFile(
@@ -37,7 +38,7 @@ public class ApplicationBootstrap {
                         }
                         r.close();
                     } catch (IOException e) {
-                        System.out.println("Unpacking failed");
+                        Debug.log("ApplicationBootstrap", "Unpacking failed");
                     }
                 }
             }

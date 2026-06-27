@@ -42,6 +42,7 @@ import javax.swing.DefaultCellEditor;
 import recipejar.actions.ActionIds;
 import recipejar.actions.ActionRegistry;
 import recipejar.actions.FileRecipeActions;
+import recipejar.util.Debug;
 
 /**
  * Editor panel for Editing recipes.
@@ -209,16 +210,16 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
    **/
    public boolean save() throws FileNotFoundException, IOException, BadLocationException {
       if (isTitleChanged()) { //Saving a new recipe.
-         System.out.println("Title change detected");
+         Debug.log("EditorPanel", "Title change detected");
          if (StringProcessor.isBadTitle(titleField.getText())) {
             JOptionPane.showMessageDialog(Kernel.topLevelFrame, "Please enter a valid title for your recipe.");
             return false;
          } else {
             if(diskFile.getPath().equals(ProgramVariables.TEMPLATE_RECIPE.toString())){
-               System.out.println("Saving new");
+               Debug.log("EditorPanel", "Saving new");
             }
             diskFile = RecipeFile.newFromTemplate(ProgramVariables.buildAbsoluteFileNameFrom(titleField.getText()));
-            System.out.println("Name of file to be saved: "+diskFile.getName());
+            Debug.log("EditorPanel", "Name of file to be saved: " + diskFile.getName());
             recipeModel.setDiskFile(diskFile);
             recipeModel.writeToDisk();
             IndexFile.getIndexFile().add(diskFile);
@@ -249,7 +250,7 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
       * @return
       */
    public boolean startNew() {
-      System.out.println("Starting new");
+      Debug.log("EditorPanel", "Starting new");
       if (recipeModel == null || !recipeModel.hasRecipeChanged() ||
           (recipeModel.hasRecipeChanged() && JOptionPane.showConfirmDialog(this.getParent(),
                "You have unsaved changes.\n"

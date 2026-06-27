@@ -7,7 +7,7 @@ package recipejar.util;
  */
 public final class Debug {
 
-    private static boolean enabled = true;
+    private static boolean enabled = false;
 
     private Debug() {}
 
