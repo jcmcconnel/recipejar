@@ -627,7 +627,20 @@ public class EditorPanel extends JPanel implements HyperlinkListener {
 
    }
 
-   public RecipeFile getDiskFile() {
+   RecipeFile getCurrentRecipeFile() {
       return diskFile;
+   }
+
+   /**
+    * Refreshes the read-only viewer after a successful save and optionally
+    * runs a tab-reload hook (e.g. {@code tabbedPane::reload}).
+    */
+   void afterSave(CustomTextPane viewer, Runnable tabReloadHook) {
+      if (viewer != null && diskFile != null) {
+         viewer.setPage(diskFile);
+      }
+      if (tabReloadHook != null) {
+         tabReloadHook.run();
+      }
    }
 }

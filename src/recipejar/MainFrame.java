@@ -136,16 +136,18 @@ public class MainFrame extends JFrame {
       AbstractAction saveAction = new AbstractAction("Save") {
          public void actionPerformed(ActionEvent e) {
             try{
-               ePanel.save();
-               readerPane.setPage(ePanel.getDiskFile());
+               if (!ePanel.save()) {
+                  return;
+               }
+               RecipeFile saved = ePanel.getCurrentRecipeFile();
                if (recipeRepository != null) {
-                  recipeRepository.updateIndexFor(ePanel.getDiskFile());
+                  recipeRepository.updateIndexFor(saved);
                } else {
-                  IndexFile.getIndexFile().updateCategoriesOf(ePanel.getDiskFile());
+                  IndexFile.getIndexFile().updateCategoriesOf(saved);
                   IndexFile.getIndexFile().save();
                }
                Debug.log("MainFrame", "Save Action: " + IndexFile.getIndexFile().getAbsolutePath());
-               tabbedPane.reload();
+               ePanel.afterSave(readerPane, () -> tabbedPane.reload());
                actionRegistry.require(ActionIds.FILE_TOGGLE_EDIT).actionPerformed(e);
             }
             catch (FileNotFoundException fne) {}
@@ -209,7 +211,7 @@ public class MainFrame extends JFrame {
                System.out.println(fc.getSelectedFile());
                File f = fc.getSelectedFile();
                try{
-                  ePanel.getDiskFile().export(f);
+                  ePanel.getCurrentRecipeFile().export(f);
                }
                catch(IOException ex){
                   System.out.println("Export failed");
@@ -224,7 +226,7 @@ public class MainFrame extends JFrame {
       AbstractAction deleteAction = new AbstractAction("Remove") {
          public void actionPerformed(ActionEvent e) {
             Debug.log("MainFrame", "Attempted to delete");
-            RecipeFile df = ePanel.getDiskFile();
+            RecipeFile df = ePanel.getCurrentRecipeFile();
             if (df != null) {
                if (recipeRepository != null) {
                   recipeRepository.deleteRecipeFile(df);
