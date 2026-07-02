@@ -1,1 +1,24 @@
+# Gradle
+.gradle/
 build/
+.kotlin/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar files
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# Eclipse
+.classpath
+.project
+
+# Mac
+.DS_Store
+
+# Misc
+*.iml
+*.log
