@@ -19,5 +19,16 @@ kotlin {
                 // Desktop specific for shared if any
             }
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        val desktopTest by getting {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
