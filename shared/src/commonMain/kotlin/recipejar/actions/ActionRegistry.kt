@@ -26,7 +26,8 @@ class ActionRegistry {
     }
 
     fun ids(): Set<String> {
-        return actions.keys.toSet()
+        // Return the view (unmodifiable in effect); avoids copy per original intent but smaller
+        return actions.keys
     }
 
     // For compatibility with original sanitize (used by macros later)
