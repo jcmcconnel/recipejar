@@ -1,6 +1,8 @@
 package recipejar
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +22,7 @@ fun App(
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             Text("RecipeJar (KMP/CMP Desktop)", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(16.dp))
@@ -36,10 +38,16 @@ fun App(
                     Text("(no matching files or stub)")
                 } else {
                     // Basic listing stub; PR2+ will integrate real repo/index
-                    files.take(20).forEach { file ->
-                        Text("• $file", modifier = Modifier.padding(start = 8.dp))
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(start = 8.dp)
+                    ) {
+                        files.take(20).forEach { file ->
+                            Text("• $file")
+                        }
+                        if (files.size > 20) Text("... and ${files.size - 20} more")
                     }
-                    if (files.size > 20) Text("... and ${files.size - 20} more")
                 }
             } else {
                 Text("No repository selected. Pick a directory containing recipes (e.g. Test/Recipes).")

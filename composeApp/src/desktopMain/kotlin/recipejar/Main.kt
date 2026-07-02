@@ -3,7 +3,6 @@ package recipejar
 import androidx.compose.runtime.*
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import java.io.File
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
 
@@ -21,6 +20,7 @@ fun main() = application {
             if (dir != null && dir.isDirectory) {
                 selectedDir.value = dir.absolutePath
                 // Basic file listing stub for repo (html or all). Future: integrate real repo loader.
+                // TODO(PR2+): remember last dir (prefs), filter *.html only, error UX, start chooser at last path or repo default.
                 val listed = dir.listFiles()?.filter { it.isFile }?.map { it.name }?.sorted() ?: emptyList()
                 files.value = listed
             }
