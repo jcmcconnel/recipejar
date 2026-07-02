@@ -6,8 +6,6 @@ package recipejar.actions
  * No macros yet (PR5).
  */
 object ActionIds {
-    private fun init() {} // no instance
-
     // File / Recipe actions
     const val FILE_SAVE = "file.save"
     const val FILE_DELETE = "file.delete"
@@ -24,6 +22,7 @@ object ActionIds {
     const val EDIT_COPY = "edit.copy"
     const val EDIT_PASTE = "edit.paste"
     const val EDIT_SELECT_ALL = "edit.selectAll"
+    const val EDIT_MACROS = "edit.macros"
     const val EDIT_FIND = "edit.find"
 
     // Find stubs

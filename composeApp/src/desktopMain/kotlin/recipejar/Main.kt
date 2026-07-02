@@ -44,6 +44,7 @@ fun main() = application {
     val registry = remember {
         ActionRegistry().also { reg ->
             val isMac = System.getProperty("os.name").lowercase().contains("mac")
+            val isOpen: () -> Boolean = { isRecipeOpen.value }
 
             // Core file actions per PR5 (smallest port + stubs)
             reg.register(
@@ -69,11 +70,9 @@ fun main() = application {
                     mnemonic = 'O',
                     shortcut = KeyCombo('O', meta = isMac, ctrl = !isMac),
                     execute = {
-                        if (isRecipeOpen.value) {
-                            isEditing.value = !isEditing.value
-                        }
+                        isEditing.value = !isEditing.value
                     },
-                    enabled = { isRecipeOpen.value }
+                    enabled = isOpen
                 )
             )
 
@@ -88,7 +87,7 @@ fun main() = application {
                         println("Save stub executed for: ${currentRecipe.value}")
                         // In full impl: persist via repo, update index, refresh (from PR2+)
                     },
-                    enabled = { isRecipeOpen.value }
+                    enabled = isOpen
                 )
             )
 
@@ -98,14 +97,14 @@ fun main() = application {
                     id = ActionIds.FILE_DELETE,
                     title = "Remove",
                     mnemonic = 'R',
-                    shortcut = KeyCombo('D', ctrl = false, meta = false, alt = false, shift = false), // DELETE key not modeled; use D for demo
+                    shortcut = KeyCombo(delete = true), // matches original VK_DELETE, 0 mods
                     execute = {
                         println("Delete stub: ${currentRecipe.value}")
                         currentRecipe.value = null
                         isRecipeOpen.value = false
                         isEditing.value = false
                     },
-                    enabled = { isRecipeOpen.value }
+                    enabled = isOpen
                 )
             )
 
@@ -117,9 +116,9 @@ fun main() = application {
                     execute = {
                         currentRecipe.value?.let { cur ->
                             currentRecipe.value = "$cur-renamed"
-                        }
+                        } ?: println("Rename: no current recipe open")
                     },
-                    enabled = { isRecipeOpen.value }
+                    enabled = isOpen
                 )
             )
 
@@ -130,7 +129,8 @@ fun main() = application {
                     title = "Import",
                     execute = {
                         println("Import stub (full FS + repo in later PR)")
-                    }
+                    },
+                    enabled = isOpen
                 )
             )
 
@@ -142,7 +142,19 @@ fun main() = application {
                     execute = {
                         println("Export stub for: ${currentRecipe.value}")
                     },
-                    enabled = { isRecipeOpen.value }
+                    enabled = isOpen
+                )
+            )
+
+            reg.register(
+                ActionIds.FILE_PRINT,
+                Command(
+                    id = ActionIds.FILE_PRINT,
+                    title = "Print",
+                    mnemonic = 'P',
+                    shortcut = KeyCombo('P', meta = isMac, ctrl = !isMac),
+                    execute = { println("Print stub (TODO)") },
+                    enabled = { false }
                 )
             )
 
@@ -157,7 +169,7 @@ fun main() = application {
             )
 
             // Edit actions (stubs; no real editor focus yet)
-            val editEnabled = { isRecipeOpen.value }
+            val editEnabled = isOpen
             reg.register(
                 ActionIds.EDIT_CUT,
                 Command(id = ActionIds.EDIT_CUT, title = "Cut", execute = { println("Cut stub") }, enabled = editEnabled)
@@ -175,10 +187,16 @@ fun main() = application {
                 Command(id = ActionIds.EDIT_SELECT_ALL, title = "Select All", execute = { println("SelectAll stub") }, enabled = editEnabled)
             )
 
+            // EDIT_MACROS for exact port (stub; menu wiring deferred with macros)
+            reg.register(
+                ActionIds.EDIT_MACROS,
+                Command(id = ActionIds.EDIT_MACROS, title = "Macros", execute = { println("Macros stub (deferred)") })
+            )
+
             // Find stub
             reg.register(
                 ActionIds.EDIT_FIND,
-                Command(id = ActionIds.EDIT_FIND, title = "Find", execute = { println("Find stub") })
+                Command(id = ActionIds.EDIT_FIND, title = "Find", execute = { println("Find stub") }, enabled = isOpen)
             )
 
             // Find variant stubs (per ActionIds for compatibility)
@@ -193,15 +211,15 @@ fun main() = application {
 
     fun toKeyShortcut(combo: KeyCombo?): KeyShortcut? {
         if (combo == null) return null
-        val k = when (combo.key.uppercaseChar()) {
+        val k = if (combo.delete) Key.Delete else when (combo.key.uppercaseChar()) {
             'N' -> Key.N
             'O' -> Key.O
             'S' -> Key.S
             'X' -> Key.X
+            'P' -> Key.P
             'C' -> Key.C
             'V' -> Key.V
             'A' -> Key.A
-            'D' -> Key.D
             else -> Key.Unknown
         }
         return KeyShortcut(key = k, ctrl = combo.ctrl, meta = combo.meta, alt = combo.alt, shift = combo.shift)
@@ -212,6 +230,7 @@ fun main() = application {
         title = "RecipeJar"
     ) {
         MenuBar {
+            // Note: Compose desktop Menu() supports mnemonic; Item() uses title+shortcut primarily (no direct MNEMONIC_KEY param like Swing; platform/ a11y handles). Commands retain mnemonic for future/compat.
             Menu("Recipe", mnemonic = 'R') {
                 val c = registry.require(ActionIds.FILE_NEW)
                 Item(c.title, onClick = { c.execute(ActionContext()) }, enabled = c.enabled(), shortcut = toKeyShortcut(c.shortcut))
@@ -228,7 +247,7 @@ fun main() = application {
                 Separator()
 
                 val im = registry.require(ActionIds.FILE_IMPORT)
-                Item(im.title, onClick = { im.execute(ActionContext()) })
+                Item(im.title, onClick = { im.execute(ActionContext()) }, enabled = im.enabled())
 
                 val ex = registry.require(ActionIds.FILE_EXPORT)
                 Item(ex.title, onClick = { ex.execute(ActionContext()) }, enabled = ex.enabled())
@@ -238,7 +257,7 @@ fun main() = application {
                 val del = registry.require(ActionIds.FILE_DELETE)
                 Item(del.title, onClick = { del.execute(ActionContext()) }, enabled = del.enabled())
 
-                // print stub omitted from menu for smallest (id registered if needed)
+                // print stub registered (see registration); omitted from menu for PR5 smallest scope
 
                 Separator()
 
@@ -262,7 +281,7 @@ fun main() = application {
                 Separator()
 
                 val fnd = registry.require(ActionIds.EDIT_FIND)
-                Item(fnd.title, onClick = { fnd.execute(ActionContext()) })
+                Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled())
             }
         }
 
