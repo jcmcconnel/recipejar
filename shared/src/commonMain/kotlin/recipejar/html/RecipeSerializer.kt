@@ -10,7 +10,7 @@ import recipejar.recipe.Ingredient
  * Always re-applies template structure for headers/footers (per design feedback).
  * Supports smart active footer variants:
  *  - "browser-footer" : full for on-disk resting / browser view (default for save)
- *  - "program-footer" : app-internal / minimal (labels only)
+ *  - "program-footer" : app-internal (labels only per template, with links)
  *  - "export-footer" : for export variant
  * Loading always extracts core regardless of footer present in source.
  * No data loss for core fields on roundtrip (meta times updated on real save).
@@ -39,7 +39,7 @@ object RecipeSerializer {
 	      Last Saved: [LASTSAVE]<br/>
 	      Created: [CREATED]<br/>
 	      By: [AUTHOR]<br/>
-	      Using: <a href="http://code.google.com/p/recipejar/">[VERSION]</a>.
+	      Using: <a href="http://code.google.com/p/recipejar/">[ABOUT] [VERSION]</a>.
 	      <hr/>
          <a href="index.html">Index</a>
     </div>"""
@@ -66,13 +66,13 @@ object RecipeSerializer {
         val titleMatch = Regex("(?i)<title>(.*?)</title>").find(html)
         recipe.title = StringProcessor.removeCarriageReturns(titleMatch?.groupValues?.get(1)?.trim() ?: "")
 
-        // Metas - collect all, last for dups as map semantics
+        // Metas - collect all, last for dups as map semantics. Improved regex tolerates ws around = and ' or " (minimal port of Element attr logic).
         val metaRe = Regex("(?i)<meta\\s+([^>]+?)(?:/?>)")
         metaRe.findAll(html).forEach { m ->
             val attrs = m.groupValues[1]
-            val nameMatch = Regex("(?i)(?:name|http-equiv)=\"([^\"]+)\"").find(attrs)
+            val nameMatch = Regex("(?i)(?:name|http-equiv)\\s*=\\s*[\"']([^\"']+)[\"']").find(attrs)
             val name = nameMatch?.groupValues?.get(1)?.lowercase()
-            val contentMatch = Regex("(?i)content=\"([^\"]*)\"").find(attrs)
+            val contentMatch = Regex("(?i)content\\s*=\\s*[\"']([^\"']*)[\"']").find(attrs)
             val content = contentMatch?.groupValues?.get(1) ?: ""
             if (name != null) {
                 recipe.meta[name] = content
@@ -82,10 +82,10 @@ object RecipeSerializer {
         recipe.setLabels(labelsStr)
 
         // Core sections - use div id extraction (ported balancer logic)
-        recipe.notes = StringProcessor.removeCarriageReturns(extractDivContent(html, "notes").trim())
-        recipe.procedure = StringProcessor.removeCarriageReturns(extractDivContent(html, "procedure").trim())
+        recipe.notes = StringProcessor.removeCarriageReturns(extractDivContent(html, "notes"))
+        recipe.procedure = StringProcessor.removeCarriageReturns(extractDivContent(html, "procedure"))
 
-        val ingredContent = extractDivContent(html, "ingredients")
+        val ingredContent = StringProcessor.removeCarriageReturns(extractDivContent(html, "ingredients"))
         recipe.ingredients.clear()
         recipe.ingredients.addAll(parseIngredients(ingredContent))
 
@@ -129,6 +129,13 @@ object RecipeSerializer {
         while (i < html.length && stack > 0) {
             val ch = html[i]
             if (ch == '<') {
+                if (i + 1 < html.length && (html[i + 1] == '!' || html[i + 1] == '?')) {
+                    // minimal port of loseCommentsEtc (skip <!-- --> / <?> inside content; harmless for our corpus)
+                    i += 2
+                    while (i < html.length && html[i] != '>') i++
+                    if (i < html.length) i++
+                    continue
+                }
                 if (i + 1 < html.length && html[i + 1] == '/') {
                     // end tag
                     i += 2
@@ -190,11 +197,17 @@ object RecipeSerializer {
         if (recipe.labels.isNotEmpty()) {
             sb.append("<meta name=\"labels\" content=\"").append(recipe.getLabelsAsString()).append("\"/>\n    ")
         }
-        // preserve other metas if present
-        for (key in listOf("created", "last saved", "author", "userphone", "useremail", "custom")) {
-            val v = recipe.meta[key] ?: ""
-            if (v.isNotEmpty()) {
-                sb.append("<meta name=\"").append(key).append("\" content=\"").append(v).append("\"/>\n    ")
+        // Emit remaining metas from parsed (preserves extra/dups last-wins semantics; order not guaranteed as map, but all keys roundtripped for fidelity)
+        val emitted = mutableSetOf("content-type", "generator", "labels")
+        recipe.meta.forEach { (k, v) ->
+            val key = k.lowercase()
+            if (!emitted.contains(key) && v.isNotEmpty()) {
+                emitted.add(key)
+                if (key == "content-type" || key == "http-equiv") {
+                    sb.append("<meta http-equiv=\"").append(k).append("\" content=\"").append(v).append("\"/>\n    ")
+                } else {
+                    sb.append("<meta name=\"").append(k).append("\" content=\"").append(v).append("\"/>\n    ")
+                }
             }
         }
         // title and style (canonical)
@@ -202,10 +215,7 @@ object RecipeSerializer {
         sb.append("<style type=\"text/css\">@import url(\"style/default.css\");</style>\n    \n  </head>\n   <body>\n")
 
         // header
-        sb.append("    <div id=\"header\"><h1>").append(recipe.title).append("</h1></div>")
-
-        // always re-apply template headers + core divs (notes etc do not use process here)
-        sb.append("\n    ").append(NOTES_HEADER)
+        sb.append("    <div id=\"header\"><h1>").append(recipe.title).append("</h1></div>    ").append(NOTES_HEADER).append("\n")
         sb.append("\n    <div id=\"notes\">").append(recipe.notes).append("</div>")
         sb.append("\n    ").append(NOTES_FOOTER)
         sb.append("\n    ").append(INGREDIENTS_HEADER)
@@ -228,11 +238,9 @@ object RecipeSerializer {
 
     private fun buildIngredientsAsHtml(ings: List<Ingredient>): String {
         val sb = StringBuilder("\n      <ul>\n")
-        // mimic original: drop some trailing empties? but keep as-is for data fidelity
+        // Port exact removal from orig RecipeFile.getIngredientsAsHTML: remove name-empty (but only non-last in loop); for simplicity+roundtrip fidelity here, emit all parsed (including partial/empty name) as original parser keeps them.
         ings.forEach { ing ->
-            if (ing.name.isNotEmpty() || ing.quantity.isNotEmpty()) {
-                sb.append(ing.toXHTMLString())
-            }
+            sb.append(ing.toXHTMLString())
         }
         sb.append("      </ul>")
         return sb.toString()
@@ -296,7 +304,7 @@ object RecipeSerializer {
                             textStroke.append(m ?: "")
                         }
                         "[VERSION]" -> textStroke.append("RecipeJar")
-                        "[CURRENT-TIME]" -> textStroke.append(java.time.Instant.now().toString())
+                        "[CURRENT-TIME]" -> textStroke.append(recipe.meta["last saved"] ?: "Sometime before")
                         "[ABOUT]" -> textStroke.append("RecipeJar")
                         else -> textStroke.append(getMacroText(s.toString(), recipe, activeFooter))
                     }
@@ -307,6 +315,7 @@ object RecipeSerializer {
             }
             return textStroke.toString()
         } catch (ex: Exception) {
+            // port of original processMacros (swallows to return raw); narrowed would hide less but keep parity for bad macro input in corpus
             return macroString
         }
     }

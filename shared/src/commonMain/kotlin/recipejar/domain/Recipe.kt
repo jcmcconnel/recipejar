@@ -6,6 +6,7 @@ import recipejar.recipe.Ingredient
  * Core domain model, ported/adapted from original Recipe/RecipeFile data.
  * Focus on fields needed for HTML roundtrip: title, notes, ingredients, procedure, labels, meta.
  * No UI/docs listeners.
+ * NOTE: ingredients/labels/meta are mutable for parse/serialize efficiency (per port of orig ArrayList/HashMap); do not share instances across recipes.
  */
 data class Recipe(
     var title: String = "",
