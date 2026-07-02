@@ -18,6 +18,8 @@ fun App(
     files: List<String>,
     onOpenRepo: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
     MaterialTheme {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -40,7 +42,7 @@ fun App(
                     // Basic listing stub; PR2+ will integrate real repo/index
                     Column(
                         modifier = Modifier
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scrollState)
                             .padding(start = 8.dp)
                     ) {
                         files.take(20).forEach { file ->
