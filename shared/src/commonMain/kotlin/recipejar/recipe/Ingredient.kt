@@ -1,5 +1,7 @@
 package recipejar.recipe
 
+import recipejar.StringProcessor
+
 /**
  * Port of original Ingredient.
  * Holds structured data for ingredients list.
@@ -25,8 +27,8 @@ data class Ingredient(
                 if (quantity != -1) {
                     val endQuantity = remaining.indexOf("</span>", quantity)
                     if (endQuantity != -1) {
-                        data0 = remaining.substring(quantity + qtyToken.length, endQuantity)
-                        remaining = remaining.substring(endQuantity + 7)
+                        data0 = StringProcessor.removeCarriageReturns(remaining.substring(quantity + qtyToken.length, endQuantity)).trim()
+                        remaining = StringProcessor.removeCarriageReturns(remaining.substring(endQuantity + 7))
                     }
                 }
             } catch (e: StringIndexOutOfBoundsException) {
@@ -38,8 +40,8 @@ data class Ingredient(
                 if (unitIdx != -1) {
                     val endUnit = remaining.indexOf("</span>", unitIdx)
                     if (endUnit != -1) {
-                        data1 = remaining.substring(unitIdx + unitToken.length, endUnit)
-                        remaining = remaining.substring(endUnit + 7)
+                        data1 = StringProcessor.removeCarriageReturns(remaining.substring(unitIdx + unitToken.length, endUnit)).trim()
+                        remaining = StringProcessor.removeCarriageReturns(remaining.substring(endUnit + 7))
                     }
                 }
             } catch (e: StringIndexOutOfBoundsException) {
@@ -50,7 +52,7 @@ data class Ingredient(
                 if (nameIdx != -1) {
                     val endName = remaining.indexOf("</span>", nameIdx)
                     if (endName != -1) {
-                        data2 = remaining.substring(nameIdx + nameToken.length, endName)
+                        data2 = StringProcessor.removeCarriageReturns(remaining.substring(nameIdx + nameToken.length, endName)).trim()
                     }
                 }
             } catch (e: StringIndexOutOfBoundsException) {

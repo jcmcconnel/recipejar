@@ -13,11 +13,7 @@ import kotlin.test.*
  */
 class RecipeRoundtripTest {
 
-    private val corpusDir = listOf(
-        File("../Test/Recipes"),        // when test cwd is shared/
-        File("Test/Recipes"),           // gradle run from workspace root
-        File("../../Test/Recipes")
-    ).firstOrNull { it.exists() && it.isDirectory } ?: File("../Test/Recipes")
+    private val corpusDir = File("../Test/Recipes").let { if (it.exists()) it else File("Test/Recipes") }
 
     @Test
     fun roundtrip_SimpleTest1() {
@@ -41,15 +37,11 @@ class RecipeRoundtripTest {
     }
 
     private fun roundtrip(filename: String, useBrowserFooter: Boolean) {
-        val origPath = File(corpusDir, filename)
-        if (!origPath.exists()) {
-            val alt = File("../Test/Recipes", filename)
-            if (!alt.exists()) {
-                println("Skipping $filename - corpus not found at expected path (tried $origPath)")
-                return
-            }
+        val htmlFile = File(corpusDir, filename)
+        if (!htmlFile.exists()) {
+            // hard fail (no silent skip); corpus must be present for roundtrip fidelity tests
+            fail("corpus not found for $filename at ${htmlFile.absolutePath} (cwd=${System.getProperty("user.dir")})")
         }
-        val htmlFile = if (origPath.exists()) origPath else File("../Test/Recipes", filename)
         val origHtml = htmlFile.readText(Charsets.UTF_8)
 
         val parsed: Recipe = RecipeSerializer.parse(origHtml)
@@ -79,9 +71,9 @@ class RecipeRoundtripTest {
         for (i in parsed.ingredients.indices) {
             val a = parsed.ingredients[i]
             val b = reparsed.ingredients[i]
-            assertEquals(a.quantity.trim(), b.quantity.trim())
-            assertEquals(a.unit.trim(), b.unit.trim())
-            assertEquals(a.name.trim(), b.name.trim(), "ing name[$i] $filename")
+            assertEquals(a.quantity, b.quantity, "ing qty[$i] $filename")
+            assertEquals(a.unit, b.unit, "ing unit[$i] $filename")
+            assertEquals(a.name, b.name, "ing name[$i] $filename")
         }
     }
 
