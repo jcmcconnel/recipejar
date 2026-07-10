@@ -62,6 +62,24 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RecipeJar"
             packageVersion = "1.0.0"
+            description = "Local offline recipe organizer"
+            vendor = "RecipeJar"
+            copyright = "© RecipeJar contributors"
+            // Packaged app inherits jvmArgs above (KCEF --add-opens for all OSes + mac extras).
+
+            macOS {
+                bundleID = "org.recipejar.app"
+                // Screen menu bar / dock title use packageName; apple.awt.application.name set at runtime.
+            }
+            windows {
+                menuGroup = "RecipeJar"
+                // Per-user install is friendlier for recipe-folder workflows.
+                dirChooser = true
+            }
+            linux {
+                menuGroup = "Office"
+                appCategory = "Office"
+            }
         }
     }
 }

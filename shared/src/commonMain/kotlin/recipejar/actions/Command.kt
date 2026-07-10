@@ -24,7 +24,7 @@ data class ActionContext(
 
 /**
  * Simple key combo for shortcut (maps to Compose KeyShortcut in UI layer).
- * OS meta/ctrl decided at registration using isMac.
+ * OS meta/ctrl decided at registration (desktop: Platform.primaryShortcut).
  * delete flag for special keys like VK_DELETE (smallest addition).
  */
 data class KeyCombo(
