@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 // Shell skeleton for the RecipeJar CMP app.
-// Desktop entry wires this; future PRs will expand with repo state, alpha tabs, webview etc.
+// Desktop entry wires this; PR3 integrated repo/FS for dir pick + list (via FileSystemRecipeRepository + PR2 serializer).
 
 @Composable
 fun App(
@@ -39,7 +39,7 @@ fun App(
                 if (files.isEmpty()) {
                     Text("(no matching files or stub)")
                 } else {
-                    // Basic listing stub; PR2+ will integrate real repo/index
+                    // PR3: listed via repo.listRecipes() (sanitized html names from dir scan)
                     Column(
                         modifier = Modifier
                             .verticalScroll(scrollState)
