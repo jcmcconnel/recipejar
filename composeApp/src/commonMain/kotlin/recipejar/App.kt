@@ -5,14 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Catalog entry for the alpha-tab index (filename key + display title).
@@ -46,8 +50,9 @@ internal fun titleSortKey(title: String): String = buildString(title.length) {
 }
 
 /**
- * Shell: split layout with alpha-tab index (left) and recipe reader (right).
+ * Shell: split layout with alpha-tab index (left) and content pane (right).
  *
+ * Content pane swaps by [isEditing]: monospaced HTML [RecipeCodeEditor] vs [RecipeReader].
  * Reader prefers file:// WebView when [webViewReady] is true (KCEF initialized on desktop).
  * Otherwise falls back to scrollable raw HTML text — see [RecipeReader].
  */
@@ -64,6 +69,7 @@ fun App(
     isEditing: Boolean = false,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
+    onHtmlChange: (String) -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
 
@@ -251,25 +257,91 @@ fun App(
 
                     VerticalDivider()
 
-                    // Right: reader
+                    // Right: code editor (edit mode) or reader (read mode) — modal swap
                     Box(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .padding(8.dp),
                     ) {
-                        RecipeReader(
-                            selectedFilename = selectedFilename,
-                            selectedFileUrl = selectedFileUrl,
-                            selectedHtml = selectedHtml,
-                            webViewReady = webViewReady,
-                            restartRequired = restartRequired,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        if (isEditing) {
+                            RecipeCodeEditor(
+                                selectedFilename = selectedFilename,
+                                html = selectedHtml.orEmpty(),
+                                onHtmlChange = onHtmlChange,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            RecipeReader(
+                                selectedFilename = selectedFilename,
+                                selectedFileUrl = selectedFileUrl,
+                                selectedHtml = selectedHtml,
+                                webViewReady = webViewReady,
+                                restartRequired = restartRequired,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * Monospaced multiline HTML source editor for the selected recipe.
+ * Bound to the parent [html] buffer; edits flow through [onHtmlChange].
+ */
+@Composable
+fun RecipeCodeEditor(
+    selectedFilename: String?,
+    html: String,
+    onHtmlChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (selectedFilename == null) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            Text(
+                "Select a recipe from the index, or File → New",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    val scroll = rememberScrollState()
+    val textColor = MaterialTheme.colorScheme.onSurface
+    Column(modifier) {
+        Text(
+            selectedFilename,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        Text(
+            "HTML source (edit mode)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        HorizontalDivider()
+        Spacer(Modifier.height(4.dp))
+        BasicTextField(
+            value = html,
+            onValueChange = onHtmlChange,
+            textStyle = TextStyle(
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                color = textColor,
+                lineHeight = 16.sp,
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scroll)
+                .padding(4.dp),
+        )
     }
 }
 

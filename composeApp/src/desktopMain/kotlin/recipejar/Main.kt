@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import recipejar.actions.*
+import recipejar.domain.Recipe
+import recipejar.html.RecipeSerializer
 import recipejar.persistence.FileSystemRecipeRepository
 import java.io.File
 import javax.swing.JFileChooser
@@ -155,6 +157,86 @@ fun main() = application {
         }
     }
 
+    fun refreshIndexAndSelect(dir: String, filename: String) {
+        scope.launch {
+            val loaded = withContext(Dispatchers.IO) {
+                try {
+                    loadRecipeIndex(FileSystemRecipeRepository(dir))
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            if (selectedDir.value != dir) return@launch
+            recipes.value = loaded
+            selectedFilename.value = filename
+            val file = File(dir, filename)
+            if (file.isFile) {
+                selectedFileUrl.value = file.toURI().toString()
+                val html = withContext(Dispatchers.IO) {
+                    try {
+                        file.readText(Charsets.UTF_8)
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                if (selectedDir.value == dir && selectedFilename.value == filename) {
+                    selectedHtml.value = html
+                }
+            }
+        }
+    }
+
+    /**
+     * Persist editor buffer via [FileSystemRecipeRepository].
+     * Parses HTML (full document preferred), serializes with browser-footer, renames on title change.
+     */
+    fun saveCurrentRecipe() {
+        val dir = selectedDir.value ?: return
+        val filename = selectedFilename.value ?: return
+        val html = selectedHtml.value ?: return
+        if (html.isBlank()) {
+            println("Save: empty buffer")
+            return
+        }
+        scope.launch {
+            try {
+                val savedName = withContext(Dispatchers.IO) {
+                    val repo = FileSystemRecipeRepository(dir)
+                    val recipe = RecipeSerializer.parse(html)
+                    if (recipe.title.isBlank()) {
+                        recipe.title = stripHtmlExtension(filename).ifBlank { "Untitled" }
+                    }
+                    // Title-rename support: pass existing on-disk name when present
+                    val original = filename.takeIf { File(dir, it).isFile }
+                    repo.saveRecipe(recipe, originalFilename = original)
+                    repo.filenameFor(recipe)
+                }
+                if (selectedDir.value != dir) return@launch
+                refreshIndexAndSelect(dir, savedName)
+            } catch (e: Exception) {
+                println("Save failed: ${e.message}")
+            }
+        }
+    }
+
+    fun newRecipe() {
+        val dir = selectedDir.value
+        val recipe = Recipe(
+            title = "Untitled",
+            notes = "A little about this recipe,<br/>\nwhere I got it why I like it, etc.<br/>\nMakes 1 serving.",
+            procedure = "",
+        )
+        val html = RecipeSerializer.serialize(recipe, "browser-footer")
+        selectedFilename.value = "Untitled.html"
+        selectedHtml.value = html
+        selectedFileUrl.value = null
+        isEditing.value = true
+        // Optional: no disk write until Save; dir may still be null (enabled only when open later)
+        if (dir == null) {
+            println("New: no repository open — buffer only until Open repository + Save")
+        }
+    }
+
     val registry = remember {
         ActionRegistry().also { reg ->
             val isMac = System.getProperty("os.name").lowercase().contains("mac")
@@ -167,13 +249,8 @@ fun main() = application {
                     title = "New",
                     mnemonic = 'N',
                     shortcut = KeyCombo('N', meta = isMac, ctrl = !isMac),
-                    execute = {
-                        // PR-6 will flesh out template-based new recipe; stub open empty edit mode
-                        selectedFilename.value = "Untitled.html"
-                        selectedHtml.value = ""
-                        selectedFileUrl.value = null
-                        isEditing.value = true
-                    }
+                    execute = { newRecipe() },
+                    enabled = { selectedDir.value != null }
                 )
             )
 
@@ -196,9 +273,7 @@ fun main() = application {
                     title = "Save",
                     mnemonic = 'S',
                     shortcut = KeyCombo('S', meta = isMac, ctrl = !isMac),
-                    execute = {
-                        println("Save stub for: ${selectedFilename.value}")
-                    },
+                    execute = { saveCurrentRecipe() },
                     enabled = isOpen
                 )
             )
@@ -362,6 +437,7 @@ fun main() = application {
             isEditing = isEditing.value,
             onOpenRepo = ::pickDirectory,
             onSelectRecipe = ::selectRecipe,
+            onHtmlChange = { selectedHtml.value = it },
         )
     }
 }
