@@ -28,7 +28,7 @@ import javax.swing.filechooser.FileSystemView
 
 /**
  * Desktop entry: open a recipe repository directory, list via FileSystemRecipeRepository,
- * drive alpha-tab index + reader, MenuBar from ActionRegistry, and PR-7 macro system.
+ * drive alpha-tab index + reader, MenuBar from ActionRegistry, macros, search, and prefs.
  *
  * KCEF bootstrap enables compose-webview-multiplatform for file:// recipe HTML.
  * If init fails or is still in progress, App falls back to scrollable HTML text.
@@ -55,6 +55,11 @@ fun main() = application {
     /** Loaded user macros for the current repository (JSON / legacy txt / defaults). */
     val macros = remember { mutableStateOf<List<MacroDefinition>>(emptyList()) }
     val showMacroManager = remember { mutableStateOf(false) }
+    val showSearch = remember { mutableStateOf(false) }
+    val searchScopes = remember {
+        mutableStateOf(setOf(SearchScope.TITLES, SearchScope.LABELS))
+    }
+    val showPreferences = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val isRecipeOpen: () -> Boolean = { selectedFilename.value != null }
@@ -89,12 +94,15 @@ fun main() = application {
                     settings {
                         cachePath = File("kcef-cache").absolutePath
                     }
-                }, onError = {
+                }, onError = { err ->
+                    Debug.error("KCEF init error", err)
                     setWebViewReadyOnMain(false)
                 }, onRestartRequired = {
+                    Debug.log("KCEF restart required after install")
                     setRestartRequiredOnMain(true)
                 })
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                Debug.error("KCEF bootstrap failed", t)
                 withContext(Dispatchers.Main) {
                     webViewReady.value = false
                 }
@@ -106,56 +114,110 @@ fun main() = application {
         onDispose {
             try {
                 KCEF.disposeBlocking()
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                Debug.error("KCEF dispose failed", t)
+            }
+        }
+    }
+
+    /**
+     * Load repository at [path]: catalog, macros, prefs; optionally re-select [restoreRecipe].
+     */
+    fun openRepository(path: String, restoreRecipe: String? = AppPrefs.lastRecipeFilename) {
+        val dir = File(path)
+        if (!dir.isDirectory) {
+            Debug.error("Not a directory: $path")
+            statusMessage.value = "Not a directory: $path"
+            return
+        }
+        val abs = dir.absolutePath
+        selectedDir.value = abs
+        selectedFilename.value = null
+        selectedHtml.value = null
+        selectedFileUrl.value = null
+        lastDiskHtml.value = null
+        isUnsavedNew.value = false
+        isEditing.value = false
+        statusMessage.value = null
+        recipes.value = emptyList()
+        macros.value = emptyList()
+        indexLoading.value = true
+        AppPrefs.lastRepoPath = abs
+        Debug.log("Opening repository: $abs")
+        scope.launch {
+            try {
+                val (loaded, macroLoad) = withContext(Dispatchers.IO) {
+                    val repo = FileSystemRecipeRepository(abs)
+                    loadRecipeIndex(repo) to MacroStore.load(abs)
+                }
+                if (selectedDir.value != abs) return@launch
+                recipes.value = loaded
+                macros.value = macroLoad.macros
+                if (macroLoad.note != null) {
+                    statusMessage.value = macroLoad.note
+                }
+                val want = restoreRecipe
+                if (want != null && loaded.any { it.filename == want }) {
+                    // Inline restore (selectRecipe is defined below; avoid forward-ref).
+                    selectedFilename.value = want
+                    isEditing.value = false
+                    isUnsavedNew.value = false
+                    val file = File(abs, want)
+                    if (file.isFile) {
+                        selectedFileUrl.value = file.toURI().toString()
+                        val html = withContext(Dispatchers.IO) {
+                            try {
+                                file.readText(Charsets.UTF_8)
+                            } catch (_: Exception) {
+                                null
+                            }
+                        }
+                        if (selectedDir.value == abs && selectedFilename.value == want) {
+                            selectedHtml.value = html
+                            lastDiskHtml.value = html
+                            if (html == null) {
+                                selectedFileUrl.value = null
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Debug.error("Failed to load repository: $abs", e)
+                if (selectedDir.value == abs) {
+                    recipes.value = emptyList()
+                    macros.value = MacroIo.DEFAULT_MACROS
+                    statusMessage.value = "Load failed: ${e.message}"
+                }
+            } finally {
+                if (selectedDir.value == abs) {
+                    indexLoading.value = false
+                }
             }
         }
     }
 
     fun pickDirectory() {
-        val chooser = JFileChooser(FileSystemView.getFileSystemView().homeDirectory)
+        val start = AppPrefs.lastRepoPath
+            ?.takeIf { File(it).isDirectory }
+            ?.let { File(it) }
+            ?: FileSystemView.getFileSystemView().homeDirectory
+        val chooser = JFileChooser(start)
         chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
         chooser.dialogTitle = "Open recipe repository"
         val result = chooser.showOpenDialog(null)
         if (result == JFileChooser.APPROVE_OPTION) {
             val dir = chooser.selectedFile
             if (dir != null && dir.isDirectory) {
-                val path = dir.absolutePath
-                selectedDir.value = path
-                selectedFilename.value = null
-                selectedHtml.value = null
-                selectedFileUrl.value = null
-                lastDiskHtml.value = null
-                isUnsavedNew.value = false
-                isEditing.value = false
-                statusMessage.value = null
-                recipes.value = emptyList()
-                macros.value = emptyList()
-                indexLoading.value = true
-                scope.launch {
-                    try {
-                        val (loaded, macroLoad) = withContext(Dispatchers.IO) {
-                            val repo = FileSystemRecipeRepository(path)
-                            loadRecipeIndex(repo) to MacroStore.load(path)
-                        }
-                        if (selectedDir.value == path) {
-                            recipes.value = loaded
-                            macros.value = macroLoad.macros
-                            if (macroLoad.note != null) {
-                                statusMessage.value = macroLoad.note
-                            }
-                        }
-                    } catch (_: Exception) {
-                        if (selectedDir.value == path) {
-                            recipes.value = emptyList()
-                            macros.value = MacroIo.DEFAULT_MACROS
-                        }
-                    } finally {
-                        if (selectedDir.value == path) {
-                            indexLoading.value = false
-                        }
-                    }
-                }
+                openRepository(dir.absolutePath, restoreRecipe = null)
             }
+        }
+    }
+
+    // Restore last repository on launch (optional last recipe re-selected inside openRepository).
+    LaunchedEffect(Unit) {
+        val last = AppPrefs.lastRepoPath
+        if (AppPrefs.isValidRepoPath(last)) {
+            openRepository(last!!)
         }
     }
 
@@ -261,11 +323,13 @@ fun main() = application {
         isEditing.value = false
         isUnsavedNew.value = false
         statusMessage.value = null
+        AppPrefs.lastRecipeFilename = filename
         val file = File(dir, filename)
         if (!file.isFile) {
             selectedFileUrl.value = null
             selectedHtml.value = null
             lastDiskHtml.value = null
+            Debug.error("Recipe file missing: $filename")
             return
         }
         selectedFileUrl.value = file.toURI().toString()
@@ -275,7 +339,8 @@ fun main() = application {
             val html = withContext(Dispatchers.IO) {
                 try {
                     file.readText(Charsets.UTF_8)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Debug.error("Failed to read $filename", e)
                     null
                 }
             }
@@ -289,6 +354,41 @@ fun main() = application {
                 lastDiskHtml.value = html
             }
         }
+    }
+
+    /** Build searchable field map for the current repo (labels, notes, ingredients, procedure). */
+    fun buildSearchFieldText(): Map<String, Map<SearchScope, String>> {
+        val dir = selectedDir.value ?: return emptyMap()
+        return try {
+            val repo = FileSystemRecipeRepository(dir)
+            val out = mutableMapOf<String, Map<SearchScope, String>>()
+            for (name in repo.listRecipes()) {
+                try {
+                    val r = repo.loadRecipe(name)
+                    out[name] = mapOf(
+                        SearchScope.LABELS to r.getLabelsAsString(),
+                        SearchScope.NOTES to r.notes,
+                        SearchScope.INGREDIENTS to r.ingredients.joinToString(" ") { it.toString() },
+                        SearchScope.PROCEDURE to r.procedure,
+                    )
+                } catch (e: Exception) {
+                    Debug.error("Search index skip: $name", e)
+                }
+            }
+            out
+        } catch (e: Exception) {
+            Debug.error("Search field index failed", e)
+            emptyMap()
+        }
+    }
+
+    fun openSearch(scopes: Set<SearchScope>) {
+        if (selectedDir.value == null) {
+            statusMessage.value = "Open a repository to search"
+            return
+        }
+        searchScopes.value = scopes
+        showSearch.value = true
     }
 
     /**
@@ -315,6 +415,10 @@ fun main() = application {
                     if (recipe.title.isBlank()) {
                         recipe.title = stripHtmlExtension(filename).ifBlank { "Untitled" }
                     }
+                    val author = AppPrefs.authorName
+                    if (author.isNotBlank()) {
+                        recipe.meta["author"] = author
+                    }
                     // New buffers never pass originalFilename (avoid hijacking existing Untitled.html).
                     // Existing recipes pass on-disk name for title-rename support.
                     val original = if (wasUnsavedNew) {
@@ -331,7 +435,8 @@ fun main() = application {
                 val loaded = withContext(Dispatchers.IO) {
                     try {
                         loadRecipeIndex(FileSystemRecipeRepository(dir))
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        Debug.error("Index refresh after save failed", e)
                         emptyList()
                     }
                 }
@@ -342,18 +447,21 @@ fun main() = application {
                 // (Selecting another recipe or File→New while save was in flight must not clobber.)
                 if (selectedFilename.value != saveTargetFilename) {
                     statusMessage.value = "Saved $savedName"
+                    Debug.log("Saved $savedName (selection moved)")
                     return@launch
                 }
 
                 isUnsavedNew.value = false
                 selectedFilename.value = savedName
+                AppPrefs.lastRecipeFilename = savedName
                 val file = File(dir, savedName)
                 if (file.isFile) {
                     selectedFileUrl.value = file.toURI().toString()
                     val diskHtml = withContext(Dispatchers.IO) {
                         try {
                             file.readText(Charsets.UTF_8)
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            Debug.error("Re-read after save failed: $savedName", e)
                             null
                         }
                     }
@@ -362,6 +470,7 @@ fun main() = application {
                             selectedHtml.value = diskHtml
                             lastDiskHtml.value = diskHtml
                             statusMessage.value = "Saved $savedName"
+                            Debug.log("Saved $savedName")
                         } else {
                             selectedFileUrl.value = null
                             selectedHtml.value = null
@@ -374,8 +483,10 @@ fun main() = application {
                     selectedHtml.value = null
                     lastDiskHtml.value = null
                     statusMessage.value = "Saved as $savedName but file is missing"
+                    Debug.error("Saved path missing: $savedName")
                 }
             } catch (e: Exception) {
+                Debug.error("Save failed", e)
                 statusMessage.value = "Save failed: ${e.message}"
             }
         }
@@ -447,7 +558,7 @@ fun main() = application {
                     mnemonic = 'R',
                     shortcut = KeyCombo(delete = true),
                     execute = {
-                        println("Delete stub: ${selectedFilename.value}")
+                        Debug.log("Delete stub: ${selectedFilename.value}")
                         selectedFilename.value = null
                         selectedHtml.value = null
                         selectedFileUrl.value = null
@@ -467,7 +578,7 @@ fun main() = application {
                     execute = {
                         selectedFilename.value?.let { cur ->
                             selectedFilename.value = cur.removeSuffix(".html") + "-renamed.html"
-                        } ?: println("Rename: no current recipe open")
+                        } ?: Debug.log("Rename: no current recipe open")
                     },
                     enabled = isOpen
                 )
@@ -478,7 +589,7 @@ fun main() = application {
                 Command(
                     id = ActionIds.FILE_IMPORT,
                     title = "Import",
-                    execute = { println("Import stub") },
+                    execute = { Debug.log("Import stub") },
                     enabled = { selectedDir.value != null }
                 )
             )
@@ -488,7 +599,7 @@ fun main() = application {
                 Command(
                     id = ActionIds.FILE_EXPORT,
                     title = "Export",
-                    execute = { println("Export stub for: ${selectedFilename.value}") },
+                    execute = { Debug.log("Export stub for: ${selectedFilename.value}") },
                     enabled = isOpen
                 )
             )
@@ -500,7 +611,7 @@ fun main() = application {
                     title = "Print",
                     mnemonic = 'P',
                     shortcut = KeyCombo('P', meta = isMac, ctrl = !isMac),
-                    execute = { println("Print stub") },
+                    execute = { Debug.log("Print stub") },
                     enabled = { false }
                 )
             )
@@ -516,10 +627,10 @@ fun main() = application {
             )
 
             val editEnabled = isOpen
-            reg.register(ActionIds.EDIT_CUT, Command(id = ActionIds.EDIT_CUT, title = "Cut", execute = { println("Cut stub") }, enabled = editEnabled))
-            reg.register(ActionIds.EDIT_COPY, Command(id = ActionIds.EDIT_COPY, title = "Copy", execute = { println("Copy stub") }, enabled = editEnabled))
-            reg.register(ActionIds.EDIT_PASTE, Command(id = ActionIds.EDIT_PASTE, title = "Paste", execute = { println("Paste stub") }, enabled = editEnabled))
-            reg.register(ActionIds.EDIT_SELECT_ALL, Command(id = ActionIds.EDIT_SELECT_ALL, title = "Select All", execute = { println("SelectAll stub") }, enabled = editEnabled))
+            reg.register(ActionIds.EDIT_CUT, Command(id = ActionIds.EDIT_CUT, title = "Cut", execute = { Debug.log("Cut stub") }, enabled = editEnabled))
+            reg.register(ActionIds.EDIT_COPY, Command(id = ActionIds.EDIT_COPY, title = "Copy", execute = { Debug.log("Copy stub") }, enabled = editEnabled))
+            reg.register(ActionIds.EDIT_PASTE, Command(id = ActionIds.EDIT_PASTE, title = "Paste", execute = { Debug.log("Paste stub") }, enabled = editEnabled))
+            reg.register(ActionIds.EDIT_SELECT_ALL, Command(id = ActionIds.EDIT_SELECT_ALL, title = "Select All", execute = { Debug.log("SelectAll stub") }, enabled = editEnabled))
             reg.register(
                 ActionIds.EDIT_MACROS,
                 Command(
@@ -535,13 +646,86 @@ fun main() = application {
                     enabled = { selectedDir.value != null },
                 )
             )
-            reg.register(ActionIds.EDIT_FIND, Command(id = ActionIds.EDIT_FIND, title = "Find", execute = { println("Find stub") }, enabled = isOpen))
-            reg.register(ActionIds.FIND_ALL, Command(id = ActionIds.FIND_ALL, title = "Find All", execute = { println("FindAll stub") }))
-            reg.register(ActionIds.FIND_TITLES, Command(id = ActionIds.FIND_TITLES, title = "Find Titles", execute = { println("FindTitles stub") }))
-            reg.register(ActionIds.FIND_LABELS, Command(id = ActionIds.FIND_LABELS, title = "Find Labels", execute = { println("FindLabels stub") }))
-            reg.register(ActionIds.FIND_NOTES, Command(id = ActionIds.FIND_NOTES, title = "Find Notes", execute = { println("FindNotes stub") }))
-            reg.register(ActionIds.FIND_INGREDIENTS, Command(id = ActionIds.FIND_INGREDIENTS, title = "Find Ingredients", execute = { println("FindIngredients stub") }))
-            reg.register(ActionIds.FIND_PROCEDURES, Command(id = ActionIds.FIND_PROCEDURES, title = "Find Procedures", execute = { println("FindProcedures stub") }))
+            val allScopes = setOf(
+                SearchScope.TITLES,
+                SearchScope.LABELS,
+                SearchScope.NOTES,
+                SearchScope.INGREDIENTS,
+                SearchScope.PROCEDURE,
+            )
+            reg.register(
+                ActionIds.EDIT_FIND,
+                Command(
+                    id = ActionIds.EDIT_FIND,
+                    title = "Find…",
+                    mnemonic = 'F',
+                    shortcut = KeyCombo('F', meta = isMac, ctrl = !isMac),
+                    execute = { openSearch(setOf(SearchScope.TITLES, SearchScope.LABELS)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_ALL,
+                Command(
+                    id = ActionIds.FIND_ALL,
+                    title = "Find All",
+                    execute = { openSearch(allScopes) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_TITLES,
+                Command(
+                    id = ActionIds.FIND_TITLES,
+                    title = "Find Titles",
+                    execute = { openSearch(setOf(SearchScope.TITLES)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_LABELS,
+                Command(
+                    id = ActionIds.FIND_LABELS,
+                    title = "Find Labels",
+                    execute = { openSearch(setOf(SearchScope.LABELS)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_NOTES,
+                Command(
+                    id = ActionIds.FIND_NOTES,
+                    title = "Find Notes",
+                    execute = { openSearch(setOf(SearchScope.NOTES)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_INGREDIENTS,
+                Command(
+                    id = ActionIds.FIND_INGREDIENTS,
+                    title = "Find Ingredients",
+                    execute = { openSearch(setOf(SearchScope.INGREDIENTS)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.FIND_PROCEDURES,
+                Command(
+                    id = ActionIds.FIND_PROCEDURES,
+                    title = "Find Procedures",
+                    execute = { openSearch(setOf(SearchScope.PROCEDURE)) },
+                    enabled = { selectedDir.value != null },
+                )
+            )
+            reg.register(
+                ActionIds.TOOLS_PREFERENCES,
+                Command(
+                    id = ActionIds.TOOLS_PREFERENCES,
+                    title = "Preferences…",
+                    execute = { showPreferences.value = true },
+                )
+            )
         }
     }
 
@@ -588,6 +772,7 @@ fun main() = application {
             'C' -> Key.C
             'V' -> Key.V
             'A' -> Key.A
+            'F' -> Key.F
             else -> Key.Unknown
         }
         return KeyShortcut(key = k, ctrl = combo.ctrl, meta = combo.meta, alt = combo.alt, shift = combo.shift)
@@ -630,7 +815,21 @@ fun main() = application {
                 Item(sel.title, onClick = { sel.execute(ActionContext()) }, enabled = sel.enabled())
                 Separator()
                 val fnd = registry.require(ActionIds.EDIT_FIND)
-                Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled())
+                Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled(), shortcut = toKeyShortcut(fnd.shortcut))
+            }
+            Menu("Find", mnemonic = 'F') {
+                val fa = registry.require(ActionIds.FIND_ALL)
+                Item(fa.title, onClick = { fa.execute(ActionContext()) }, enabled = fa.enabled())
+                val ft = registry.require(ActionIds.FIND_TITLES)
+                Item(ft.title, onClick = { ft.execute(ActionContext()) }, enabled = ft.enabled())
+                val fl = registry.require(ActionIds.FIND_LABELS)
+                Item(fl.title, onClick = { fl.execute(ActionContext()) }, enabled = fl.enabled())
+                val fn = registry.require(ActionIds.FIND_NOTES)
+                Item(fn.title, onClick = { fn.execute(ActionContext()) }, enabled = fn.enabled())
+                val fi = registry.require(ActionIds.FIND_INGREDIENTS)
+                Item(fi.title, onClick = { fi.execute(ActionContext()) }, enabled = fi.enabled())
+                val fp = registry.require(ActionIds.FIND_PROCEDURES)
+                Item(fp.title, onClick = { fp.execute(ActionContext()) }, enabled = fp.enabled())
             }
             Menu("Macros", mnemonic = 'M') {
                 val macroList = macros.value
@@ -648,6 +847,10 @@ fun main() = application {
                 Separator()
                 val mgr = registry.require(ActionIds.EDIT_MACROS)
                 Item(mgr.title, onClick = { mgr.execute(ActionContext()) }, enabled = mgr.enabled())
+            }
+            Menu("Tools", mnemonic = 'T') {
+                val pref = registry.require(ActionIds.TOOLS_PREFERENCES)
+                Item(pref.title, onClick = { pref.execute(ActionContext()) }, enabled = pref.enabled())
             }
         }
 
@@ -676,6 +879,59 @@ fun main() = application {
                 onSave = { list -> saveMacros(list) },
                 onDismiss = { showMacroManager.value = false },
                 onImportTxt = { importMacrosTxtFile() },
+            )
+        }
+
+        if (showSearch.value) {
+            SearchDialog(
+                recipes = recipes.value,
+                initialScopes = searchScopes.value,
+                fieldTextProvider = {
+                    // May hit disk; dialog only calls when non-title scopes are active.
+                    buildSearchFieldText()
+                },
+                onSelect = { filename -> selectRecipe(filename) },
+                onDismiss = { showSearch.value = false },
+            )
+        }
+
+        if (showPreferences.value) {
+            PreferencesDialog(
+                initialRepoPath = selectedDir.value ?: AppPrefs.lastRepoPath.orEmpty(),
+                initialAuthorName = AppPrefs.authorName,
+                onBrowseRepo = {
+                    val start = (selectedDir.value ?: AppPrefs.lastRepoPath)
+                        ?.takeIf { File(it).isDirectory }
+                        ?.let { File(it) }
+                        ?: FileSystemView.getFileSystemView().homeDirectory
+                    val chooser = JFileChooser(start)
+                    chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                    chooser.dialogTitle = "Recipe repository"
+                    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        chooser.selectedFile?.takeIf { it.isDirectory }?.absolutePath
+                    } else {
+                        null
+                    }
+                },
+                onSave = { path, author ->
+                    AppPrefs.authorName = author
+                    if (path.isNotBlank()) {
+                        AppPrefs.lastRepoPath = path
+                        if (selectedDir.value != path && File(path).isDirectory) {
+                            openRepository(path, restoreRecipe = null)
+                        } else if (!File(path).isDirectory) {
+                            statusMessage.value = "Preferences saved; path not found: $path"
+                            Debug.log("Prefs path missing: $path")
+                        } else {
+                            statusMessage.value = "Preferences saved"
+                        }
+                    } else {
+                        statusMessage.value = "Preferences saved"
+                    }
+                    showPreferences.value = false
+                    Debug.log("Preferences saved (author=${author.isNotBlank()})")
+                },
+                onDismiss = { showPreferences.value = false },
             )
         }
     }
