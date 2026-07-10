@@ -10,13 +10,16 @@ import com.multiplatform.webview.web.rememberWebViewState
 /**
  * Desktop WebView reader: load recipe via file:// so relative CSS/images resolve.
  * Requires KCEF to have completed [dev.datlag.kcef.KCEF.init] (see Main.kt).
+ *
+ * Starts at about:blank; navigates in [LaunchedEffect] so selection changes do not
+ * double-load the initial URL (rememberWebViewState would re-load + LaunchedEffect).
  */
 @Composable
 actual fun RecipeHtmlWebView(
     fileUrl: String,
     modifier: Modifier,
 ) {
-    val state = rememberWebViewState(url = fileUrl)
+    val state = rememberWebViewState(url = "about:blank")
     val navigator = rememberWebViewNavigator()
 
     LaunchedEffect(fileUrl) {

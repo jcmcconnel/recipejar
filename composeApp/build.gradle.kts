@@ -7,6 +7,24 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+// KCEF / JCEF reflective access (compose-webview-multiplatform README.desktop.md)
+private val kcefJvmOpens = buildList {
+    addAll(
+        listOf(
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED",
+        )
+    )
+    if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
+        addAll(
+            listOf(
+                "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
+                "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
+            )
+        )
+    }
+}
+
 kotlin {
     jvm("desktop")
 
@@ -26,8 +44,8 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                // api: desktop Main needs KCEF types for WebView bootstrap
-                api("io.github.kevinnzou:compose-webview-multiplatform:${project.property("webview.version")}")
+                // Same module source set: implementation is enough for Main + WebView actual
+                implementation("io.github.kevinnzou:compose-webview-multiplatform:${project.property("webview.version")}")
                 implementation("com.squareup.okio:okio:${project.property("okio.version")}")
             }
         }
@@ -37,6 +55,8 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "recipejar.MainKt"
+        // Packaged DMG/MSI/Deb and release runs need the same opens as Gradle JavaExec
+        jvmArgs += kcefJvmOpens
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
@@ -46,14 +66,8 @@ compose.desktop {
     }
 }
 
-// KCEF / JCEF requires these opens (see compose-webview-multiplatform README.desktop.md)
 afterEvaluate {
     tasks.withType<JavaExec>().configureEach {
-        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
-        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
-        if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
-            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
-            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
-        }
+        jvmArgs(kcefJvmOpens)
     }
 }

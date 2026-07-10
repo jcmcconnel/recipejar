@@ -36,6 +36,16 @@ internal fun letterBucket(title: String): Char {
 }
 
 /**
+ * Sort key aligned with [FileSystemRecipeRepository] index lists (`lowercase(Locale.US)`).
+ * Common code cannot use java.util.Locale; ASCII A–Z fold matches US English for recipe titles.
+ */
+internal fun titleSortKey(title: String): String = buildString(title.length) {
+    for (c in title) {
+        append(if (c in 'A'..'Z') c + ('a' - 'A') else c)
+    }
+}
+
+/**
  * Shell: split layout with alpha-tab index (left) and recipe reader (right).
  *
  * Reader prefers file:// WebView when [webViewReady] is true (KCEF initialized on desktop).
@@ -49,14 +59,25 @@ fun App(
     selectedFileUrl: String?,
     selectedHtml: String?,
     webViewReady: Boolean,
+    restartRequired: Boolean = false,
+    indexLoading: Boolean = false,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
 
-    // Reset selection tab when repo changes
-    LaunchedEffect(selectedDir) {
-        selectedTabIndex = 0
+    // After repo load: keep current tab if it has items; else jump to first non-empty tab.
+    LaunchedEffect(selectedDir, recipes) {
+        if (selectedDir == null || recipes.isEmpty()) {
+            selectedTabIndex = 0
+            return@LaunchedEffect
+        }
+        fun countFor(tab: Int): Int {
+            val letter = if (tab in 0..25) ('A' + tab) else '0'
+            return recipes.count { letterBucket(it.title) == letter }
+        }
+        if (countFor(selectedTabIndex) > 0) return@LaunchedEffect
+        selectedTabIndex = (0..26).firstOrNull { countFor(it) > 0 } ?: 0
     }
 
     val selectedLetter: Char =
@@ -65,7 +86,7 @@ fun App(
     val filtered = remember(recipes, selectedLetter) {
         recipes
             .filter { letterBucket(it.title) == selectedLetter }
-            .sortedBy { it.title.lowercase() }
+            .sortedBy { titleSortKey(it.title) }
     }
 
     MaterialTheme {
@@ -94,16 +115,30 @@ fun App(
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        "${recipes.size} recipes",
+                        if (indexLoading) "Loading…" else "${recipes.size} recipes",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
+
+            if (restartRequired) {
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "WebView installed — restart RecipeJar to enable rendered recipes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
+
             HorizontalDivider()
 
             if (selectedDir == null) {
                 Box(
-                    Modifier.fillMaxSize().padding(24.dp),
+                    Modifier.weight(1f).fillMaxWidth().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -111,9 +146,19 @@ fun App(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
+            } else if (indexLoading && recipes.isEmpty()) {
+                Box(
+                    Modifier.weight(1f).fillMaxWidth().padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Loading recipes…",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             } else {
                 // Split: index | reader
-                Row(Modifier.fillMaxSize()) {
+                Row(Modifier.weight(1f).fillMaxWidth()) {
                     // Left: alpha index
                     Column(
                         Modifier
@@ -154,10 +199,16 @@ fun App(
                             Text(
                                 "(none)",
                                 style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(8.dp),
                             )
                         } else {
-                            LazyColumn(Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                            ) {
                                 items(filtered, key = { it.filename }) { item ->
                                     val selected = item.filename == selectedFilename
                                     Surface(
@@ -205,6 +256,7 @@ fun App(
                             selectedFileUrl = selectedFileUrl,
                             selectedHtml = selectedHtml,
                             webViewReady = webViewReady,
+                            restartRequired = restartRequired,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -231,6 +283,7 @@ fun RecipeReader(
     selectedFileUrl: String?,
     selectedHtml: String?,
     webViewReady: Boolean,
+    restartRequired: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     if (selectedFilename == null) {
@@ -259,13 +312,20 @@ fun RecipeReader(
         if (webViewReady && !selectedFileUrl.isNullOrBlank()) {
             RecipeHtmlWebView(
                 fileUrl = selectedFileUrl,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             )
         } else if (selectedHtml != null) {
             val scroll = rememberScrollState()
             if (!webViewReady) {
+                val banner = if (restartRequired) {
+                    "Showing HTML source — restart RecipeJar after WebView install to enable rendered view."
+                } else {
+                    "Showing HTML source (WebView/KCEF not ready — CSS may not apply)."
+                }
                 Text(
-                    "Showing HTML source (WebView/KCEF not ready — CSS may not apply).",
+                    banner,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
@@ -275,12 +335,18 @@ fun RecipeReader(
                 text = selectedHtml,
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .verticalScroll(scroll)
                     .padding(4.dp),
             )
         } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text("Unable to load recipe content.")
             }
         }
