@@ -3,7 +3,7 @@ package recipejar.actions
 /**
  * Port of ActionIds.java
  * String IDs kept for compatibility.
- * No macros yet (PR5).
+ * Dynamic user macros use ids under [MACRO_PREFIX] (e.g. macro.Bold).
  */
 object ActionIds {
     // File / Recipe actions
@@ -17,13 +17,17 @@ object ActionIds {
     const val FILE_PRINT = "file.print"
     const val FILE_EXIT = "file.exit"
 
-    // Edit actions (stubs for now; macros deferred)
+    // Edit actions
     const val EDIT_CUT = "edit.cut"
     const val EDIT_COPY = "edit.copy"
     const val EDIT_PASTE = "edit.paste"
     const val EDIT_SELECT_ALL = "edit.selectAll"
+    /** Opens the in-app macro manager (not a text-transform action). */
     const val EDIT_MACROS = "edit.macros"
     const val EDIT_FIND = "edit.find"
+
+    /** Prefix for dynamically registered user macros (`macro.` + sanitized name). */
+    const val MACRO_PREFIX = "macro."
 
     // Find stubs
     const val FIND_ALL = "find.all"

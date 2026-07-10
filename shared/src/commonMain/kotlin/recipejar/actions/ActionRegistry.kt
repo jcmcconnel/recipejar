@@ -3,7 +3,7 @@ package recipejar.actions
 /**
  * Port of ActionRegistry.java to Kotlin for CMP.
  * Map based, string ids, require/find/ids.
- * No menu registry or clearPrefix in PR5 (no macros/dynamic yet).
+ * [clearPrefix] supports dynamic macro re-registration without restart (PR-7).
  * Follows original semantics as closely as possible.
  */
 class ActionRegistry {
@@ -30,7 +30,18 @@ class ActionRegistry {
         return actions.keys
     }
 
-    // For compatibility with original sanitize (used by macros later)
+    /**
+     * Remove all actions whose id starts with [prefix] (e.g. `"macro."`).
+     * Used when reloading macros after manager save/import.
+     */
+    fun clearPrefix(prefix: String) {
+        val toRemove = actions.keys.filter { it.startsWith(prefix) }
+        for (id in toRemove) {
+            actions.remove(id)
+        }
+    }
+
+    // For compatibility with original sanitize (used by macros)
     fun sanitizeId(name: String): String {
         val sb = StringBuilder()
         for (c in name) {

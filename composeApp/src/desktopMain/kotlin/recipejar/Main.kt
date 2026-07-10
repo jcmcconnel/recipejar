@@ -13,14 +13,22 @@ import kotlinx.coroutines.withContext
 import recipejar.actions.*
 import recipejar.domain.Recipe
 import recipejar.html.RecipeSerializer
+import recipejar.macro.MacroDefinition
+import recipejar.macro.MacroIo
+import recipejar.macro.MacroProcessor
+import recipejar.macro.MacroStore
 import recipejar.persistence.FileSystemRecipeRepository
+import java.awt.Color
 import java.io.File
+import javax.swing.JColorChooser
 import javax.swing.JFileChooser
+import javax.swing.JOptionPane
+import javax.swing.filechooser.FileNameExtensionFilter
 import javax.swing.filechooser.FileSystemView
 
 /**
  * Desktop entry: open a recipe repository directory, list via FileSystemRecipeRepository,
- * drive alpha-tab index + reader, and MenuBar from ActionRegistry (PR-5 merged for PR-6).
+ * drive alpha-tab index + reader, MenuBar from ActionRegistry, and PR-7 macro system.
  *
  * KCEF bootstrap enables compose-webview-multiplatform for file:// recipe HTML.
  * If init fails or is still in progress, App falls back to scrollable HTML text.
@@ -44,6 +52,9 @@ fun main() = application {
     val indexLoading = remember { mutableStateOf(false) }
     val isEditing = remember { mutableStateOf(false) }
     val statusMessage = remember { mutableStateOf<String?>(null) }
+    /** Loaded user macros for the current repository (JSON / legacy txt / defaults). */
+    val macros = remember { mutableStateOf<List<MacroDefinition>>(emptyList()) }
+    val showMacroManager = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val isRecipeOpen: () -> Boolean = { selectedFilename.value != null }
@@ -118,25 +129,127 @@ fun main() = application {
                 isEditing.value = false
                 statusMessage.value = null
                 recipes.value = emptyList()
+                macros.value = emptyList()
                 indexLoading.value = true
                 scope.launch {
                     try {
-                        val loaded = withContext(Dispatchers.IO) {
+                        val (loaded, macroLoad) = withContext(Dispatchers.IO) {
                             val repo = FileSystemRecipeRepository(path)
-                            loadRecipeIndex(repo)
+                            loadRecipeIndex(repo) to MacroStore.load(path)
                         }
                         if (selectedDir.value == path) {
                             recipes.value = loaded
+                            macros.value = macroLoad.macros
+                            if (macroLoad.note != null) {
+                                statusMessage.value = macroLoad.note
+                            }
                         }
                     } catch (_: Exception) {
                         if (selectedDir.value == path) {
                             recipes.value = emptyList()
+                            macros.value = MacroIo.DEFAULT_MACROS
                         }
                     } finally {
                         if (selectedDir.value == path) {
                             indexLoading.value = false
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply a macro template to the editor buffer.
+     *
+     * MVP (no caret/selection API on BasicTextField):
+     * - Templates with [SELECTION]: expand with the **whole buffer** as selection, replace buffer.
+     * - Templates without [SELECTION]: **append** expansion (insert-only; avoids wiping the recipe).
+     * - Cancelled INPUT/COLOR → no buffer mutation.
+     */
+    fun applyMacroToBuffer(macro: MacroDefinition) {
+        if (!isEditing.value) {
+            statusMessage.value = "Macros apply in edit mode (Recipe → Toggle Edit)"
+            return
+        }
+        val html = selectedHtml.value
+        if (html == null) {
+            statusMessage.value = "No recipe buffer open"
+            return
+        }
+        val usesSelection = MacroProcessor.containsSelectionPlaceholder(macro.text)
+        val result = MacroProcessor.applyMacro(
+            template = macro.text,
+            selection = if (usesSelection) html else "",
+            inputProvider = { prompt ->
+                JOptionPane.showInputDialog(null, prompt, macro.name, JOptionPane.QUESTION_MESSAGE)
+            },
+            colorProvider = { prompt ->
+                val c = JColorChooser.showDialog(null, prompt.ifBlank { "Select Color" }, Color.BLACK)
+                if (c == null) {
+                    null
+                } else {
+                    val r = c.red.toString(16).uppercase().padStart(2, '0')
+                    val g = c.green.toString(16).uppercase().padStart(2, '0')
+                    val b = c.blue.toString(16).uppercase().padStart(2, '0')
+                    "#$r$g$b"
+                }
+            },
+        )
+        if (result == null) {
+            statusMessage.value = "Macro cancelled: ${macro.name}"
+            return
+        }
+        selectedHtml.value = if (usesSelection) result else html + result
+        statusMessage.value = if (usesSelection) {
+            "Applied macro: ${macro.name} (full buffer as selection)"
+        } else {
+            "Applied macro: ${macro.name} (appended)"
+        }
+    }
+
+    /**
+     * @return parsed macros, or null if cancelled / unreadable (caller must not wipe list).
+     */
+    fun importMacrosTxtFile(): List<MacroDefinition>? {
+        val chooser = JFileChooser(
+            selectedDir.value?.let { File(it) }
+                ?: FileSystemView.getFileSystemView().homeDirectory,
+        )
+        chooser.dialogTitle = "Import macros.txt"
+        chooser.fileFilter = FileNameExtensionFilter("Macro text (*.txt)", "txt")
+        val result = chooser.showOpenDialog(null)
+        if (result != JFileChooser.APPROVE_OPTION) return null
+        val file = chooser.selectedFile ?: return null
+        return try {
+            MacroStore.importTxt(file.absolutePath)
+        } catch (_: Exception) {
+            statusMessage.value = "Macro import failed: could not read ${file.name}"
+            null
+        }
+    }
+
+    fun saveMacros(list: List<MacroDefinition>) {
+        val dir = selectedDir.value
+        if (dir == null) {
+            statusMessage.value = "Open a repository before saving macros"
+            return
+        }
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    MacroStore.save(dir, list)
+                }
+                // Repo may have switched while save was in flight — do not clobber new session.
+                if (selectedDir.value != dir) {
+                    return@launch
+                }
+                macros.value = list
+                showMacroManager.value = false
+                statusMessage.value = "Saved ${list.size} macro(s) to ${MacroIo.JSON_FILENAME}"
+            } catch (e: Exception) {
+                if (selectedDir.value == dir) {
+                    statusMessage.value = "Macro save failed: ${e.message}"
                 }
             }
         }
@@ -407,7 +520,21 @@ fun main() = application {
             reg.register(ActionIds.EDIT_COPY, Command(id = ActionIds.EDIT_COPY, title = "Copy", execute = { println("Copy stub") }, enabled = editEnabled))
             reg.register(ActionIds.EDIT_PASTE, Command(id = ActionIds.EDIT_PASTE, title = "Paste", execute = { println("Paste stub") }, enabled = editEnabled))
             reg.register(ActionIds.EDIT_SELECT_ALL, Command(id = ActionIds.EDIT_SELECT_ALL, title = "Select All", execute = { println("SelectAll stub") }, enabled = editEnabled))
-            reg.register(ActionIds.EDIT_MACROS, Command(id = ActionIds.EDIT_MACROS, title = "Macros", execute = { println("Macros stub") }))
+            reg.register(
+                ActionIds.EDIT_MACROS,
+                Command(
+                    id = ActionIds.EDIT_MACROS,
+                    title = "Manage Macros…",
+                    execute = {
+                        if (selectedDir.value == null) {
+                            statusMessage.value = "Open a repository to manage macros"
+                        } else {
+                            showMacroManager.value = true
+                        }
+                    },
+                    enabled = { selectedDir.value != null },
+                )
+            )
             reg.register(ActionIds.EDIT_FIND, Command(id = ActionIds.EDIT_FIND, title = "Find", execute = { println("Find stub") }, enabled = isOpen))
             reg.register(ActionIds.FIND_ALL, Command(id = ActionIds.FIND_ALL, title = "Find All", execute = { println("FindAll stub") }))
             reg.register(ActionIds.FIND_TITLES, Command(id = ActionIds.FIND_TITLES, title = "Find Titles", execute = { println("FindTitles stub") }))
@@ -416,6 +543,38 @@ fun main() = application {
             reg.register(ActionIds.FIND_INGREDIENTS, Command(id = ActionIds.FIND_INGREDIENTS, title = "Find Ingredients", execute = { println("FindIngredients stub") }))
             reg.register(ActionIds.FIND_PROCEDURES, Command(id = ActionIds.FIND_PROCEDURES, title = "Find Procedures", execute = { println("FindProcedures stub") }))
         }
+    }
+
+    /**
+     * Re-register dynamic macro.* commands when the list changes (reload without restart).
+     * Menu items read [macros] state directly; registry ids support future command-palette use.
+     */
+    fun registerMacroCommands(list: List<MacroDefinition>) {
+        registry.clearPrefix(ActionIds.MACRO_PREFIX)
+        for (macro in list) {
+            var base = registry.sanitizeId(macro.name).ifEmpty { "unnamed" }
+            var id = ActionIds.MACRO_PREFIX + base
+            var suffix = 2
+            while (registry.find(id) != null) {
+                id = ActionIds.MACRO_PREFIX + base + suffix
+                suffix++
+            }
+            val captured = macro
+            registry.register(
+                id,
+                Command(
+                    id = id,
+                    title = captured.name,
+                    execute = { applyMacroToBuffer(captured) },
+                    enabled = { isEditing.value && selectedHtml.value != null },
+                    mnemonic = captured.mnemonic?.firstOrNull(),
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(macros.value) {
+        registerMacroCommands(macros.value)
     }
 
     fun toKeyShortcut(combo: KeyCombo?): KeyShortcut? {
@@ -473,6 +632,23 @@ fun main() = application {
                 val fnd = registry.require(ActionIds.EDIT_FIND)
                 Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled())
             }
+            Menu("Macros", mnemonic = 'M') {
+                val macroList = macros.value
+                if (macroList.isEmpty()) {
+                    Item("(no macros — open a repository)", onClick = {}, enabled = false)
+                } else {
+                    macroList.forEach { macro ->
+                        Item(
+                            macro.name,
+                            onClick = { applyMacroToBuffer(macro) },
+                            enabled = isEditing.value && selectedHtml.value != null,
+                        )
+                    }
+                }
+                Separator()
+                val mgr = registry.require(ActionIds.EDIT_MACROS)
+                Item(mgr.title, onClick = { mgr.execute(ActionContext()) }, enabled = mgr.enabled())
+            }
         }
 
         // Dirty buffer: do not feed WebView a stale file:// URL; reader falls back to selectedHtml.
@@ -493,6 +669,15 @@ fun main() = application {
             onSelectRecipe = ::selectRecipe,
             onHtmlChange = { selectedHtml.value = it },
         )
+
+        if (showMacroManager.value) {
+            MacroManagerDialog(
+                initial = macros.value,
+                onSave = { list -> saveMacros(list) },
+                onDismiss = { showMacroManager.value = false },
+                onImportTxt = { importMacrosTxtFile() },
+            )
+        }
     }
 }
 
