@@ -52,7 +52,7 @@ fun App(
                 if (files.isEmpty()) {
                     Text("(no matching files or stub)")
                 } else {
-                    // Basic listing stub; PR2+ will integrate real repo/index
+                    // PR3: listed via repo.listRecipes()
                     Column(
                         modifier = Modifier
                             .verticalScroll(scrollState)

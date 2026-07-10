@@ -7,6 +7,7 @@ import androidx.compose.ui.input.key.KeyShortcut
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
 import recipejar.actions.*
+import recipejar.persistence.FileSystemRecipeRepository
 
 fun main() = application {
     val selectedDir = remember { mutableStateOf<String?>(null) }
@@ -33,10 +34,9 @@ fun main() = application {
                 currentRecipe.value = null
                 isRecipeOpen.value = false
                 isEditing.value = false
-                // Basic file listing stub for repo (html or all). Future: integrate real repo loader.
-                // TODO(PR2+): remember last dir (prefs), filter *.html only, error UX, start chooser at last path or repo default.
-                val listed = dir.listFiles()?.filter { it.isFile }?.map { it.name }?.sorted() ?: emptyList()
-                files.value = listed
+                // PR-3: list via FileSystemRecipeRepository (html recipes only)
+                val repo = FileSystemRecipeRepository(dir.absolutePath)
+                files.value = repo.listRecipes()
             }
         }
     }
