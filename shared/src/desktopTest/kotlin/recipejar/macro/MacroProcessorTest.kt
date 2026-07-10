@@ -1,7 +1,10 @@
 package recipejar.macro
 
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MacroProcessorTest {
@@ -67,6 +70,44 @@ class MacroProcessorTest {
         )
         assertEquals("[NOT_A_COMMAND]y", out)
     }
+
+    @Test
+    fun apply_input_cancel_returns_null() {
+        val out = MacroProcessor.applyMacro(
+            template = """<a href="[INPUT:Address]">[SELECTION]</a>""",
+            selection = "click",
+            inputProvider = { null },
+        )
+        assertNull(out)
+    }
+
+    @Test
+    fun apply_color_cancel_returns_null() {
+        val out = MacroProcessor.applyMacro(
+            template = """<span style="color: [COLOR];">[SELECTION]</span>""",
+            selection = "x",
+            colorProvider = { null },
+        )
+        assertNull(out)
+    }
+
+    @Test
+    fun apply_input_empty_string_is_valid() {
+        val out = MacroProcessor.applyMacro(
+            template = "[INPUT:x]",
+            selection = "",
+            inputProvider = { "" },
+        )
+        assertEquals("", out)
+    }
+
+    @Test
+    fun contains_selection_placeholder() {
+        assertTrue(MacroProcessor.containsSelectionPlaceholder("<b>[SELECTION]</b>"))
+        assertTrue(MacroProcessor.containsSelectionPlaceholder("[Selection]"))
+        assertFalse(MacroProcessor.containsSelectionPlaceholder("&deg;F"))
+        assertFalse(MacroProcessor.containsSelectionPlaceholder("[INPUT:x]"))
+    }
 }
 
 class MacroIoTest {
@@ -109,5 +150,52 @@ class MacroIoTest {
         val decoded = MacroIo.fromJson(encoded)
         assertEquals(1, decoded.size)
         assertEquals("Bold", decoded[0].name)
+    }
+}
+
+class MacroStoreTest {
+
+    private fun tempRepo(): File =
+        java.nio.file.Files.createTempDirectory("macro-store").toFile()
+
+    private fun File.deleteRecursivelyQuiet() {
+        listFiles()?.forEach { child ->
+            if (child.isDirectory) child.deleteRecursivelyQuiet() else child.delete()
+        }
+        delete()
+    }
+
+    @Test
+    fun load_corrupt_json_falls_through_to_txt() {
+        val dir = tempRepo()
+        try {
+            File(dir, MacroIo.JSON_FILENAME).writeText("{not valid json", Charsets.UTF_8)
+            File(dir, MacroIo.TXT_FILENAME).writeText(
+                "Bold, B, B,DEFAULT,<strong>[SELECTION]</strong>\n",
+                Charsets.UTF_8,
+            )
+            val result = MacroStore.load(dir.absolutePath)
+            assertEquals(1, result.macros.size)
+            assertEquals("Bold", result.macros[0].name)
+            assertTrue(result.note?.contains("invalid") == true, "note was: ${result.note}")
+        } finally {
+            dir.deleteRecursivelyQuiet()
+        }
+    }
+
+    @Test
+    fun load_corrupt_json_falls_through_to_defaults() {
+        val dir = tempRepo()
+        try {
+            File(dir, MacroIo.JSON_FILENAME).writeText("{not valid json", Charsets.UTF_8)
+            assertTrue(File(dir, MacroIo.JSON_FILENAME).isFile)
+            assertFalse(File(dir, MacroIo.TXT_FILENAME).exists())
+            val result = MacroStore.load(dir.absolutePath)
+            assertEquals(MacroIo.DEFAULT_MACROS.size, result.macros.size, "got ${result.macros} note=${result.note}")
+            assertEquals(MacroIo.DEFAULT_MACROS, result.macros)
+            assertTrue(result.note?.contains("defaults") == true, "note was: ${result.note}")
+        } finally {
+            dir.deleteRecursivelyQuiet()
+        }
     }
 }

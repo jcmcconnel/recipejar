@@ -4,8 +4,10 @@ package recipejar.macro
  * Port of MacroTextAction parse + apply (without Swing dependencies).
  *
  * Expands a macro [template] against a [selection] string. Callers supply
- * [inputProvider] / [colorProvider] for interactive placeholders; returning null
- * cancels that stroke (empty string is written).
+ * [inputProvider] / [colorProvider] for interactive placeholders.
+ *
+ * Returning **null** from a provider aborts the whole expansion: [applyMacro]
+ * returns null and the caller must not mutate the editor buffer.
  */
 object MacroProcessor {
 
@@ -18,27 +20,42 @@ object MacroProcessor {
     )
 
     /**
-     * Apply [template] replacing the editor selection with the expanded result.
-     * Returns the expanded string (caller replaces selection / whole buffer with it).
+     * Apply [template] producing the expanded replacement string.
+     *
+     * @return expanded text, or **null** if an interactive provider cancelled
+     *   (returned null for INPUT/COLOR). Empty string from a provider is a valid value.
      */
     fun applyMacro(
         template: String,
         selection: String,
         inputProvider: (prompt: String) -> String? = { null },
         colorProvider: (prompt: String) -> String? = { null },
-    ): String {
+    ): String? {
         val parts = parse(template)
         val out = StringBuilder()
         for (part in parts) {
             when (part.kind) {
                 StrokeKind.TEXT -> out.append(part.text)
                 StrokeKind.SELECTION -> out.append(selection)
-                StrokeKind.INPUT -> out.append(inputProvider(part.prompt) ?: "")
-                StrokeKind.COLOR -> out.append(colorProvider(part.prompt) ?: "#000000")
+                StrokeKind.INPUT -> {
+                    val value = inputProvider(part.prompt) ?: return null
+                    out.append(value)
+                }
+                StrokeKind.COLOR -> {
+                    val value = colorProvider(part.prompt) ?: return null
+                    out.append(value)
+                }
             }
         }
         return out.toString()
     }
+
+    /**
+     * True if [template] contains a [SELECTION] placeholder (any case).
+     * Used by full-buffer MVP to choose replace vs append.
+     */
+    fun containsSelectionPlaceholder(template: String): Boolean =
+        parse(template).any { it.kind == StrokeKind.SELECTION }
 
     /**
      * True if [token] is a recognized bracket command (case-insensitive).

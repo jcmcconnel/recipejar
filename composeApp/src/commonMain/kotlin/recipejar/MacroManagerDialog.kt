@@ -77,7 +77,9 @@ fun MacroManagerDialog(
             Column(Modifier.padding(16.dp).fillMaxSize()) {
                 Text("Macro Manager", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Templates support [SELECTION], [INPUT:prompt], [COLOR:prompt].",
+                    "Placeholders: [SELECTION], [INPUT:prompt], [COLOR:prompt]. " +
+                        "MVP: [SELECTION] is the whole HTML buffer (no caret selection yet); " +
+                        "templates without [SELECTION] append at the end.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -194,13 +196,21 @@ fun MacroManagerDialog(
                     if (onImportTxt != null) {
                         OutlinedButton(onClick = {
                             val imported = onImportTxt()
-                            if (imported != null) {
-                                macros = imported
-                                selectedIndex = if (imported.isEmpty()) -1 else 0
-                                val m = macros.getOrNull(selectedIndex)
-                                editName = m?.name.orEmpty()
-                                editText = m?.text.orEmpty()
-                                status = "Imported ${imported.size} macro(s) from macros.txt"
+                            when {
+                                imported == null -> {
+                                    // Cancelled or read error — leave list unchanged
+                                }
+                                imported.isEmpty() && macros.isNotEmpty() -> {
+                                    status = "Import produced 0 macros; list unchanged"
+                                }
+                                else -> {
+                                    macros = imported
+                                    selectedIndex = if (imported.isEmpty()) -1 else 0
+                                    val m = macros.getOrNull(selectedIndex)
+                                    editName = m?.name.orEmpty()
+                                    editText = m?.text.orEmpty()
+                                    status = "Imported ${imported.size} macro(s) from macros.txt"
+                                }
                             }
                         }) { Text("Import .txt") }
                     }

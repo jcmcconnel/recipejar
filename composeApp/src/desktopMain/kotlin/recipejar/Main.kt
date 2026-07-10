@@ -133,13 +133,16 @@ fun main() = application {
                 indexLoading.value = true
                 scope.launch {
                     try {
-                        val (loaded, loadedMacros) = withContext(Dispatchers.IO) {
+                        val (loaded, macroLoad) = withContext(Dispatchers.IO) {
                             val repo = FileSystemRecipeRepository(path)
                             loadRecipeIndex(repo) to MacroStore.load(path)
                         }
                         if (selectedDir.value == path) {
                             recipes.value = loaded
-                            macros.value = loadedMacros
+                            macros.value = macroLoad.macros
+                            if (macroLoad.note != null) {
+                                statusMessage.value = macroLoad.note
+                            }
                         }
                     } catch (_: Exception) {
                         if (selectedDir.value == path) {
@@ -158,7 +161,11 @@ fun main() = application {
 
     /**
      * Apply a macro template to the editor buffer.
-     * MVP: no caret/selection API on BasicTextField — [SELECTION] is the whole buffer.
+     *
+     * MVP (no caret/selection API on BasicTextField):
+     * - Templates with [SELECTION]: expand with the **whole buffer** as selection, replace buffer.
+     * - Templates without [SELECTION]: **append** expansion (insert-only; avoids wiping the recipe).
+     * - Cancelled INPUT/COLOR → no buffer mutation.
      */
     fun applyMacroToBuffer(macro: MacroDefinition) {
         if (!isEditing.value) {
@@ -170,9 +177,10 @@ fun main() = application {
             statusMessage.value = "No recipe buffer open"
             return
         }
+        val usesSelection = MacroProcessor.containsSelectionPlaceholder(macro.text)
         val result = MacroProcessor.applyMacro(
             template = macro.text,
-            selection = html,
+            selection = if (usesSelection) html else "",
             inputProvider = { prompt ->
                 JOptionPane.showInputDialog(null, prompt, macro.name, JOptionPane.QUESTION_MESSAGE)
             },
@@ -188,11 +196,21 @@ fun main() = application {
                 }
             },
         )
-        // Full-buffer replace: macro expansion becomes the new buffer (original wraps [SELECTION]).
-        selectedHtml.value = result
-        statusMessage.value = "Applied macro: ${macro.name}"
+        if (result == null) {
+            statusMessage.value = "Macro cancelled: ${macro.name}"
+            return
+        }
+        selectedHtml.value = if (usesSelection) result else html + result
+        statusMessage.value = if (usesSelection) {
+            "Applied macro: ${macro.name} (full buffer as selection)"
+        } else {
+            "Applied macro: ${macro.name} (appended)"
+        }
     }
 
+    /**
+     * @return parsed macros, or null if cancelled / unreadable (caller must not wipe list).
+     */
     fun importMacrosTxtFile(): List<MacroDefinition>? {
         val chooser = JFileChooser(
             selectedDir.value?.let { File(it) }
@@ -206,7 +224,8 @@ fun main() = application {
         return try {
             MacroStore.importTxt(file.absolutePath)
         } catch (_: Exception) {
-            emptyList()
+            statusMessage.value = "Macro import failed: could not read ${file.name}"
+            null
         }
     }
 
@@ -221,11 +240,17 @@ fun main() = application {
                 withContext(Dispatchers.IO) {
                     MacroStore.save(dir, list)
                 }
+                // Repo may have switched while save was in flight — do not clobber new session.
+                if (selectedDir.value != dir) {
+                    return@launch
+                }
                 macros.value = list
                 showMacroManager.value = false
                 statusMessage.value = "Saved ${list.size} macro(s) to ${MacroIo.JSON_FILENAME}"
             } catch (e: Exception) {
-                statusMessage.value = "Macro save failed: ${e.message}"
+                if (selectedDir.value == dir) {
+                    statusMessage.value = "Macro save failed: ${e.message}"
+                }
             }
         }
     }
