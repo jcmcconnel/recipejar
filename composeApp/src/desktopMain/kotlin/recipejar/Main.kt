@@ -33,8 +33,12 @@ import javax.swing.filechooser.FileSystemView
  *
  * KCEF bootstrap enables compose-webview-multiplatform for file:// recipe HTML.
  * If init fails or is still in progress, App falls back to scrollable HTML text.
+ *
+ * OS hooks ([Platform]): Cmd vs Ctrl shortcuts, reserved macOS accelerators, screen menu bar name.
  */
-fun main() = application {
+fun main() {
+    Platform.applyStartupProperties()
+    application {
     val selectedDir = remember { mutableStateOf<String?>(null) }
     val recipes = remember { mutableStateOf<List<RecipeListItem>>(emptyList()) }
     val selectedFilename = remember { mutableStateOf<String?>(null) }
@@ -525,7 +529,6 @@ fun main() = application {
 
     val registry = remember {
         ActionRegistry().also { reg ->
-            val isMac = System.getProperty("os.name").lowercase().contains("mac")
             val isOpen = isRecipeOpen
 
             reg.register(
@@ -534,7 +537,7 @@ fun main() = application {
                     id = ActionIds.FILE_NEW,
                     title = "New",
                     mnemonic = 'N',
-                    shortcut = KeyCombo('N', meta = isMac, ctrl = !isMac),
+                    shortcut = Platform.allowedShortcut(Platform.primaryShortcut('N')),
                     execute = { newRecipe() },
                     enabled = { selectedDir.value != null }
                 )
@@ -546,7 +549,7 @@ fun main() = application {
                     id = ActionIds.FILE_TOGGLE_EDIT,
                     title = "Toggle Edit",
                     mnemonic = 'O',
-                    shortcut = KeyCombo('O', meta = isMac, ctrl = !isMac),
+                    shortcut = Platform.allowedShortcut(Platform.primaryShortcut('O')),
                     execute = { isEditing.value = !isEditing.value },
                     enabled = isOpen
                 )
@@ -558,7 +561,7 @@ fun main() = application {
                     id = ActionIds.FILE_SAVE,
                     title = "Save",
                     mnemonic = 'S',
-                    shortcut = KeyCombo('S', meta = isMac, ctrl = !isMac),
+                    shortcut = Platform.allowedShortcut(Platform.primaryShortcut('S')),
                     execute = { saveCurrentRecipe() },
                     enabled = isOpen
                 )
@@ -624,17 +627,18 @@ fun main() = application {
                     id = ActionIds.FILE_PRINT,
                     title = "Print",
                     mnemonic = 'P',
-                    shortcut = KeyCombo('P', meta = isMac, ctrl = !isMac),
+                    shortcut = Platform.allowedShortcut(Platform.primaryShortcut('P')),
                     execute = { Debug.log("Print stub") },
                     enabled = { false }
                 )
             )
 
+            // On macOS, system Quit is Cmd+Q (reserved); keep in-app Exit without claiming Cmd+Q.
             reg.register(
                 ActionIds.FILE_EXIT,
                 Command(
                     id = ActionIds.FILE_EXIT,
-                    title = "Exit",
+                    title = if (Platform.isMac) "Quit RecipeJar" else "Exit",
                     mnemonic = 'X',
                     execute = { exitApplication() }
                 )
@@ -673,7 +677,7 @@ fun main() = application {
                     id = ActionIds.EDIT_FIND,
                     title = "Find…",
                     mnemonic = 'F',
-                    shortcut = KeyCombo('F', meta = isMac, ctrl = !isMac),
+                    shortcut = Platform.allowedShortcut(Platform.primaryShortcut('F')),
                     execute = { openSearch(setOf(SearchScope.TITLES, SearchScope.LABELS)) },
                     enabled = { selectedDir.value != null },
                 )
@@ -736,8 +740,25 @@ fun main() = application {
                 ActionIds.TOOLS_PREFERENCES,
                 Command(
                     id = ActionIds.TOOLS_PREFERENCES,
+                    // Do not bind Cmd+, (reserved on macOS); menu title only.
                     title = "Preferences…",
                     execute = { showPreferences.value = true },
+                )
+            )
+            reg.register(
+                ActionIds.HELP_ABOUT,
+                Command(
+                    id = ActionIds.HELP_ABOUT,
+                    title = "About RecipeJar",
+                    mnemonic = 'A',
+                    execute = {
+                        JOptionPane.showMessageDialog(
+                            null,
+                            Platform.APP_ABOUT,
+                            "About ${Platform.APP_NAME}",
+                            JOptionPane.INFORMATION_MESSAGE,
+                        )
+                    },
                 )
             )
         }
@@ -866,6 +887,10 @@ fun main() = application {
                 val pref = registry.require(ActionIds.TOOLS_PREFERENCES)
                 Item(pref.title, onClick = { pref.execute(ActionContext()) }, enabled = pref.enabled())
             }
+            Menu("Help", mnemonic = 'H') {
+                val about = registry.require(ActionIds.HELP_ABOUT)
+                Item(about.title, onClick = { about.execute(ActionContext()) }, enabled = about.enabled())
+            }
         }
 
         // Dirty buffer: do not feed WebView a stale file:// URL; reader falls back to selectedHtml.
@@ -957,6 +982,7 @@ fun main() = application {
                 onDismiss = { showPreferences.value = false },
             )
         }
+    }
     }
 }
 
