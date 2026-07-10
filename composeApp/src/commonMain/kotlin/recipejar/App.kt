@@ -67,6 +67,7 @@ fun App(
     restartRequired: Boolean = false,
     indexLoading: Boolean = false,
     isEditing: Boolean = false,
+    statusMessage: String? = null,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
     onHtmlChange: (String) -> Unit = {},
@@ -85,6 +86,15 @@ fun App(
         }
         if (countFor(selectedTabIndex) > 0) return@LaunchedEffect
         selectedTabIndex = (0..26).firstOrNull { countFor(it) > 0 } ?: 0
+    }
+
+    // After selection / title-rename save: jump alpha tab to the selected recipe's letter.
+    // Keyed only on selectedFilename so manual tab browsing is not forced back on index refresh.
+    LaunchedEffect(selectedFilename) {
+        if (selectedFilename == null || recipes.isEmpty()) return@LaunchedEffect
+        val item = recipes.find { it.filename == selectedFilename } ?: return@LaunchedEffect
+        val letter = letterBucket(item.title)
+        selectedTabIndex = if (letter == '0') 26 else (letter - 'A')
     }
 
     val selectedLetter: Char =
@@ -141,6 +151,19 @@ fun App(
                 ) {
                     Text(
                         "WebView installed — restart RecipeJar to enable rendered recipes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
+
+            if (statusMessage != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        statusMessage,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
@@ -386,6 +409,8 @@ fun RecipeReader(
         Spacer(Modifier.height(4.dp))
 
         // WebView path is provided as an optional composable from desktop when ready.
+        // When [selectedFileUrl] is null (dirty / unsaved buffer), prefer in-memory HTML so
+        // read mode does not show a stale last-saved file:// preview.
         // Common shell uses HTML text fallback; desktop Main can overlay WebView via
         // [RecipeHtmlWebView] expect/actual (desktop).
         if (webViewReady && !selectedFileUrl.isNullOrBlank()) {
@@ -397,12 +422,16 @@ fun RecipeReader(
             )
         } else if (selectedHtml != null) {
             val scroll = rememberScrollState()
-            if (!webViewReady) {
-                val banner = if (restartRequired) {
+            val banner = when {
+                !webViewReady && restartRequired ->
                     "Showing HTML source — restart RecipeJar after WebView install to enable rendered view."
-                } else {
+                !webViewReady ->
                     "Showing HTML source (WebView/KCEF not ready — CSS may not apply)."
-                }
+                selectedFileUrl.isNullOrBlank() ->
+                    "Showing unsaved buffer (save to refresh rendered WebView preview)."
+                else -> null
+            }
+            if (banner != null) {
                 Text(
                     banner,
                     style = MaterialTheme.typography.labelSmall,

@@ -31,13 +31,25 @@ fun main() = application {
     val selectedFilename = remember { mutableStateOf<String?>(null) }
     val selectedHtml = remember { mutableStateOf<String?>(null) }
     val selectedFileUrl = remember { mutableStateOf<String?>(null) }
+    /** Last HTML loaded/saved from disk; used for dirty detection (WebView vs buffer). */
+    val lastDiskHtml = remember { mutableStateOf<String?>(null) }
+    /**
+     * True after File→New until first successful save.
+     * Ensures [originalFilename] is always null so we never rename/hijack an existing file
+     * (e.g. a prior on-disk Untitled.html).
+     */
+    val isUnsavedNew = remember { mutableStateOf(false) }
     val webViewReady = remember { mutableStateOf(false) }
     val restartRequired = remember { mutableStateOf(false) }
     val indexLoading = remember { mutableStateOf(false) }
     val isEditing = remember { mutableStateOf(false) }
+    val statusMessage = remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     val isRecipeOpen: () -> Boolean = { selectedFilename.value != null }
+    fun isDirtyBuffer(): Boolean =
+        isUnsavedNew.value ||
+            (selectedHtml.value != null && selectedHtml.value != lastDiskHtml.value)
 
     fun setWebViewReadyOnMain(ready: Boolean) {
         scope.launch(Dispatchers.Main.immediate) {
@@ -101,7 +113,10 @@ fun main() = application {
                 selectedFilename.value = null
                 selectedHtml.value = null
                 selectedFileUrl.value = null
+                lastDiskHtml.value = null
+                isUnsavedNew.value = false
                 isEditing.value = false
+                statusMessage.value = null
                 recipes.value = emptyList()
                 indexLoading.value = true
                 scope.launch {
@@ -131,14 +146,18 @@ fun main() = application {
         val dir = selectedDir.value ?: return
         selectedFilename.value = filename
         isEditing.value = false
+        isUnsavedNew.value = false
+        statusMessage.value = null
         val file = File(dir, filename)
         if (!file.isFile) {
             selectedFileUrl.value = null
             selectedHtml.value = null
+            lastDiskHtml.value = null
             return
         }
         selectedFileUrl.value = file.toURI().toString()
         selectedHtml.value = null
+        lastDiskHtml.value = null
         scope.launch {
             val html = withContext(Dispatchers.IO) {
                 try {
@@ -151,53 +170,30 @@ fun main() = application {
             if (html == null) {
                 selectedFileUrl.value = null
                 selectedHtml.value = null
+                lastDiskHtml.value = null
             } else {
                 selectedHtml.value = html
-            }
-        }
-    }
-
-    fun refreshIndexAndSelect(dir: String, filename: String) {
-        scope.launch {
-            val loaded = withContext(Dispatchers.IO) {
-                try {
-                    loadRecipeIndex(FileSystemRecipeRepository(dir))
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
-            if (selectedDir.value != dir) return@launch
-            recipes.value = loaded
-            selectedFilename.value = filename
-            val file = File(dir, filename)
-            if (file.isFile) {
-                selectedFileUrl.value = file.toURI().toString()
-                val html = withContext(Dispatchers.IO) {
-                    try {
-                        file.readText(Charsets.UTF_8)
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-                if (selectedDir.value == dir && selectedFilename.value == filename) {
-                    selectedHtml.value = html
-                }
+                lastDiskHtml.value = html
             }
         }
     }
 
     /**
      * Persist editor buffer via [FileSystemRecipeRepository].
-     * Parses HTML (full document preferred), serializes with browser-footer, renames on title change.
+     * Parses HTML, serializes with browser-footer; renames only when bound to an existing on-disk file
+     * (never for File→New until after first successful save clears [isUnsavedNew]).
      */
     fun saveCurrentRecipe() {
         val dir = selectedDir.value ?: return
         val filename = selectedFilename.value ?: return
         val html = selectedHtml.value ?: return
         if (html.isBlank()) {
-            println("Save: empty buffer")
+            statusMessage.value = "Save: empty buffer"
             return
         }
+        // Capture at start for in-flight navigation checks
+        val saveTargetFilename = filename
+        val wasUnsavedNew = isUnsavedNew.value
         scope.launch {
             try {
                 val savedName = withContext(Dispatchers.IO) {
@@ -206,35 +202,87 @@ fun main() = application {
                     if (recipe.title.isBlank()) {
                         recipe.title = stripHtmlExtension(filename).ifBlank { "Untitled" }
                     }
-                    // Title-rename support: pass existing on-disk name when present
-                    val original = filename.takeIf { File(dir, it).isFile }
+                    // New buffers never pass originalFilename (avoid hijacking existing Untitled.html).
+                    // Existing recipes pass on-disk name for title-rename support.
+                    val original = if (wasUnsavedNew) {
+                        null
+                    } else {
+                        filename.takeIf { File(dir, it).isFile }
+                    }
                     repo.saveRecipe(recipe, originalFilename = original)
                     repo.filenameFor(recipe)
                 }
                 if (selectedDir.value != dir) return@launch
-                refreshIndexAndSelect(dir, savedName)
+
+                // Always refresh catalog in this same coroutine (no nested launch).
+                val loaded = withContext(Dispatchers.IO) {
+                    try {
+                        loadRecipeIndex(FileSystemRecipeRepository(dir))
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                }
+                if (selectedDir.value != dir) return@launch
+                recipes.value = loaded
+
+                // Only reselect/reload if user is still on the document that was saved.
+                // (Selecting another recipe or File→New while save was in flight must not clobber.)
+                if (selectedFilename.value != saveTargetFilename) {
+                    statusMessage.value = "Saved $savedName"
+                    return@launch
+                }
+
+                isUnsavedNew.value = false
+                selectedFilename.value = savedName
+                val file = File(dir, savedName)
+                if (file.isFile) {
+                    selectedFileUrl.value = file.toURI().toString()
+                    val diskHtml = withContext(Dispatchers.IO) {
+                        try {
+                            file.readText(Charsets.UTF_8)
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    if (selectedDir.value == dir && selectedFilename.value == savedName) {
+                        if (diskHtml != null) {
+                            selectedHtml.value = diskHtml
+                            lastDiskHtml.value = diskHtml
+                            statusMessage.value = "Saved $savedName"
+                        } else {
+                            selectedFileUrl.value = null
+                            selectedHtml.value = null
+                            lastDiskHtml.value = null
+                            statusMessage.value = "Saved $savedName but could not re-read file"
+                        }
+                    }
+                } else {
+                    selectedFileUrl.value = null
+                    selectedHtml.value = null
+                    lastDiskHtml.value = null
+                    statusMessage.value = "Saved as $savedName but file is missing"
+                }
             } catch (e: Exception) {
-                println("Save failed: ${e.message}")
+                statusMessage.value = "Save failed: ${e.message}"
             }
         }
     }
 
     fun newRecipe() {
-        val dir = selectedDir.value
         val recipe = Recipe(
             title = "Untitled",
             notes = "A little about this recipe,<br/>\nwhere I got it why I like it, etc.<br/>\nMakes 1 serving.",
             procedure = "",
         )
         val html = RecipeSerializer.serialize(recipe, "browser-footer")
+        // Provisional display name only; isUnsavedNew forces originalFilename=null on first save.
         selectedFilename.value = "Untitled.html"
         selectedHtml.value = html
         selectedFileUrl.value = null
+        lastDiskHtml.value = null
+        isUnsavedNew.value = true
         isEditing.value = true
-        // Optional: no disk write until Save; dir may still be null (enabled only when open later)
-        if (dir == null) {
-            println("New: no repository open — buffer only until Open repository + Save")
-        }
+        statusMessage.value = "New recipe (unsaved)"
     }
 
     val registry = remember {
@@ -290,6 +338,8 @@ fun main() = application {
                         selectedFilename.value = null
                         selectedHtml.value = null
                         selectedFileUrl.value = null
+                        lastDiskHtml.value = null
+                        isUnsavedNew.value = false
                         isEditing.value = false
                     },
                     enabled = isOpen
@@ -425,16 +475,20 @@ fun main() = application {
             }
         }
 
+        // Dirty buffer: do not feed WebView a stale file:// URL; reader falls back to selectedHtml.
+        val readerFileUrl = if (isDirtyBuffer()) null else selectedFileUrl.value
+
         App(
             selectedDir = selectedDir.value,
             recipes = recipes.value,
             selectedFilename = selectedFilename.value,
-            selectedFileUrl = selectedFileUrl.value,
+            selectedFileUrl = readerFileUrl,
             selectedHtml = selectedHtml.value,
             webViewReady = webViewReady.value,
             restartRequired = restartRequired.value,
             indexLoading = indexLoading.value,
             isEditing = isEditing.value,
+            statusMessage = statusMessage.value,
             onOpenRepo = ::pickDirectory,
             onSelectRecipe = ::selectRecipe,
             onHtmlChange = { selectedHtml.value = it },
