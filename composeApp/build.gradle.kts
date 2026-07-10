@@ -26,7 +26,8 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation("io.github.kevinnzou:compose-webview-multiplatform:${project.property("webview.version")}")
+                // api: desktop Main needs KCEF types for WebView bootstrap
+                api("io.github.kevinnzou:compose-webview-multiplatform:${project.property("webview.version")}")
                 implementation("com.squareup.okio:okio:${project.property("okio.version")}")
             }
         }
@@ -41,6 +42,18 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RecipeJar"
             packageVersion = "1.0.0"
+        }
+    }
+}
+
+// KCEF / JCEF requires these opens (see compose-webview-multiplatform README.desktop.md)
+afterEvaluate {
+    tasks.withType<JavaExec>().configureEach {
+        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
+        if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
         }
     }
 }
