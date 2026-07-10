@@ -18,6 +18,7 @@ import recipejar.macro.MacroIo
 import recipejar.macro.MacroProcessor
 import recipejar.macro.MacroStore
 import recipejar.persistence.FileSystemRecipeRepository
+import recipejar.search.SearchScope
 import java.awt.Color
 import java.io.File
 import javax.swing.JColorChooser
@@ -121,16 +122,19 @@ fun main() = application {
     }
 
     /**
-     * Load repository at [path]: catalog, macros, prefs; optionally re-select [restoreRecipe].
+     * Load repository at [path]: catalog, macros, prefs.
+     *
+     * When [restoreLastRecipe] is true, re-selects [AppPrefs.lastRecipeFor] for this absolute
+     * path only (launch restore). When false (picker / prefs switch), opens with no selection
+     * and leaves the scoped last-recipe key intact for a future restore.
      */
-    fun openRepository(path: String, restoreRecipe: String? = AppPrefs.lastRecipeFilename) {
-        val dir = File(path)
-        if (!dir.isDirectory) {
+    fun openRepository(path: String, restoreLastRecipe: Boolean = true) {
+        val abs = AppPrefs.normalizeRepoPath(path)
+        if (abs == null) {
             Debug.error("Not a directory: $path")
             statusMessage.value = "Not a directory: $path"
             return
         }
-        val abs = dir.absolutePath
         selectedDir.value = abs
         selectedFilename.value = null
         selectedHtml.value = null
@@ -142,8 +146,10 @@ fun main() = application {
         recipes.value = emptyList()
         macros.value = emptyList()
         indexLoading.value = true
+        // Only persist a validated absolute directory (never a bad typed path).
         AppPrefs.lastRepoPath = abs
         Debug.log("Opening repository: $abs")
+        val want = if (restoreLastRecipe) AppPrefs.lastRecipeFor(abs) else null
         scope.launch {
             try {
                 val (loaded, macroLoad) = withContext(Dispatchers.IO) {
@@ -156,7 +162,6 @@ fun main() = application {
                 if (macroLoad.note != null) {
                     statusMessage.value = macroLoad.note
                 }
-                val want = restoreRecipe
                 if (want != null && loaded.any { it.filename == want }) {
                     // Inline restore (selectRecipe is defined below; avoid forward-ref).
                     selectedFilename.value = want
@@ -177,10 +182,18 @@ fun main() = application {
                             lastDiskHtml.value = html
                             if (html == null) {
                                 selectedFileUrl.value = null
+                            } else {
+                                AppPrefs.setLastRecipe(abs, want)
                             }
                         }
+                    } else {
+                        AppPrefs.setLastRecipe(abs, null)
                     }
+                } else if (want != null) {
+                    // Stale scoped filename for this repo only — do not touch other repos.
+                    AppPrefs.setLastRecipe(abs, null)
                 }
+                // restoreLastRecipe == false: do not clear scoped last for this path
             } catch (e: Exception) {
                 Debug.error("Failed to load repository: $abs", e)
                 if (selectedDir.value == abs) {
@@ -197,8 +210,7 @@ fun main() = application {
     }
 
     fun pickDirectory() {
-        val start = AppPrefs.lastRepoPath
-            ?.takeIf { File(it).isDirectory }
+        val start = AppPrefs.normalizeRepoPath(AppPrefs.lastRepoPath)
             ?.let { File(it) }
             ?: FileSystemView.getFileSystemView().homeDirectory
         val chooser = JFileChooser(start)
@@ -208,16 +220,17 @@ fun main() = application {
         if (result == JFileChooser.APPROVE_OPTION) {
             val dir = chooser.selectedFile
             if (dir != null && dir.isDirectory) {
-                openRepository(dir.absolutePath, restoreRecipe = null)
+                // Explicit open: no auto-select this session (scoped last kept for later)
+                openRepository(dir.absolutePath, restoreLastRecipe = false)
             }
         }
     }
 
-    // Restore last repository on launch (optional last recipe re-selected inside openRepository).
+    // Restore last repository on launch (scoped last recipe re-selected inside openRepository).
     LaunchedEffect(Unit) {
-        val last = AppPrefs.lastRepoPath
-        if (AppPrefs.isValidRepoPath(last)) {
-            openRepository(last!!)
+        val last = AppPrefs.normalizeRepoPath(AppPrefs.lastRepoPath)
+        if (last != null) {
+            openRepository(last, restoreLastRecipe = true)
         }
     }
 
@@ -323,7 +336,6 @@ fun main() = application {
         isEditing.value = false
         isUnsavedNew.value = false
         statusMessage.value = null
-        AppPrefs.lastRecipeFilename = filename
         val file = File(dir, filename)
         if (!file.isFile) {
             selectedFileUrl.value = null
@@ -332,6 +344,8 @@ fun main() = application {
             Debug.error("Recipe file missing: $filename")
             return
         }
+        // Persist last recipe only after a successful bind to an on-disk file in this repo.
+        AppPrefs.setLastRecipe(dir, filename)
         selectedFileUrl.value = file.toURI().toString()
         selectedHtml.value = null
         lastDiskHtml.value = null
@@ -453,7 +467,7 @@ fun main() = application {
 
                 isUnsavedNew.value = false
                 selectedFilename.value = savedName
-                AppPrefs.lastRecipeFilename = savedName
+                AppPrefs.setLastRecipe(dir, savedName)
                 val file = File(dir, savedName)
                 if (file.isFile) {
                     selectedFileUrl.value = file.toURI().toString()
@@ -887,8 +901,8 @@ fun main() = application {
                 recipes = recipes.value,
                 initialScopes = searchScopes.value,
                 fieldTextProvider = {
-                    // May hit disk; dialog only calls when non-title scopes are active.
-                    buildSearchFieldText()
+                    // Disk + parse off the UI thread; dialog shows "Indexing…".
+                    withContext(Dispatchers.IO) { buildSearchFieldText() }
                 },
                 onSelect = { filename -> selectRecipe(filename) },
                 onDismiss = { showSearch.value = false },
@@ -900,36 +914,45 @@ fun main() = application {
                 initialRepoPath = selectedDir.value ?: AppPrefs.lastRepoPath.orEmpty(),
                 initialAuthorName = AppPrefs.authorName,
                 onBrowseRepo = {
-                    val start = (selectedDir.value ?: AppPrefs.lastRepoPath)
-                        ?.takeIf { File(it).isDirectory }
+                    val start = AppPrefs.normalizeRepoPath(selectedDir.value ?: AppPrefs.lastRepoPath)
                         ?.let { File(it) }
                         ?: FileSystemView.getFileSystemView().homeDirectory
                     val chooser = JFileChooser(start)
                     chooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
                     chooser.dialogTitle = "Recipe repository"
                     if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                        chooser.selectedFile?.takeIf { it.isDirectory }?.absolutePath
+                        chooser.selectedFile?.let { AppPrefs.normalizeRepoPath(it.absolutePath) }
                     } else {
                         null
                     }
                 },
                 onSave = { path, author ->
                     AppPrefs.authorName = author
-                    if (path.isNotBlank()) {
-                        AppPrefs.lastRepoPath = path
-                        if (selectedDir.value != path && File(path).isDirectory) {
-                            openRepository(path, restoreRecipe = null)
-                        } else if (!File(path).isDirectory) {
-                            statusMessage.value = "Preferences saved; path not found: $path"
-                            Debug.log("Prefs path missing: $path")
-                        } else {
-                            statusMessage.value = "Preferences saved"
+                    when {
+                        path.isBlank() -> {
+                            // Intentional: forget last repo without closing the open session.
+                            AppPrefs.lastRepoPath = null
+                            statusMessage.value = "Preferences saved (last repository cleared)"
+                            Debug.log("Preferences saved; lastRepoPath cleared")
+                            null
                         }
-                    } else {
-                        statusMessage.value = "Preferences saved"
+                        else -> {
+                            val abs = AppPrefs.normalizeRepoPath(path)
+                            if (abs == null) {
+                                // Do not clobber a good lastRepoPath with an invalid path.
+                                Debug.log("Prefs path invalid (not persisted): $path")
+                                "Not a directory: $path"
+                            } else {
+                                AppPrefs.lastRepoPath = abs
+                                if (selectedDir.value != abs) {
+                                    openRepository(abs, restoreLastRecipe = false)
+                                }
+                                statusMessage.value = "Preferences saved"
+                                Debug.log("Preferences saved (repo=$abs, author=${author.isNotBlank()})")
+                                null
+                            }
+                        }
                     }
-                    showPreferences.value = false
-                    Debug.log("Preferences saved (author=${author.isNotBlank()})")
                 },
                 onDismiss = { showPreferences.value = false },
             )

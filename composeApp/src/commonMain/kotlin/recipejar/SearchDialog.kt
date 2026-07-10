@@ -15,86 +15,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.launch
+import recipejar.search.SearchCatalogEntry
+import recipejar.search.SearchResult
+import recipejar.search.SearchScope
+import recipejar.search.filterRecipesByQuery
 
 /**
- * Which recipe fields participate in a search.
- * Basic scope: titles + labels (plan PR-8). Notes/ingredients/procedure optional extras.
- */
-enum class SearchScope {
-    TITLES,
-    LABELS,
-    NOTES,
-    INGREDIENTS,
-    PROCEDURE,
-}
-
-/**
- * One hit from [filterRecipesByQuery].
- */
-data class SearchResult(
-    val filename: String,
-    val title: String,
-    val matchHint: String,
-)
-
-/**
- * Substring (case-insensitive) filter over catalog + optional field text.
- *
- * [fieldText] maps filename → combined searchable text for labels/notes/etc.
- * Title always comes from [recipes].
- */
-fun filterRecipesByQuery(
-    recipes: List<RecipeListItem>,
-    query: String,
-    scopes: Set<SearchScope>,
-    fieldText: Map<String, Map<SearchScope, String>> = emptyMap(),
-): List<SearchResult> {
-    val q = query.trim()
-    if (q.isEmpty() || scopes.isEmpty()) return emptyList()
-    val needle = q.lowercase()
-    val results = mutableListOf<SearchResult>()
-    for (item in recipes) {
-        val hints = mutableListOf<String>()
-        if (SearchScope.TITLES in scopes) {
-            val t = item.title.ifBlank { item.filename }
-            if (t.lowercase().contains(needle) || item.filename.lowercase().contains(needle)) {
-                hints.add("title")
-            }
-        }
-        val fields = fieldText[item.filename]
-        if (fields != null) {
-            for (scope in scopes) {
-                if (scope == SearchScope.TITLES) continue
-                val text = fields[scope] ?: continue
-                if (text.lowercase().contains(needle)) {
-                    hints.add(scope.name.lowercase())
-                }
-            }
-        }
-        if (hints.isNotEmpty()) {
-            results.add(
-                SearchResult(
-                    filename = item.filename,
-                    title = item.title.ifBlank { item.filename },
-                    matchHint = hints.distinct().joinToString(", "),
-                ),
-            )
-        }
-    }
-    return results.sortedBy { titleSortKey(it.title) }
-}
-
-/**
- * Search dialog: query + scope checkboxes + clickable results.
+ * Search dialog: query + scope chips + clickable results.
  *
  * [initialScopes] pre-selects fields (e.g. Find Titles → titles only).
- * [fieldTextProvider] supplies non-title field text keyed by filename (called once when searching).
+ * [fieldTextProvider] may hit disk; invoked on a background-friendly coroutine when
+ * non-title scopes are active (host should use Dispatchers.IO).
  */
 @Composable
 fun SearchDialog(
     recipes: List<RecipeListItem>,
     initialScopes: Set<SearchScope> = setOf(SearchScope.TITLES, SearchScope.LABELS),
-    fieldTextProvider: () -> Map<String, Map<SearchScope, String>>,
+    fieldTextProvider: suspend () -> Map<String, Map<SearchScope, String>>,
     onSelect: (filename: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -106,7 +44,9 @@ fun SearchDialog(
     var inProcedure by remember { mutableStateOf(SearchScope.PROCEDURE in initialScopes) }
     var results by remember { mutableStateOf<List<SearchResult>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
+    var indexing by remember { mutableStateOf(false) }
     var fieldCache by remember { mutableStateOf<Map<String, Map<SearchScope, String>>?>(null) }
+    val scope = rememberCoroutineScope()
 
     fun currentScopes(): Set<SearchScope> = buildSet {
         if (inTitles) add(SearchScope.TITLES)
@@ -129,13 +69,26 @@ fun SearchDialog(
             return
         }
         val needsFields = scopes.any { it != SearchScope.TITLES }
-        val fields = if (needsFields) {
-            fieldCache ?: fieldTextProvider().also { fieldCache = it }
-        } else {
-            emptyMap()
+        val catalog = recipes.map { SearchCatalogEntry(it.filename, it.title) }
+        val q = query
+        scope.launch {
+            val fields = if (needsFields) {
+                fieldCache ?: run {
+                    indexing = true
+                    status = "Indexing…"
+                    try {
+                        fieldTextProvider().also { fieldCache = it }
+                    } finally {
+                        indexing = false
+                    }
+                }
+            } else {
+                emptyMap()
+            }
+            val hits = filterRecipesByQuery(catalog, q, scopes, fields)
+            results = hits
+            status = "${hits.size} match(es)"
         }
-        results = filterRecipesByQuery(recipes, query, scopes, fields)
-        status = "${results.size} match(es)"
     }
 
     Dialog(
@@ -158,9 +111,10 @@ fun SearchDialog(
                     onValueChange = { query = it },
                     label = { Text("Find") },
                     singleLine = true,
+                    enabled = !indexing,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { runSearch() }),
+                    keyboardActions = KeyboardActions(onSearch = { if (!indexing) runSearch() }),
                 )
                 Spacer(Modifier.height(8.dp))
                 Text("Search in:", style = MaterialTheme.typography.labelMedium)
@@ -195,7 +149,9 @@ fun SearchDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Button(onClick = { runSearch() }) { Text("Search") }
+                    Button(onClick = { runSearch() }, enabled = !indexing) {
+                        Text(if (indexing) "…" else "Search")
+                    }
                     if (status != null) {
                         Text(status!!, style = MaterialTheme.typography.bodySmall)
                     }
@@ -205,7 +161,11 @@ fun SearchDialog(
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 if (results.isEmpty()) {
                     Text(
-                        if (status == null) "Enter a term and press Search" else "(no matches)",
+                        when {
+                            indexing -> "Indexing recipes…"
+                            status == null -> "Enter a term and press Search"
+                            else -> "(no matches)"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),

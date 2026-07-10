@@ -35,7 +35,7 @@ From the repository root:
 3. Choose the **`Test/Recipes`** directory in this repo (absolute path, e.g. `…/Test/Recipes`).
 4. Recipes appear in the A–Z index; select one to read (WebView when KCEF is ready, else HTML source).
 
-The last repository path (and optional last recipe / author name) is stored in Java user preferences (`recipejar` node) and restored on the next launch.
+The last repository path (absolute), last recipe **per repository**, and optional author name are stored in Java user preferences (`recipejar` node) and restored on the next launch. Only valid directories are remembered; a blank path in Preferences clears the last-repo key without closing the open session.
 
 ### Search & preferences
 

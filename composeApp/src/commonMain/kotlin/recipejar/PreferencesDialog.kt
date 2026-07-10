@@ -13,14 +13,18 @@ import androidx.compose.ui.window.DialogProperties
  * Basic preferences: last repository path + optional author name for recipe meta.
  *
  * [onBrowseRepo] should open a directory picker and return the chosen path (or null).
- * [onSave] receives the committed values; host persists and may reopen the repo.
+ * [onSave] receives committed values and returns an error message to keep the dialog open,
+ * or null when save succeeded (dialog closes).
+ *
+ * Blank repository path is intentional: host should clear the remembered last-repo key
+ * without necessarily closing an already-open session.
  */
 @Composable
 fun PreferencesDialog(
     initialRepoPath: String,
     initialAuthorName: String,
     onBrowseRepo: () -> String?,
-    onSave: (repoPath: String, authorName: String) -> Unit,
+    onSave: (repoPath: String, authorName: String) -> String?,
     onDismiss: () -> Unit,
 ) {
     var repoPath by remember { mutableStateOf(initialRepoPath) }
@@ -42,7 +46,8 @@ fun PreferencesDialog(
                 Text("Preferences", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Repository path is remembered across launches. " +
+                    "Repository path is remembered across launches (absolute path). " +
+                        "Leave blank and Save to forget the last repository. " +
                         "Author is written into recipe meta on save when set.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -56,6 +61,7 @@ fun PreferencesDialog(
                     },
                     label = { Text("Recipe repository path") },
                     singleLine = true,
+                    isError = error != null,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
@@ -99,12 +105,12 @@ fun PreferencesDialog(
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(
                         onClick = {
-                            val path = repoPath.trim()
-                            if (path.isNotEmpty() && !pathLooksLikeDirectory(path)) {
-                                // Soft check only — host validates existence on open.
-                                error = null
+                            val msg = onSave(repoPath.trim(), authorName.trim())
+                            if (msg != null) {
+                                error = msg
+                            } else {
+                                onDismiss()
                             }
-                            onSave(path, authorName.trim())
                         },
                     ) {
                         Text("Save")
@@ -114,7 +120,3 @@ fun PreferencesDialog(
         }
     }
 }
-
-/** Minimal path-shape check (common code; full FS check is desktop-side). */
-private fun pathLooksLikeDirectory(path: String): Boolean =
-    path.isNotBlank() && !path.contains('\u0000')
