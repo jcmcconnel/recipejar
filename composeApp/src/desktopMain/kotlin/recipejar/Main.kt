@@ -99,13 +99,22 @@ fun main() = application {
                 recipes.value = emptyList()
                 indexLoading.value = true
                 scope.launch {
-                    val loaded = withContext(Dispatchers.IO) {
-                        val repo = FileSystemRecipeRepository(path)
-                        loadRecipeIndex(repo)
-                    }
-                    if (selectedDir.value == path) {
-                        recipes.value = loaded
-                        indexLoading.value = false
+                    try {
+                        val loaded = withContext(Dispatchers.IO) {
+                            val repo = FileSystemRecipeRepository(path)
+                            loadRecipeIndex(repo)
+                        }
+                        if (selectedDir.value == path) {
+                            recipes.value = loaded
+                        }
+                    } catch (_: Exception) {
+                        if (selectedDir.value == path) {
+                            recipes.value = emptyList()
+                        }
+                    } finally {
+                        if (selectedDir.value == path) {
+                            indexLoading.value = false
+                        }
                     }
                 }
             }
@@ -116,17 +125,30 @@ fun main() = application {
         val dir = selectedDir.value ?: return
         selectedFilename.value = filename
         val file = File(dir, filename)
-        if (file.isFile) {
-            selectedFileUrl.value = file.toURI().toString()
-            selectedHtml.value = try {
-                file.readText(Charsets.UTF_8)
-            } catch (_: Exception) {
-                selectedFileUrl.value = null
-                null
-            }
-        } else {
+        if (!file.isFile) {
             selectedFileUrl.value = null
             selectedHtml.value = null
+            return
+        }
+        // URL is cheap (path only); set immediately so WebView can navigate without waiting.
+        selectedFileUrl.value = file.toURI().toString()
+        selectedHtml.value = null
+        // Full HTML read off the UI thread (large files would hitch select otherwise).
+        scope.launch {
+            val html = withContext(Dispatchers.IO) {
+                try {
+                    file.readText(Charsets.UTF_8)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            if (selectedFilename.value != filename || selectedDir.value != dir) return@launch
+            if (html == null) {
+                selectedFileUrl.value = null
+                selectedHtml.value = null
+            } else {
+                selectedHtml.value = html
+            }
         }
     }
 
