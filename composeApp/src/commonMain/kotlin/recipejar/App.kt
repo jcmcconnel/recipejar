@@ -61,6 +61,7 @@ fun App(
     webViewReady: Boolean,
     restartRequired: Boolean = false,
     indexLoading: Boolean = false,
+    isEditing: Boolean = false,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
 ) {
@@ -118,6 +119,12 @@ fun App(
                         if (indexLoading) "Loading…" else "${recipes.size} recipes",
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    if (selectedFilename != null) {
+                        Text(
+                            if (isEditing) "[editing]" else "[read]",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
                 }
             }
 
