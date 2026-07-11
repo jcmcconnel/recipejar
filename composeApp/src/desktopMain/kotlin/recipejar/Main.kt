@@ -2,7 +2,12 @@ package recipejar
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.KeyShortcut
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -29,13 +34,23 @@ import javax.swing.filechooser.FileSystemView
 
 /**
  * Desktop entry: open a recipe repository directory, list via FileSystemRecipeRepository,
- * drive alpha-tab index + reader, MenuBar from ActionRegistry, macros, search, and prefs.
+ * drive Rolodex-edge alpha index + reader, menus from ActionRegistry, macros, search, prefs.
+ *
+ * **Menus (hybrid):** native Compose [MenuBar] on macOS (screen menu bar); Material in-window
+ * menus on Windows/Linux so chrome matches Material3 content.
  *
  * KCEF bootstrap enables compose-webview-multiplatform for file:// recipe HTML.
- * If init fails or is still in progress, App falls back to scrollable HTML text.
+ * Install/cache live under `~/.cache/recipejar/` (stable, not CWD). If init fails or is still
+ * in progress, App falls back to scrollable HTML text with a status banner.
  *
  * OS hooks ([Platform]): Cmd vs Ctrl shortcuts, reserved macOS accelerators, screen menu bar name.
  */
+
+/** Stable KCEF install/cache root (avoids CWD drift between Gradle run and packaged app). */
+private fun kcefDataRoot(): File {
+    val home = System.getProperty("user.home") ?: "."
+    return File(home, ".cache/recipejar").also { it.mkdirs() }
+}
 fun main() {
     Platform.applyStartupProperties()
     application {
@@ -54,9 +69,12 @@ fun main() {
     val isUnsavedNew = remember { mutableStateOf(false) }
     val webViewReady = remember { mutableStateOf(false) }
     val restartRequired = remember { mutableStateOf(false) }
+    /** Human-readable KCEF status for the top banner (null when ready / silent). */
+    val webViewStatusText = remember { mutableStateOf<String?>("Initializing WebView (KCEF)…") }
     val indexLoading = remember { mutableStateOf(false) }
     val isEditing = remember { mutableStateOf(false) }
     val statusMessage = remember { mutableStateOf<String?>(null) }
+    val forceCompactLayout = remember { mutableStateOf(AppPrefs.forceCompactLayout) }
     /** Loaded user macros for the current repository (JSON / legacy txt / defaults). */
     val macros = remember { mutableStateOf<List<MacroDefinition>>(emptyList()) }
     val showMacroManager = remember { mutableStateOf(false) }
@@ -66,6 +84,8 @@ fun main() {
     }
     val showPreferences = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    /** Native AWT menu on macOS; Material in-window menus elsewhere. */
+    val useNativeMenuBar = Platform.isMac
 
     val isRecipeOpen: () -> Boolean = { selectedFilename.value != null }
     fun isDirtyBuffer(): Boolean =
@@ -75,33 +95,72 @@ fun main() {
     fun setWebViewReadyOnMain(ready: Boolean) {
         scope.launch(Dispatchers.Main.immediate) {
             webViewReady.value = ready
+            if (ready) {
+                webViewStatusText.value = null
+                restartRequired.value = false
+            }
+        }
+    }
+
+    fun setWebViewStatusOnMain(text: String?) {
+        scope.launch(Dispatchers.Main.immediate) {
+            webViewStatusText.value = text
         }
     }
 
     fun setRestartRequiredOnMain(required: Boolean) {
         scope.launch(Dispatchers.Main.immediate) {
             restartRequired.value = required
-            if (required) webViewReady.value = false
+            if (required) {
+                webViewReady.value = false
+                webViewStatusText.value =
+                    "WebView installed — restart RecipeJar to enable rendered recipes."
+            }
         }
     }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
+            val root = kcefDataRoot()
+            val installDir = File(root, "kcef-bundle")
+            val cacheDir = File(root, "kcef-cache")
+            cacheDir.mkdirs()
+            Debug.log("KCEF installDir=${installDir.absolutePath}")
             try {
                 KCEF.init(builder = {
-                    installDir(File("kcef-bundle"))
+                    installDir(installDir)
                     progress {
-                        onDownloading { }
+                        onLocating {
+                            setWebViewStatusOnMain("WebView: locating CEF runtime…")
+                        }
+                        onDownloading { percent ->
+                            val p = percent.coerceIn(0f, 100f)
+                            setWebViewStatusOnMain(
+                                "WebView: downloading CEF… ${p.toInt()}% (first run may take a few minutes)",
+                            )
+                        }
+                        onExtracting {
+                            setWebViewStatusOnMain("WebView: extracting CEF…")
+                        }
+                        onInstall {
+                            setWebViewStatusOnMain("WebView: installing CEF…")
+                        }
+                        onInitializing {
+                            setWebViewStatusOnMain("WebView: initializing…")
+                        }
                         onInitialized {
                             setWebViewReadyOnMain(true)
+                            Debug.log("KCEF initialized")
                         }
                     }
                     settings {
-                        cachePath = File("kcef-cache").absolutePath
+                        cachePath = cacheDir.absolutePath
                     }
                 }, onError = { err ->
                     Debug.error("KCEF init error", err)
                     setWebViewReadyOnMain(false)
+                    val msg = err?.message?.takeIf { it.isNotBlank() } ?: err?.toString() ?: "unknown error"
+                    setWebViewStatusOnMain("WebView unavailable ($msg). Showing HTML source.")
                 }, onRestartRequired = {
                     Debug.log("KCEF restart required after install")
                     setRestartRequiredOnMain(true)
@@ -110,6 +169,12 @@ fun main() {
                 Debug.error("KCEF bootstrap failed", t)
                 withContext(Dispatchers.Main) {
                     webViewReady.value = false
+                    webViewStatusText.value = when (t) {
+                        is UnsupportedClassVersionError ->
+                            "WebView requires Java 17+ (KCEF). Current runtime is too old. Showing HTML source."
+                        else ->
+                            "WebView bootstrap failed (${t.message ?: t::class.simpleName}). Showing HTML source."
+                    }
                 }
             }
         }
@@ -813,88 +878,247 @@ fun main() {
         return KeyShortcut(key = k, ctrl = combo.ctrl, meta = combo.meta, alt = combo.alt, shift = combo.shift)
     }
 
+    fun runCommand(id: String) {
+        val c = registry.find(id) ?: return
+        if (c.enabled()) c.execute(ActionContext())
+    }
+
+    fun toggleForceCompact() {
+        val next = !forceCompactLayout.value
+        forceCompactLayout.value = next
+        AppPrefs.forceCompactLayout = next
+        statusMessage.value = if (next) "Phone layout on" else "Phone layout off"
+    }
+
+    fun clearSelection() {
+        selectedFilename.value = null
+        selectedHtml.value = null
+        selectedFileUrl.value = null
+        lastDiskHtml.value = null
+        isUnsavedNew.value = false
+        isEditing.value = false
+    }
+
+    /**
+     * Material menu model for non-macOS. Rebuilt when macros / edit / selection enablement change.
+     */
+    fun buildMaterialMenus(): AppMenuModel {
+        fun item(id: String) = registry.require(id).let { c ->
+            AppMenuEntry.Item(
+                title = c.title,
+                enabled = c.enabled(),
+                onClick = { c.execute(ActionContext()) },
+            )
+        }
+        val macroEntries: List<AppMenuEntry> = buildList {
+            val macroList = macros.value
+            if (macroList.isEmpty()) {
+                add(AppMenuEntry.Item("(no macros — open a repository)", enabled = false, onClick = {}))
+            } else {
+                macroList.forEach { macro ->
+                    add(
+                        AppMenuEntry.Item(
+                            title = macro.name,
+                            enabled = isEditing.value && selectedHtml.value != null,
+                            onClick = { applyMacroToBuffer(macro) },
+                        ),
+                    )
+                }
+            }
+            add(AppMenuEntry.Separator)
+            add(item(ActionIds.EDIT_MACROS))
+        }
+        return AppMenuModel(
+            menus = listOf(
+                AppMenu(
+                    "Recipe",
+                    listOf(
+                        item(ActionIds.FILE_NEW),
+                        item(ActionIds.FILE_TOGGLE_EDIT),
+                        item(ActionIds.FILE_SAVE),
+                        item(ActionIds.FILE_RENAME),
+                        AppMenuEntry.Separator,
+                        item(ActionIds.FILE_IMPORT),
+                        item(ActionIds.FILE_EXPORT),
+                        AppMenuEntry.Separator,
+                        item(ActionIds.FILE_DELETE),
+                        AppMenuEntry.Separator,
+                        item(ActionIds.FILE_EXIT),
+                    ),
+                ),
+                AppMenu(
+                    "Edit",
+                    listOf(
+                        item(ActionIds.EDIT_CUT),
+                        item(ActionIds.EDIT_COPY),
+                        item(ActionIds.EDIT_PASTE),
+                        item(ActionIds.EDIT_SELECT_ALL),
+                        AppMenuEntry.Separator,
+                        item(ActionIds.EDIT_FIND),
+                    ),
+                ),
+                AppMenu(
+                    "Find",
+                    listOf(
+                        item(ActionIds.FIND_ALL),
+                        item(ActionIds.FIND_TITLES),
+                        item(ActionIds.FIND_LABELS),
+                        item(ActionIds.FIND_NOTES),
+                        item(ActionIds.FIND_INGREDIENTS),
+                        item(ActionIds.FIND_PROCEDURES),
+                    ),
+                ),
+                AppMenu("Macros", macroEntries),
+                AppMenu(
+                    "Tools",
+                    listOf(
+                        item(ActionIds.TOOLS_PREFERENCES),
+                        AppMenuEntry.Item(
+                            title = if (forceCompactLayout.value) "Phone layout ✓" else "Phone layout",
+                            onClick = { toggleForceCompact() },
+                        ),
+                    ),
+                ),
+                AppMenu(
+                    "Help",
+                    listOf(item(ActionIds.HELP_ABOUT)),
+                ),
+            ),
+        )
+    }
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "RecipeJar",
-    ) {
-        MenuBar {
-            Menu("Recipe", mnemonic = 'R') {
-                val c = registry.require(ActionIds.FILE_NEW)
-                Item(c.title, onClick = { c.execute(ActionContext()) }, enabled = c.enabled(), shortcut = toKeyShortcut(c.shortcut))
-                val t = registry.require(ActionIds.FILE_TOGGLE_EDIT)
-                Item(t.title, onClick = { t.execute(ActionContext()) }, enabled = t.enabled(), shortcut = toKeyShortcut(t.shortcut))
-                val s = registry.require(ActionIds.FILE_SAVE)
-                Item(s.title, onClick = { s.execute(ActionContext()) }, enabled = s.enabled(), shortcut = toKeyShortcut(s.shortcut))
-                val rn = registry.require(ActionIds.FILE_RENAME)
-                Item(rn.title, onClick = { rn.execute(ActionContext()) }, enabled = rn.enabled())
-                Separator()
-                val im = registry.require(ActionIds.FILE_IMPORT)
-                Item(im.title, onClick = { im.execute(ActionContext()) }, enabled = im.enabled())
-                val ex = registry.require(ActionIds.FILE_EXPORT)
-                Item(ex.title, onClick = { ex.execute(ActionContext()) }, enabled = ex.enabled())
-                Separator()
-                val del = registry.require(ActionIds.FILE_DELETE)
-                Item(del.title, onClick = { del.execute(ActionContext()) }, enabled = del.enabled())
-                Separator()
-                val exi = registry.require(ActionIds.FILE_EXIT)
-                Item(exi.title, onClick = { exi.execute(ActionContext()) }, shortcut = toKeyShortcut(exi.shortcut))
-            }
-            Menu("Edit", mnemonic = 'E') {
-                val cut = registry.require(ActionIds.EDIT_CUT)
-                Item(cut.title, onClick = { cut.execute(ActionContext()) }, enabled = cut.enabled())
-                val copy = registry.require(ActionIds.EDIT_COPY)
-                Item(copy.title, onClick = { copy.execute(ActionContext()) }, enabled = copy.enabled())
-                val paste = registry.require(ActionIds.EDIT_PASTE)
-                Item(paste.title, onClick = { paste.execute(ActionContext()) }, enabled = paste.enabled())
-                val sel = registry.require(ActionIds.EDIT_SELECT_ALL)
-                Item(sel.title, onClick = { sel.execute(ActionContext()) }, enabled = sel.enabled())
-                Separator()
-                val fnd = registry.require(ActionIds.EDIT_FIND)
-                Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled(), shortcut = toKeyShortcut(fnd.shortcut))
-            }
-            Menu("Find", mnemonic = 'F') {
-                val fa = registry.require(ActionIds.FIND_ALL)
-                Item(fa.title, onClick = { fa.execute(ActionContext()) }, enabled = fa.enabled())
-                val ft = registry.require(ActionIds.FIND_TITLES)
-                Item(ft.title, onClick = { ft.execute(ActionContext()) }, enabled = ft.enabled())
-                val fl = registry.require(ActionIds.FIND_LABELS)
-                Item(fl.title, onClick = { fl.execute(ActionContext()) }, enabled = fl.enabled())
-                val fn = registry.require(ActionIds.FIND_NOTES)
-                Item(fn.title, onClick = { fn.execute(ActionContext()) }, enabled = fn.enabled())
-                val fi = registry.require(ActionIds.FIND_INGREDIENTS)
-                Item(fi.title, onClick = { fi.execute(ActionContext()) }, enabled = fi.enabled())
-                val fp = registry.require(ActionIds.FIND_PROCEDURES)
-                Item(fp.title, onClick = { fp.execute(ActionContext()) }, enabled = fp.enabled())
-            }
-            Menu("Macros", mnemonic = 'M') {
-                val macroList = macros.value
-                if (macroList.isEmpty()) {
-                    Item("(no macros — open a repository)", onClick = {}, enabled = false)
-                } else {
-                    macroList.forEach { macro ->
-                        Item(
-                            macro.name,
-                            onClick = { applyMacroToBuffer(macro) },
-                            enabled = isEditing.value && selectedHtml.value != null,
-                        )
-                    }
+        onPreviewKeyEvent = { event ->
+            // Material menu path has no native MenuBar shortcuts — handle primary keys here.
+            if (useNativeMenuBar) return@Window false
+            if (event.type != KeyEventType.KeyDown) return@Window false
+            val primary = if (Platform.isMac) event.isMetaPressed else event.isCtrlPressed
+            if (!primary && event.key != Key.Delete) return@Window false
+            when {
+                primary && event.key == Key.N -> {
+                    runCommand(ActionIds.FILE_NEW); true
                 }
-                Separator()
-                val mgr = registry.require(ActionIds.EDIT_MACROS)
-                Item(mgr.title, onClick = { mgr.execute(ActionContext()) }, enabled = mgr.enabled())
+                primary && event.key == Key.O -> {
+                    runCommand(ActionIds.FILE_TOGGLE_EDIT); true
+                }
+                primary && event.key == Key.S -> {
+                    runCommand(ActionIds.FILE_SAVE); true
+                }
+                primary && event.key == Key.F -> {
+                    runCommand(ActionIds.EDIT_FIND); true
+                }
+                event.key == Key.Delete -> {
+                    runCommand(ActionIds.FILE_DELETE); true
+                }
+                else -> false
             }
-            Menu("Tools", mnemonic = 'T') {
-                val pref = registry.require(ActionIds.TOOLS_PREFERENCES)
-                Item(pref.title, onClick = { pref.execute(ActionContext()) }, enabled = pref.enabled())
-            }
-            Menu("Help", mnemonic = 'H') {
-                val about = registry.require(ActionIds.HELP_ABOUT)
-                Item(about.title, onClick = { about.execute(ActionContext()) }, enabled = about.enabled())
+        },
+    ) {
+        // Hybrid: native screen/AWT menu bar on macOS only.
+        if (useNativeMenuBar) {
+            MenuBar {
+                Menu("Recipe", mnemonic = 'R') {
+                    val c = registry.require(ActionIds.FILE_NEW)
+                    Item(c.title, onClick = { c.execute(ActionContext()) }, enabled = c.enabled(), shortcut = toKeyShortcut(c.shortcut))
+                    val t = registry.require(ActionIds.FILE_TOGGLE_EDIT)
+                    Item(t.title, onClick = { t.execute(ActionContext()) }, enabled = t.enabled(), shortcut = toKeyShortcut(t.shortcut))
+                    val s = registry.require(ActionIds.FILE_SAVE)
+                    Item(s.title, onClick = { s.execute(ActionContext()) }, enabled = s.enabled(), shortcut = toKeyShortcut(s.shortcut))
+                    val rn = registry.require(ActionIds.FILE_RENAME)
+                    Item(rn.title, onClick = { rn.execute(ActionContext()) }, enabled = rn.enabled())
+                    Separator()
+                    val im = registry.require(ActionIds.FILE_IMPORT)
+                    Item(im.title, onClick = { im.execute(ActionContext()) }, enabled = im.enabled())
+                    val ex = registry.require(ActionIds.FILE_EXPORT)
+                    Item(ex.title, onClick = { ex.execute(ActionContext()) }, enabled = ex.enabled())
+                    Separator()
+                    val del = registry.require(ActionIds.FILE_DELETE)
+                    Item(del.title, onClick = { del.execute(ActionContext()) }, enabled = del.enabled())
+                    Separator()
+                    val exi = registry.require(ActionIds.FILE_EXIT)
+                    Item(exi.title, onClick = { exi.execute(ActionContext()) }, shortcut = toKeyShortcut(exi.shortcut))
+                }
+                Menu("Edit", mnemonic = 'E') {
+                    val cut = registry.require(ActionIds.EDIT_CUT)
+                    Item(cut.title, onClick = { cut.execute(ActionContext()) }, enabled = cut.enabled())
+                    val copy = registry.require(ActionIds.EDIT_COPY)
+                    Item(copy.title, onClick = { copy.execute(ActionContext()) }, enabled = copy.enabled())
+                    val paste = registry.require(ActionIds.EDIT_PASTE)
+                    Item(paste.title, onClick = { paste.execute(ActionContext()) }, enabled = paste.enabled())
+                    val sel = registry.require(ActionIds.EDIT_SELECT_ALL)
+                    Item(sel.title, onClick = { sel.execute(ActionContext()) }, enabled = sel.enabled())
+                    Separator()
+                    val fnd = registry.require(ActionIds.EDIT_FIND)
+                    Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled(), shortcut = toKeyShortcut(fnd.shortcut))
+                }
+                Menu("Find", mnemonic = 'F') {
+                    val fa = registry.require(ActionIds.FIND_ALL)
+                    Item(fa.title, onClick = { fa.execute(ActionContext()) }, enabled = fa.enabled())
+                    val ft = registry.require(ActionIds.FIND_TITLES)
+                    Item(ft.title, onClick = { ft.execute(ActionContext()) }, enabled = ft.enabled())
+                    val fl = registry.require(ActionIds.FIND_LABELS)
+                    Item(fl.title, onClick = { fl.execute(ActionContext()) }, enabled = fl.enabled())
+                    val fn = registry.require(ActionIds.FIND_NOTES)
+                    Item(fn.title, onClick = { fn.execute(ActionContext()) }, enabled = fn.enabled())
+                    val fi = registry.require(ActionIds.FIND_INGREDIENTS)
+                    Item(fi.title, onClick = { fi.execute(ActionContext()) }, enabled = fi.enabled())
+                    val fp = registry.require(ActionIds.FIND_PROCEDURES)
+                    Item(fp.title, onClick = { fp.execute(ActionContext()) }, enabled = fp.enabled())
+                }
+                Menu("Macros", mnemonic = 'M') {
+                    val macroList = macros.value
+                    if (macroList.isEmpty()) {
+                        Item("(no macros — open a repository)", onClick = {}, enabled = false)
+                    } else {
+                        macroList.forEach { macro ->
+                            Item(
+                                macro.name,
+                                onClick = { applyMacroToBuffer(macro) },
+                                enabled = isEditing.value && selectedHtml.value != null,
+                            )
+                        }
+                    }
+                    Separator()
+                    val mgr = registry.require(ActionIds.EDIT_MACROS)
+                    Item(mgr.title, onClick = { mgr.execute(ActionContext()) }, enabled = mgr.enabled())
+                }
+                Menu("Tools", mnemonic = 'T') {
+                    val pref = registry.require(ActionIds.TOOLS_PREFERENCES)
+                    Item(pref.title, onClick = { pref.execute(ActionContext()) }, enabled = pref.enabled())
+                    Item(
+                        if (forceCompactLayout.value) "Phone layout ✓" else "Phone layout",
+                        onClick = { toggleForceCompact() },
+                    )
+                }
+                Menu("Help", mnemonic = 'H') {
+                    val about = registry.require(ActionIds.HELP_ABOUT)
+                    Item(about.title, onClick = { about.execute(ActionContext()) }, enabled = about.enabled())
+                }
             }
         }
 
         // Dirty buffer: do not feed WebView a stale file:// URL; reader falls back to selectedHtml.
         val readerFileUrl = if (isDirtyBuffer()) null else selectedFileUrl.value
+
+        // Rebuild material menus when enablement-related state changes.
+        val materialMenus = if (!useNativeMenuBar) {
+            // Touch state so Compose recomposes when enablement changes.
+            @Suppress("UNUSED_EXPRESSION")
+            selectedFilename.value
+            @Suppress("UNUSED_EXPRESSION")
+            isEditing.value
+            @Suppress("UNUSED_EXPRESSION")
+            macros.value
+            @Suppress("UNUSED_EXPRESSION")
+            forceCompactLayout.value
+            @Suppress("UNUSED_EXPRESSION")
+            selectedDir.value
+            buildMaterialMenus()
+        } else {
+            null
+        }
 
         App(
             selectedDir = selectedDir.value,
@@ -904,12 +1128,20 @@ fun main() {
             selectedHtml = selectedHtml.value,
             webViewReady = webViewReady.value,
             restartRequired = restartRequired.value,
+            webViewStatusText = webViewStatusText.value,
             indexLoading = indexLoading.value,
             isEditing = isEditing.value,
             statusMessage = statusMessage.value,
+            materialMenus = materialMenus,
+            forceCompactLayout = forceCompactLayout.value,
+            onForceCompactChange = { next ->
+                forceCompactLayout.value = next
+                AppPrefs.forceCompactLayout = next
+            },
             onOpenRepo = ::pickDirectory,
             onSelectRecipe = ::selectRecipe,
             onHtmlChange = { selectedHtml.value = it },
+            onClearSelection = ::clearSelection,
         )
 
         if (showMacroManager.value) {

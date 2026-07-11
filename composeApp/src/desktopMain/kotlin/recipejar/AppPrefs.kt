@@ -18,6 +18,8 @@ object AppPrefs {
     private const val KEY_LAST_RECIPE_PREFIX = "lastRecipe::"
     /** Legacy global key from first PR-8 revision; migrated then removed. */
     private const val KEY_LAST_RECIPE_LEGACY = "lastRecipeFilename"
+    /** Force single-pane phone-style layout on desktop (mobile UX testing). */
+    private const val KEY_FORCE_COMPACT = "forceCompactLayout"
 
     var lastRepoPath: String?
         get() = prefs.get(KEY_LAST_REPO, null)?.takeIf { it.isNotBlank() }
@@ -34,6 +36,17 @@ object AppPrefs {
         get() = prefs.get(KEY_AUTHOR, "") ?: ""
         set(value) {
             prefs.put(KEY_AUTHOR, value.trim())
+            flushQuietly()
+        }
+
+    /**
+     * When true, shell uses compact (single-pane) layout regardless of window width.
+     * For testing mobile-style navigation on desktop.
+     */
+    var forceCompactLayout: Boolean
+        get() = prefs.getBoolean(KEY_FORCE_COMPACT, false)
+        set(value) {
+            prefs.putBoolean(KEY_FORCE_COMPACT, value)
             flushQuietly()
         }
 

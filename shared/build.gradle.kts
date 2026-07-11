@@ -6,6 +6,9 @@ plugins {
 kotlin {
     jvm("desktop")
 
+    // Align with composeApp / KCEF (Java 17+)
+    jvmToolchain(17)
+
     sourceSets {
         val commonMain by getting {
             dependencies {

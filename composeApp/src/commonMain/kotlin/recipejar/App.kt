@@ -1,9 +1,11 @@
 package recipejar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +31,9 @@ data class RecipeListItem(
 )
 
 private val ALPHA_TABS: List<String> = ('A'..'Z').map { it.toString() } + "Other"
+
+/** Width below which the shell uses single-pane (index OR reader) navigation. */
+internal val COMPACT_WIDTH_BREAKPOINT = 600.dp
 
 /**
  * First-letter bucket matching [FileSystemRecipeRepository] index rules:
@@ -50,11 +57,17 @@ internal fun titleSortKey(title: String): String = buildString(title.length) {
 }
 
 /**
- * Shell: split layout with alpha-tab index (left) and content pane (right).
+ * Shell: split layout with Rolodex-edge alpha index (left) and content pane (right).
  *
  * Content pane swaps by [isEditing]: monospaced HTML [RecipeCodeEditor] vs [RecipeReader].
  * Reader prefers file:// WebView when [webViewReady] is true (KCEF initialized on desktop).
  * Otherwise falls back to scrollable raw HTML text — see [RecipeReader].
+ *
+ * [materialMenus]: when non-null, render Material dropdown menus in the top bar (hybrid path;
+ * macOS keeps the native [androidx.compose.ui.window.MenuBar] instead).
+ *
+ * Compact layout: window width under [COMPACT_WIDTH_BREAKPOINT], or [forceCompactLayout],
+ * uses single-pane navigation (index list ↔ reader) for mobile-style testing on desktop.
  */
 @Composable
 fun App(
@@ -65,14 +78,21 @@ fun App(
     selectedHtml: String?,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
+    webViewStatusText: String? = null,
     indexLoading: Boolean = false,
     isEditing: Boolean = false,
     statusMessage: String? = null,
+    materialMenus: AppMenuModel? = null,
+    forceCompactLayout: Boolean = false,
+    onForceCompactChange: ((Boolean) -> Unit)? = null,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
     onHtmlChange: (String) -> Unit = {},
+    onClearSelection: () -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
+    /** Compact single-pane: false = index, true = recipe content. */
+    var compactShowContent by remember { mutableStateOf(false) }
 
     // After repo load: keep current tab if it has items; else jump to first non-empty tab.
     LaunchedEffect(selectedDir, recipes) {
@@ -91,10 +111,15 @@ fun App(
     // After selection / title-rename save: jump alpha tab to the selected recipe's letter.
     // Keyed only on selectedFilename so manual tab browsing is not forced back on index refresh.
     LaunchedEffect(selectedFilename) {
-        if (selectedFilename == null || recipes.isEmpty()) return@LaunchedEffect
+        if (selectedFilename == null) {
+            compactShowContent = false
+            return@LaunchedEffect
+        }
+        if (recipes.isEmpty()) return@LaunchedEffect
         val item = recipes.find { it.filename == selectedFilename } ?: return@LaunchedEffect
         val letter = letterBucket(item.title)
         selectedTabIndex = if (letter == '0') 26 else (letter - 'A')
+        compactShowContent = true
     }
 
     val selectedLetter: Char =
@@ -106,54 +131,49 @@ fun App(
             .sortedBy { titleSortKey(it.title) }
     }
 
+    val letterCounts = remember(recipes) {
+        IntArray(27) { tab ->
+            val letter = if (tab in 0..25) ('A' + tab) else '0'
+            recipes.count { letterBucket(it.title) == letter }
+        }
+    }
+
     MaterialTheme {
         Column(Modifier.fillMaxSize()) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    "RecipeJar",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Button(onClick = onOpenRepo) {
-                    Text("Open repository")
+            AppTopBar(
+                selectedDir = selectedDir,
+                recipeCount = recipes.size,
+                indexLoading = indexLoading,
+                isEditing = isEditing,
+                selectedFilename = selectedFilename,
+                materialMenus = materialMenus,
+                forceCompactLayout = forceCompactLayout,
+                onForceCompactChange = onForceCompactChange,
+                onOpenRepo = onOpenRepo,
+            )
+
+            if (restartRequired || webViewStatusText != null) {
+                val banner = when {
+                    restartRequired ->
+                        "WebView installed — restart RecipeJar to enable rendered recipes."
+                    webViewStatusText != null -> webViewStatusText
+                    else -> null
                 }
-                if (selectedDir != null) {
-                    Text(
-                        selectedDir,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        if (indexLoading) "Loading…" else "${recipes.size} recipes",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    if (selectedFilename != null) {
+                if (banner != null) {
+                    Surface(
+                        color = if (restartRequired) {
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text(
-                            if (isEditing) "[editing]" else "[read]",
-                            style = MaterialTheme.typography.labelMedium,
+                            banner,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
-                }
-            }
-
-            if (restartRequired) {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        "WebView installed — restart RecipeJar to enable rendered recipes.",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
                 }
             }
 
@@ -193,120 +213,453 @@ fun App(
                     )
                 }
             } else {
-                // Split: index | reader
-                Row(Modifier.weight(1f).fillMaxWidth()) {
-                    // Left: alpha index
-                    Column(
-                        Modifier
-                            .width(320.dp)
-                            .fillMaxHeight()
-                            .padding(8.dp),
-                    ) {
-                        ScrollableTabRow(
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    val compact = forceCompactLayout || maxWidth < COMPACT_WIDTH_BREAKPOINT
+                    if (compact) {
+                        CompactShell(
+                            compactShowContent = compactShowContent,
+                            onBackToIndex = {
+                                compactShowContent = false
+                                onClearSelection()
+                            },
                             selectedTabIndex = selectedTabIndex,
-                            edgePadding = 4.dp,
-                        ) {
-                            ALPHA_TABS.forEachIndexed { index, label ->
-                                Tab(
-                                    selected = selectedTabIndex == index,
-                                    onClick = { selectedTabIndex = index },
-                                    text = {
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelMedium,
-                                        )
+                            onSelectTab = { selectedTabIndex = it },
+                            letterCounts = letterCounts,
+                            selectedLetter = selectedLetter,
+                            filtered = filtered,
+                            selectedFilename = selectedFilename,
+                            onSelectRecipe = { name ->
+                                onSelectRecipe(name)
+                                compactShowContent = true
+                            },
+                            isEditing = isEditing,
+                            selectedHtml = selectedHtml,
+                            selectedFileUrl = selectedFileUrl,
+                            webViewReady = webViewReady,
+                            restartRequired = restartRequired,
+                            onHtmlChange = onHtmlChange,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        WideShell(
+                            selectedTabIndex = selectedTabIndex,
+                            onSelectTab = { selectedTabIndex = it },
+                            letterCounts = letterCounts,
+                            selectedLetter = selectedLetter,
+                            filtered = filtered,
+                            selectedFilename = selectedFilename,
+                            onSelectRecipe = onSelectRecipe,
+                            isEditing = isEditing,
+                            selectedHtml = selectedHtml,
+                            selectedFileUrl = selectedFileUrl,
+                            webViewReady = webViewReady,
+                            restartRequired = restartRequired,
+                            onHtmlChange = onHtmlChange,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppTopBar(
+    selectedDir: String?,
+    recipeCount: Int,
+    indexLoading: Boolean,
+    isEditing: Boolean,
+    selectedFilename: String?,
+    materialMenus: AppMenuModel?,
+    forceCompactLayout: Boolean,
+    onForceCompactChange: ((Boolean) -> Unit)?,
+    onOpenRepo: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        if (materialMenus != null) {
+            MaterialMenuBar(model = materialMenus)
+            HorizontalDivider()
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "RecipeJar",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            // When Material menus include Recipe → actions, Open is still convenient here.
+            if (materialMenus == null) {
+                Button(onClick = onOpenRepo) {
+                    Text("Open repository")
+                }
+            } else {
+                OutlinedButton(onClick = onOpenRepo) {
+                    Text("Open repository")
+                }
+            }
+            if (selectedDir != null) {
+                Text(
+                    selectedDir,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    if (indexLoading) "Loading…" else "$recipeCount recipes",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (selectedFilename != null) {
+                    Text(
+                        if (isEditing) "[editing]" else "[read]",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            if (onForceCompactChange != null) {
+                FilterChip(
+                    selected = forceCompactLayout,
+                    onClick = { onForceCompactChange(!forceCompactLayout) },
+                    label = { Text("Phone layout") },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Material3 dropdown menu strip for hybrid menu mode (non-macOS).
+ */
+@Composable
+fun MaterialMenuBar(
+    model: AppMenuModel,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        model.menus.forEach { menu ->
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                TextButton(onClick = { expanded = true }) {
+                    Text(menu.title, style = MaterialTheme.typography.labelLarge)
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    menu.entries.forEach { entry ->
+                        when (entry) {
+                            is AppMenuEntry.Separator -> HorizontalDivider()
+                            is AppMenuEntry.Item -> {
+                                DropdownMenuItem(
+                                    text = { Text(entry.title) },
+                                    onClick = {
+                                        expanded = false
+                                        entry.onClick()
                                     },
+                                    enabled = entry.enabled,
                                 )
                             }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            if (selectedLetter == '0') "Other" else "Letter $selectedLetter",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                        Text(
-                            "${filtered.size} recipe(s)",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        )
-                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                        if (filtered.isEmpty()) {
-                            Text(
-                                "(none)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(8.dp),
-                            )
-                        } else {
-                            LazyColumn(
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                            ) {
-                                items(filtered, key = { it.filename }) { item ->
-                                    val selected = item.filename == selectedFilename
-                                    Surface(
-                                        color = if (selected) {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surface
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { onSelectRecipe(item.filename) },
-                                    ) {
-                                        Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                            Text(
-                                                item.title.ifBlank { item.filename },
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Text(
-                                                item.filename,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    VerticalDivider()
-
-                    // Right: code editor (edit mode) or reader (read mode) — modal swap
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(8.dp),
-                    ) {
-                        if (isEditing) {
-                            RecipeCodeEditor(
-                                selectedFilename = selectedFilename,
-                                html = selectedHtml.orEmpty(),
-                                onHtmlChange = onHtmlChange,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            RecipeReader(
-                                selectedFilename = selectedFilename,
-                                selectedFileUrl = selectedFileUrl,
-                                selectedHtml = selectedHtml,
-                                webViewReady = webViewReady,
-                                restartRequired = restartRequired,
-                                modifier = Modifier.fillMaxSize(),
-                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Side-by-side: Rolodex letter rail + recipe list | reader/editor.
+ * Letter placement mirrors Swing [javax.swing.JTabbedPane.LEFT].
+ */
+@Composable
+private fun WideShell(
+    selectedTabIndex: Int,
+    onSelectTab: (Int) -> Unit,
+    letterCounts: IntArray,
+    selectedLetter: Char,
+    filtered: List<RecipeListItem>,
+    selectedFilename: String?,
+    onSelectRecipe: (String) -> Unit,
+    isEditing: Boolean,
+    selectedHtml: String?,
+    selectedFileUrl: String?,
+    webViewReady: Boolean,
+    restartRequired: Boolean,
+    onHtmlChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier) {
+        IndexPane(
+            selectedTabIndex = selectedTabIndex,
+            onSelectTab = onSelectTab,
+            letterCounts = letterCounts,
+            selectedLetter = selectedLetter,
+            filtered = filtered,
+            selectedFilename = selectedFilename,
+            onSelectRecipe = onSelectRecipe,
+            modifier = Modifier
+                .width(320.dp)
+                .fillMaxHeight()
+                .padding(8.dp),
+        )
+        VerticalDivider()
+        ContentPane(
+            selectedFilename = selectedFilename,
+            isEditing = isEditing,
+            selectedHtml = selectedHtml,
+            selectedFileUrl = selectedFileUrl,
+            webViewReady = webViewReady,
+            restartRequired = restartRequired,
+            onHtmlChange = onHtmlChange,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(8.dp),
+        )
+    }
+}
+
+/**
+ * Single-pane mobile-style shell: index XOR content with back control.
+ */
+@Composable
+private fun CompactShell(
+    compactShowContent: Boolean,
+    onBackToIndex: () -> Unit,
+    selectedTabIndex: Int,
+    onSelectTab: (Int) -> Unit,
+    letterCounts: IntArray,
+    selectedLetter: Char,
+    filtered: List<RecipeListItem>,
+    selectedFilename: String?,
+    onSelectRecipe: (String) -> Unit,
+    isEditing: Boolean,
+    selectedHtml: String?,
+    selectedFileUrl: String?,
+    webViewReady: Boolean,
+    restartRequired: Boolean,
+    onHtmlChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (compactShowContent && selectedFilename != null) {
+        Column(modifier.padding(8.dp)) {
+            TextButton(onClick = onBackToIndex) {
+                Text("← Index")
+            }
+            ContentPane(
+                selectedFilename = selectedFilename,
+                isEditing = isEditing,
+                selectedHtml = selectedHtml,
+                selectedFileUrl = selectedFileUrl,
+                webViewReady = webViewReady,
+                restartRequired = restartRequired,
+                onHtmlChange = onHtmlChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        }
+    } else {
+        IndexPane(
+            selectedTabIndex = selectedTabIndex,
+            onSelectTab = onSelectTab,
+            letterCounts = letterCounts,
+            selectedLetter = selectedLetter,
+            filtered = filtered,
+            selectedFilename = selectedFilename,
+            onSelectRecipe = onSelectRecipe,
+            modifier = modifier.padding(8.dp),
+        )
+    }
+}
+
+@Composable
+private fun IndexPane(
+    selectedTabIndex: Int,
+    onSelectTab: (Int) -> Unit,
+    letterCounts: IntArray,
+    selectedLetter: Char,
+    filtered: List<RecipeListItem>,
+    selectedFilename: String?,
+    onSelectRecipe: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier) {
+        // Rolodex edge: vertical A–Z rail (Swing JTabbedPane.LEFT equivalent)
+        LetterRail(
+            selectedTabIndex = selectedTabIndex,
+            onSelectTab = onSelectTab,
+            letterCounts = letterCounts,
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(40.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            Text(
+                if (selectedLetter == '0') "Other" else "Letter $selectedLetter",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                "${filtered.size} recipe(s)",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            if (filtered.isEmpty()) {
+                Text(
+                    "(none)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp),
+                )
+            } else {
+                LazyColumn(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    items(filtered, key = { it.filename }) { item ->
+                        val selected = item.filename == selectedFilename
+                        Surface(
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectRecipe(item.filename) },
+                        ) {
+                            Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                Text(
+                                    item.title.ifBlank { item.filename },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    item.filename,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Vertical A–Z (+ Other) letter strip — the Rolodex edge.
+ * Empty letters are dimmed but still selectable (browse empty buckets).
+ */
+@Composable
+private fun LetterRail(
+    selectedTabIndex: Int,
+    onSelectTab: (Int) -> Unit,
+    letterCounts: IntArray,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(selectedTabIndex) {
+        listState.animateScrollToItem(selectedTabIndex.coerceIn(0, ALPHA_TABS.lastIndex))
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier,
+        tonalElevation = 1.dp,
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            items(ALPHA_TABS.size) { index ->
+                val label = ALPHA_TABS[index]
+                val selected = index == selectedTabIndex
+                val count = letterCounts.getOrElse(index) { 0 }
+                val empty = count == 0
+                val bg = when {
+                    selected -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.surfaceContainerHigh
+                }
+                val fg = when {
+                    selected -> MaterialTheme.colorScheme.onPrimary
+                    empty -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelectTab(index) }
+                        .background(bg)
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (label == "Other") "#" else label,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        ),
+                        color = fg,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContentPane(
+    selectedFilename: String?,
+    isEditing: Boolean,
+    selectedHtml: String?,
+    selectedFileUrl: String?,
+    webViewReady: Boolean,
+    restartRequired: Boolean,
+    onHtmlChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier) {
+        if (isEditing) {
+            RecipeCodeEditor(
+                selectedFilename = selectedFilename,
+                html = selectedHtml.orEmpty(),
+                onHtmlChange = onHtmlChange,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            RecipeReader(
+                selectedFilename = selectedFilename,
+                selectedFileUrl = selectedFileUrl,
+                selectedHtml = selectedHtml,
+                webViewReady = webViewReady,
+                restartRequired = restartRequired,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }
@@ -377,7 +730,7 @@ fun RecipeCodeEditor(
  * Fallback: scrollable monospaced HTML source. Used when KCEF has not finished initializing
  * (first-run CEF download / install can fail or require restart). Desktop WebView backend is
  * KCEF-based; without a ready CEF runtime, embedding WebView crashes or shows nothing.
- * See Main.kt KCEF bootstrap and README notes in the commit message / summary.
+ * See Main.kt KCEF bootstrap and README notes.
  */
 @Composable
 fun RecipeReader(
@@ -408,11 +761,6 @@ fun RecipeReader(
         HorizontalDivider()
         Spacer(Modifier.height(4.dp))
 
-        // WebView path is provided as an optional composable from desktop when ready.
-        // When [selectedFileUrl] is null (dirty / unsaved buffer), prefer in-memory HTML so
-        // read mode does not show a stale last-saved file:// preview.
-        // Common shell uses HTML text fallback; desktop Main can overlay WebView via
-        // [RecipeHtmlWebView] expect/actual (desktop).
         if (webViewReady && !selectedFileUrl.isNullOrBlank()) {
             RecipeHtmlWebView(
                 fileUrl = selectedFileUrl,

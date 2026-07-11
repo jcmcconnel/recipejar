@@ -28,7 +28,8 @@ private val kcefJvmOpens = buildList {
 kotlin {
     jvm("desktop")
 
-    jvmToolchain(11)
+    // KCEF (compose-webview-multiplatform desktop) is bytecode 61 / Java 17+
+    jvmToolchain(17)
 
     sourceSets {
         val commonMain by getting {

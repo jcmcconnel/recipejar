@@ -29,8 +29,8 @@ Active code lives in `shared/` + `composeApp/`.
 
 ### Requirements
 
-- **JDK 11+** (toolchain is 11)
-- Internet on **first run** (KCEF downloads a Chromium embed for recipe WebView)
+- **JDK 17+** (Gradle toolchain is 17; required by KCEF / recipe WebView). Foojay auto-provisions a JDK 17 for compile/run if the system only has an older Java. For a packaged or IDE run, install Temurin/OpenJDK 17+ and set `JAVA_HOME`.
+- Internet on **first run** (KCEF downloads a Chromium embed under `~/.cache/recipejar/`)
 - Optional: OS packaging tools if you build installers (macOS for DMG, WiX/JDK for MSI, etc.)
 
 ### Build & run (desktop runbook)
@@ -48,7 +48,13 @@ From the repository root:
 ./gradlew :composeApp:run
 ```
 
-First launch may take longer while KCEF installs under `kcef-bundle/` / `kcef-cache/` (local working dir). If WebView is not ready, the reader shows HTML source instead of a rendered page; restart after install if prompted.
+First launch may take longer while KCEF installs under `~/.cache/recipejar/kcef-bundle/` and `kcef-cache/` (stable user cache, not the project working directory). A status banner shows download/extract progress. If WebView is not ready, the reader shows HTML source instead of a rendered page; restart after install if prompted.
+
+### UI notes (desktop)
+
+- **Alpha index**: vertical Rolodex-edge letter rail (A–Z + Other), matching the classic Swing `JTabbedPane.LEFT` placement — not a horizontal scrolling tab row.
+- **Menus**: hybrid — native screen/AWT menu bar on **macOS**; Material in-window menus on **Windows/Linux**.
+- **Phone layout**: toggle via the **Phone layout** chip (or Tools menu) to force single-pane mobile-style navigation (index ↔ recipe). Also activates automatically when the window is narrower than 600 dp.
 
 ### Open the sample corpus
 
@@ -107,7 +113,7 @@ Packaged builds use main class `recipejar.MainKt` and the same KCEF JVM opens as
 ### OS-specific notes
 
 - **macOS**: Screen menu bar preferred; app name set via `apple.awt.application.name`. Shortcuts use Meta (⌘). Extra KCEF `--add-opens` for `sun.lwawt` / `macosx`.
-- **Windows / Linux**: Shortcuts use Ctrl. Packaging targets MSI and Deb respectively when the host supports them.
+- **Windows / Linux**: Shortcuts use Ctrl (handled via window key events when Material menus are active). Packaging targets MSI and Deb respectively when the host supports them.
 - Platform helpers live in `composeApp/.../Platform.kt` (`isMac` / `isWindows` / `isLinux`, primary shortcut, accelerator allow-list).
 
 ---
