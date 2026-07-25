@@ -23,6 +23,7 @@ import recipejar.macro.MacroIo
 import recipejar.macro.MacroProcessor
 import recipejar.macro.MacroStore
 import recipejar.persistence.FileSystemRecipeRepository
+import recipejar.recipe.UnitsCatalog
 import recipejar.search.SearchScope
 import java.awt.Color
 import java.io.File
@@ -67,6 +68,16 @@ fun main() {
      * (e.g. a prior on-disk Untitled.html).
      */
     val isUnsavedNew = remember { mutableStateOf(false) }
+    /** Structured model while [isEditing]; null in read mode. */
+    val editingRecipe = remember { mutableStateOf<Recipe?>(null) }
+    /** Last-focused free-text section for macros (notes / procedure). */
+    val editFocusSection = remember { mutableStateOf(RecipeEditSection.NOTES) }
+    /** Category names from the open repository (suggestions for the label picker). */
+    val knownLabels = remember { mutableStateOf<List<String>>(emptyList()) }
+    /** Unit plurals from bundled units.txt. */
+    val unitCatalog = remember { mutableStateOf(loadBundledUnitCatalog()) }
+    val welcomeHtml = remember { loadClasspathText("welcome.html") }
+    val welcomeFileUrl = remember { materializeWelcomeFileUrl(welcomeHtml) }
     val webViewReady = remember { mutableStateOf(false) }
     val restartRequired = remember { mutableStateOf(false) }
     /** Human-readable KCEF status for the top banner (null when ready / silent). */
@@ -211,6 +222,8 @@ fun main() {
         lastDiskHtml.value = null
         isUnsavedNew.value = false
         isEditing.value = false
+        editingRecipe.value = null
+        knownLabels.value = emptyList()
         statusMessage.value = null
         recipes.value = emptyList()
         macros.value = emptyList()
@@ -221,12 +234,15 @@ fun main() {
         val want = if (restoreLastRecipe) AppPrefs.lastRecipeFor(abs) else null
         scope.launch {
             try {
-                val (loaded, macroLoad) = withContext(Dispatchers.IO) {
+                val (loaded, labels, macroLoad) = withContext(Dispatchers.IO) {
                     val repo = FileSystemRecipeRepository(abs)
-                    loadRecipeIndex(repo) to MacroStore.load(abs)
+                    val index = loadRecipeIndex(repo)
+                    val labs = loadKnownLabels(repo)
+                    Triple(index, labs, MacroStore.load(abs))
                 }
                 if (selectedDir.value != abs) return@launch
                 recipes.value = loaded
+                knownLabels.value = labels
                 macros.value = macroLoad.macros
                 if (macroLoad.note != null) {
                     statusMessage.value = macroLoad.note
@@ -235,6 +251,7 @@ fun main() {
                     // Inline restore (selectRecipe is defined below; avoid forward-ref).
                     selectedFilename.value = want
                     isEditing.value = false
+                    editingRecipe.value = null
                     isUnsavedNew.value = false
                     val file = File(abs, want)
                     if (file.isFile) {
@@ -303,28 +320,62 @@ fun main() {
         }
     }
 
+    /** Push structured form edits into [editingRecipe] and keep [selectedHtml] in sync for dirty detection. */
+    fun applyEditingRecipe(recipe: Recipe) {
+        editingRecipe.value = recipe
+        selectedHtml.value = RecipeSerializer.serialize(recipe, "browser-footer")
+    }
+
+    fun enterEditMode() {
+        val html = selectedHtml.value ?: return
+        editingRecipe.value = RecipeSerializer.parse(html)
+        editFocusSection.value = RecipeEditSection.NOTES
+        isEditing.value = true
+    }
+
+    fun leaveEditMode(discardChanges: Boolean) {
+        if (discardChanges && !isUnsavedNew.value) {
+            selectedHtml.value = lastDiskHtml.value
+        }
+        editingRecipe.value = null
+        isEditing.value = false
+    }
+
+    fun toggleEditMode() {
+        if (isEditing.value) {
+            leaveEditMode(discardChanges = true)
+        } else {
+            enterEditMode()
+        }
+    }
+
     /**
-     * Apply a macro template to the editor buffer.
+     * Apply a macro template to the focused notes or procedure field (edit mode only).
      *
-     * MVP (no caret/selection API on BasicTextField):
-     * - Templates with [SELECTION]: expand with the **whole buffer** as selection, replace buffer.
-     * - Templates without [SELECTION]: **append** expansion (insert-only; avoids wiping the recipe).
-     * - Cancelled INPUT/COLOR → no buffer mutation.
+     * - Templates with [SELECTION]: expand using that field's text as selection, replace field.
+     * - Templates without [SELECTION]: **append** expansion to the field.
+     * - Cancelled INPUT/COLOR → no mutation.
+     * - Defaults to notes when focus is not on notes/procedure.
      */
     fun applyMacroToBuffer(macro: MacroDefinition) {
         if (!isEditing.value) {
             statusMessage.value = "Macros apply in edit mode (Recipe → Toggle Edit)"
             return
         }
-        val html = selectedHtml.value
-        if (html == null) {
-            statusMessage.value = "No recipe buffer open"
+        val recipe = editingRecipe.value
+        if (recipe == null) {
+            statusMessage.value = "No recipe open for editing"
             return
         }
+        val section = when (editFocusSection.value) {
+            RecipeEditSection.PROCEDURE -> RecipeEditSection.PROCEDURE
+            else -> RecipeEditSection.NOTES
+        }
+        val fieldText = if (section == RecipeEditSection.PROCEDURE) recipe.procedure else recipe.notes
         val usesSelection = MacroProcessor.containsSelectionPlaceholder(macro.text)
         val result = MacroProcessor.applyMacro(
             template = macro.text,
-            selection = if (usesSelection) html else "",
+            selection = if (usesSelection) fieldText else "",
             inputProvider = { prompt ->
                 JOptionPane.showInputDialog(null, prompt, macro.name, JOptionPane.QUESTION_MESSAGE)
             },
@@ -344,11 +395,20 @@ fun main() {
             statusMessage.value = "Macro cancelled: ${macro.name}"
             return
         }
-        selectedHtml.value = if (usesSelection) result else html + result
+        val nextText = if (usesSelection) result else fieldText + result
+        val updated = recipe.deepCopy().also {
+            if (section == RecipeEditSection.PROCEDURE) {
+                it.procedure = nextText
+            } else {
+                it.notes = nextText
+            }
+        }
+        applyEditingRecipe(updated)
+        val where = if (section == RecipeEditSection.PROCEDURE) "procedure" else "notes"
         statusMessage.value = if (usesSelection) {
-            "Applied macro: ${macro.name} (full buffer as selection)"
+            "Applied macro: ${macro.name} ($where as selection)"
         } else {
-            "Applied macro: ${macro.name} (appended)"
+            "Applied macro: ${macro.name} (appended to $where)"
         }
     }
 
@@ -403,6 +463,7 @@ fun main() {
         val dir = selectedDir.value ?: return
         selectedFilename.value = filename
         isEditing.value = false
+        editingRecipe.value = null
         isUnsavedNew.value = false
         statusMessage.value = null
         val file = File(dir, filename)
@@ -475,15 +536,18 @@ fun main() {
     }
 
     /**
-     * Persist editor buffer via [FileSystemRecipeRepository].
-     * Parses HTML, serializes with browser-footer; renames only when bound to an existing on-disk file
-     * (never for File→New until after first successful save clears [isUnsavedNew]).
+     * Persist structured recipe (or HTML buffer) via [FileSystemRecipeRepository].
+     *
+     * - File→New / unsaved: always create (originalFilename=null).
+     * - Title change (new filename ≠ open name): **Save As** — new file, keep original.
+     * - Same filename: update in place.
      */
     fun saveCurrentRecipe() {
         val dir = selectedDir.value ?: return
         val filename = selectedFilename.value ?: return
-        val html = selectedHtml.value ?: return
-        if (html.isBlank()) {
+        val recipeFromForm = editingRecipe.value
+        val html = selectedHtml.value
+        if (recipeFromForm == null && (html == null || html.isBlank())) {
             statusMessage.value = "Save: empty buffer"
             return
         }
@@ -492,9 +556,10 @@ fun main() {
         val wasUnsavedNew = isUnsavedNew.value
         scope.launch {
             try {
-                val savedName = withContext(Dispatchers.IO) {
+                val (savedName, saveAsKeptOriginal) = withContext(Dispatchers.IO) {
                     val repo = FileSystemRecipeRepository(dir)
-                    val recipe = RecipeSerializer.parse(html)
+                    val recipe = recipeFromForm?.deepCopy()
+                        ?: RecipeSerializer.parse(html!!)
                     if (recipe.title.isBlank()) {
                         recipe.title = stripHtmlExtension(filename).ifBlank { "Untitled" }
                     }
@@ -502,29 +567,33 @@ fun main() {
                     if (author.isNotBlank()) {
                         recipe.meta["author"] = author
                     }
+                    val targetName = repo.filenameFor(recipe)
                     // New buffers never pass originalFilename (avoid hijacking existing Untitled.html).
-                    // Existing recipes pass on-disk name for title-rename support.
-                    val original = if (wasUnsavedNew) {
-                        null
-                    } else {
-                        filename.takeIf { File(dir, it).isFile }
+                    // Title change → create new file (keep previous). Same name → update in place.
+                    val titleChanged = !wasUnsavedNew && targetName != filename
+                    val original = when {
+                        wasUnsavedNew -> null
+                        titleChanged -> null
+                        else -> filename.takeIf { File(dir, it).isFile }
                     }
                     repo.saveRecipe(recipe, originalFilename = original)
-                    repo.filenameFor(recipe)
+                    repo.filenameFor(recipe) to titleChanged
                 }
                 if (selectedDir.value != dir) return@launch
 
                 // Always refresh catalog in this same coroutine (no nested launch).
-                val loaded = withContext(Dispatchers.IO) {
+                val (loaded, labels) = withContext(Dispatchers.IO) {
                     try {
-                        loadRecipeIndex(FileSystemRecipeRepository(dir))
+                        val repo = FileSystemRecipeRepository(dir)
+                        loadRecipeIndex(repo) to loadKnownLabels(repo)
                     } catch (e: Exception) {
                         Debug.error("Index refresh after save failed", e)
-                        emptyList()
+                        emptyList<RecipeListItem>() to emptyList()
                     }
                 }
                 if (selectedDir.value != dir) return@launch
                 recipes.value = loaded
+                knownLabels.value = labels
 
                 // Only reselect/reload if user is still on the document that was saved.
                 // (Selecting another recipe or File→New while save was in flight must not clobber.)
@@ -552,12 +621,20 @@ fun main() {
                         if (diskHtml != null) {
                             selectedHtml.value = diskHtml
                             lastDiskHtml.value = diskHtml
-                            statusMessage.value = "Saved $savedName"
-                            Debug.log("Saved $savedName")
+                            if (isEditing.value) {
+                                editingRecipe.value = RecipeSerializer.parse(diskHtml)
+                            }
+                            statusMessage.value = if (saveAsKeptOriginal) {
+                                "Saved as $savedName (original kept)"
+                            } else {
+                                "Saved $savedName"
+                            }
+                            Debug.log("Saved $savedName saveAs=$saveAsKeptOriginal")
                         } else {
                             selectedFileUrl.value = null
                             selectedHtml.value = null
                             lastDiskHtml.value = null
+                            editingRecipe.value = null
                             statusMessage.value = "Saved $savedName but could not re-read file"
                         }
                     }
@@ -565,6 +642,7 @@ fun main() {
                     selectedFileUrl.value = null
                     selectedHtml.value = null
                     lastDiskHtml.value = null
+                    editingRecipe.value = null
                     statusMessage.value = "Saved as $savedName but file is missing"
                     Debug.error("Saved path missing: $savedName")
                 }
@@ -588,6 +666,8 @@ fun main() {
         selectedFileUrl.value = null
         lastDiskHtml.value = null
         isUnsavedNew.value = true
+        editingRecipe.value = recipe.deepCopy()
+        editFocusSection.value = RecipeEditSection.NOTES
         isEditing.value = true
         statusMessage.value = "New recipe (unsaved)"
     }
@@ -615,7 +695,7 @@ fun main() {
                     title = "Toggle Edit",
                     mnemonic = 'O',
                     shortcut = Platform.allowedShortcut(Platform.primaryShortcut('O')),
-                    execute = { isEditing.value = !isEditing.value },
+                    execute = { toggleEditMode() },
                     enabled = isOpen
                 )
             )
@@ -647,6 +727,7 @@ fun main() {
                         lastDiskHtml.value = null
                         isUnsavedNew.value = false
                         isEditing.value = false
+                        editingRecipe.value = null
                     },
                     enabled = isOpen
                 )
@@ -897,6 +978,7 @@ fun main() {
         lastDiskHtml.value = null
         isUnsavedNew.value = false
         isEditing.value = false
+        editingRecipe.value = null
     }
 
     /**
@@ -1126,6 +1208,11 @@ fun main() {
             selectedFilename = selectedFilename.value,
             selectedFileUrl = readerFileUrl,
             selectedHtml = selectedHtml.value,
+            editingRecipe = editingRecipe.value,
+            knownLabels = knownLabels.value,
+            unitCatalog = unitCatalog.value,
+            welcomeHtml = welcomeHtml,
+            welcomeFileUrl = welcomeFileUrl,
             webViewReady = webViewReady.value,
             restartRequired = restartRequired.value,
             webViewStatusText = webViewStatusText.value,
@@ -1140,7 +1227,8 @@ fun main() {
             },
             onOpenRepo = ::pickDirectory,
             onSelectRecipe = ::selectRecipe,
-            onHtmlChange = { selectedHtml.value = it },
+            onRecipeChange = { applyEditingRecipe(it) },
+            onEditFocusSection = { editFocusSection.value = it },
             onClearSelection = ::clearSelection,
         )
 
@@ -1229,9 +1317,61 @@ private fun loadRecipeIndex(repo: FileSystemRecipeRepository): List<RecipeListIt
     }
 }
 
+/** Distinct category labels from every recipe in the repository (for free-entry suggestions). */
+private fun loadKnownLabels(repo: FileSystemRecipeRepository): List<String> {
+    val set = linkedSetOf<String>()
+    for (name in repo.listRecipes()) {
+        try {
+            repo.loadRecipe(name).labels.forEach { set.add(it) }
+        } catch (_: Exception) {
+            // skip unreadable
+        }
+    }
+    return set.sortedBy { it.lowercase() }
+}
+
 private fun stripHtmlExtension(filename: String): String =
     if (filename.endsWith(".html", ignoreCase = true)) {
         filename.dropLast(5)
     } else {
         filename
     }
+
+/** Load a classpath resource as UTF-8 text (empty if missing). */
+private fun loadClasspathText(resourceName: String): String {
+    val stream = Thread.currentThread().contextClassLoader?.getResourceAsStream(resourceName)
+        ?: object {}.javaClass.getResourceAsStream("/$resourceName")
+        ?: object {}.javaClass.classLoader?.getResourceAsStream(resourceName)
+    return try {
+        stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+    } catch (e: Exception) {
+        Debug.error("Failed to load resource $resourceName", e)
+        ""
+    }
+}
+
+private fun loadBundledUnitCatalog(): List<String> {
+    val text = loadClasspathText("units.txt")
+    if (text.isBlank()) {
+        Debug.log("units.txt not found on classpath; unit dropdown empty")
+        return emptyList()
+    }
+    return UnitsCatalog.parse(text).map { it.displayName() }
+}
+
+/**
+ * Write welcome HTML to a stable cache file so WebView can load file:// (not about:blank).
+ */
+private fun materializeWelcomeFileUrl(html: String): String? {
+    if (html.isBlank()) return null
+    return try {
+        val home = System.getProperty("user.home") ?: "."
+        val dir = File(home, ".cache/recipejar").also { it.mkdirs() }
+        val f = File(dir, "welcome.html")
+        f.writeText(html, Charsets.UTF_8)
+        f.toURI().toString()
+    } catch (e: Exception) {
+        Debug.error("Could not materialize welcome.html", e)
+        null
+    }
+}

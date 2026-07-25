@@ -7,20 +7,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /**
  * Catalog entry for the alpha-tab index (filename key + display title).
@@ -59,7 +55,7 @@ internal fun titleSortKey(title: String): String = buildString(title.length) {
 /**
  * Shell: split layout with Rolodex-edge alpha index (left) and content pane (right).
  *
- * Content pane swaps by [isEditing]: monospaced HTML [RecipeCodeEditor] vs [RecipeReader].
+ * Content pane swaps by [isEditing]: structured [RecipeFormEditor] vs [RecipeReader].
  * Reader prefers file:// WebView when [webViewReady] is true (KCEF initialized on desktop).
  * Otherwise falls back to scrollable raw HTML text — see [RecipeReader].
  *
@@ -76,6 +72,14 @@ fun App(
     selectedFilename: String?,
     selectedFileUrl: String?,
     selectedHtml: String?,
+    editingRecipe: recipejar.domain.Recipe? = null,
+    knownLabels: List<String> = emptyList(),
+    /** Unit plurals from units.txt (no blank entry — form adds it). */
+    unitCatalog: List<String> = emptyList(),
+    /** Bundled welcome page HTML; shown when no recipe is selected. */
+    welcomeHtml: String = "",
+    /** file:// URL for welcome (WebView); null uses HTML text fallback. */
+    welcomeFileUrl: String? = null,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
     webViewStatusText: String? = null,
@@ -87,7 +91,8 @@ fun App(
     onForceCompactChange: ((Boolean) -> Unit)? = null,
     onOpenRepo: () -> Unit,
     onSelectRecipe: (filename: String) -> Unit,
-    onHtmlChange: (String) -> Unit = {},
+    onRecipeChange: (recipejar.domain.Recipe) -> Unit = {},
+    onEditFocusSection: (RecipeEditSection) -> Unit = {},
     onClearSelection: () -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -193,13 +198,32 @@ fun App(
             HorizontalDivider()
 
             if (selectedDir == null) {
-                Box(
-                    Modifier.weight(1f).fillMaxWidth().padding(24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "No repository selected. Open a directory containing recipes (e.g. Test/Recipes).",
-                        style = MaterialTheme.typography.bodyLarge,
+                // No repo yet: still show welcome (not a blank/black pane) + open CTA.
+                Column(Modifier.weight(1f).fillMaxWidth()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "No repository open.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Button(onClick = onOpenRepo) {
+                            Text("Open repository")
+                        }
+                    }
+                    HorizontalDivider()
+                    WelcomePane(
+                        welcomeHtml = welcomeHtml,
+                        welcomeFileUrl = welcomeFileUrl,
+                        webViewReady = webViewReady,
+                        restartRequired = restartRequired,
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(8.dp),
                     )
                 }
             } else if (indexLoading && recipes.isEmpty()) {
@@ -234,10 +258,16 @@ fun App(
                             },
                             isEditing = isEditing,
                             selectedHtml = selectedHtml,
+                            editingRecipe = editingRecipe,
+                            knownLabels = knownLabels,
+                            unitCatalog = unitCatalog,
                             selectedFileUrl = selectedFileUrl,
+                            welcomeHtml = welcomeHtml,
+                            welcomeFileUrl = welcomeFileUrl,
                             webViewReady = webViewReady,
                             restartRequired = restartRequired,
-                            onHtmlChange = onHtmlChange,
+                            onRecipeChange = onRecipeChange,
+                            onEditFocusSection = onEditFocusSection,
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
@@ -251,10 +281,16 @@ fun App(
                             onSelectRecipe = onSelectRecipe,
                             isEditing = isEditing,
                             selectedHtml = selectedHtml,
+                            editingRecipe = editingRecipe,
+                            knownLabels = knownLabels,
+                            unitCatalog = unitCatalog,
                             selectedFileUrl = selectedFileUrl,
+                            welcomeHtml = welcomeHtml,
+                            welcomeFileUrl = welcomeFileUrl,
                             webViewReady = webViewReady,
                             restartRequired = restartRequired,
-                            onHtmlChange = onHtmlChange,
+                            onRecipeChange = onRecipeChange,
+                            onEditFocusSection = onEditFocusSection,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -396,10 +432,16 @@ private fun WideShell(
     onSelectRecipe: (String) -> Unit,
     isEditing: Boolean,
     selectedHtml: String?,
+    editingRecipe: recipejar.domain.Recipe?,
+    knownLabels: List<String>,
+    unitCatalog: List<String>,
     selectedFileUrl: String?,
+    welcomeHtml: String,
+    welcomeFileUrl: String?,
     webViewReady: Boolean,
     restartRequired: Boolean,
-    onHtmlChange: (String) -> Unit,
+    onRecipeChange: (recipejar.domain.Recipe) -> Unit,
+    onEditFocusSection: (RecipeEditSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier) {
@@ -421,10 +463,16 @@ private fun WideShell(
             selectedFilename = selectedFilename,
             isEditing = isEditing,
             selectedHtml = selectedHtml,
+            editingRecipe = editingRecipe,
+            knownLabels = knownLabels,
+            unitCatalog = unitCatalog,
             selectedFileUrl = selectedFileUrl,
+            welcomeHtml = welcomeHtml,
+            welcomeFileUrl = welcomeFileUrl,
             webViewReady = webViewReady,
             restartRequired = restartRequired,
-            onHtmlChange = onHtmlChange,
+            onRecipeChange = onRecipeChange,
+            onEditFocusSection = onEditFocusSection,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -449,10 +497,16 @@ private fun CompactShell(
     onSelectRecipe: (String) -> Unit,
     isEditing: Boolean,
     selectedHtml: String?,
+    editingRecipe: recipejar.domain.Recipe?,
+    knownLabels: List<String>,
+    unitCatalog: List<String>,
     selectedFileUrl: String?,
+    welcomeHtml: String,
+    welcomeFileUrl: String?,
     webViewReady: Boolean,
     restartRequired: Boolean,
-    onHtmlChange: (String) -> Unit,
+    onRecipeChange: (recipejar.domain.Recipe) -> Unit,
+    onEditFocusSection: (RecipeEditSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (compactShowContent && selectedFilename != null) {
@@ -464,10 +518,16 @@ private fun CompactShell(
                 selectedFilename = selectedFilename,
                 isEditing = isEditing,
                 selectedHtml = selectedHtml,
+                editingRecipe = editingRecipe,
+                knownLabels = knownLabels,
+                unitCatalog = unitCatalog,
                 selectedFileUrl = selectedFileUrl,
+                welcomeHtml = welcomeHtml,
+                welcomeFileUrl = welcomeFileUrl,
                 webViewReady = webViewReady,
                 restartRequired = restartRequired,
-                onHtmlChange = onHtmlChange,
+                onRecipeChange = onRecipeChange,
+                onEditFocusSection = onEditFocusSection,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -637,25 +697,45 @@ private fun ContentPane(
     selectedFilename: String?,
     isEditing: Boolean,
     selectedHtml: String?,
+    editingRecipe: recipejar.domain.Recipe?,
+    knownLabels: List<String>,
+    unitCatalog: List<String>,
     selectedFileUrl: String?,
+    welcomeHtml: String,
+    welcomeFileUrl: String?,
     webViewReady: Boolean,
     restartRequired: Boolean,
-    onHtmlChange: (String) -> Unit,
+    onRecipeChange: (recipejar.domain.Recipe) -> Unit,
+    onEditFocusSection: (RecipeEditSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier) {
         if (isEditing) {
-            RecipeCodeEditor(
-                selectedFilename = selectedFilename,
-                html = selectedHtml.orEmpty(),
-                onHtmlChange = onHtmlChange,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (editingRecipe == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "Select a recipe from the index, or File → New",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                RecipeFormEditor(
+                    recipe = editingRecipe,
+                    knownLabels = knownLabels,
+                    unitCatalog = unitCatalog,
+                    onRecipeChange = onRecipeChange,
+                    onFocusSection = onEditFocusSection,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         } else {
             RecipeReader(
                 selectedFilename = selectedFilename,
                 selectedFileUrl = selectedFileUrl,
                 selectedHtml = selectedHtml,
+                welcomeHtml = welcomeHtml,
+                welcomeFileUrl = welcomeFileUrl,
                 webViewReady = webViewReady,
                 restartRequired = restartRequired,
                 modifier = Modifier.fillMaxSize(),
@@ -665,90 +745,108 @@ private fun ContentPane(
 }
 
 /**
- * Monospaced multiline HTML source editor for the selected recipe.
- * Bound to the parent [html] buffer; edits flow through [onHtmlChange].
+ * Bundled welcome page when no recipe is selected (avoids blank/black CEF pane).
  */
 @Composable
-fun RecipeCodeEditor(
-    selectedFilename: String?,
-    html: String,
-    onHtmlChange: (String) -> Unit,
+fun WelcomePane(
+    welcomeHtml: String,
+    welcomeFileUrl: String?,
+    webViewReady: Boolean,
+    restartRequired: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    if (selectedFilename == null) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            Text(
-                "Select a recipe from the index, or File → New",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
-
-    val scroll = rememberScrollState()
-    val textColor = MaterialTheme.colorScheme.onSurface
     Column(modifier) {
         Text(
-            selectedFilename,
+            "Welcome",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        Text(
-            "HTML source (edit mode)",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 4.dp),
         )
         HorizontalDivider()
         Spacer(Modifier.height(4.dp))
-        BasicTextField(
-            value = html,
-            onValueChange = onHtmlChange,
-            textStyle = TextStyle(
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                color = textColor,
-                lineHeight = 16.sp,
-            ),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(scroll)
-                .padding(4.dp),
-        )
+        if (webViewReady && !welcomeFileUrl.isNullOrBlank()) {
+            RecipeHtmlWebView(
+                fileUrl = welcomeFileUrl,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        } else {
+            val scroll = rememberScrollState()
+            if (!webViewReady) {
+                Text(
+                    if (restartRequired) {
+                        "WebView not ready — restart after install for rendered view."
+                    } else {
+                        "WebView not ready — showing welcome text."
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            val display = welcomeHtml.ifBlank {
+                "<p>Welcome to RecipeJar. Open a repository and select a recipe to begin.</p>"
+            }
+            Text(
+                text = stripSimpleHtml(display),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)
+                    .padding(8.dp),
+            )
+        }
     }
 }
 
+/** Minimal HTML → plain text for welcome fallback (no full HTML engine). */
+internal fun stripSimpleHtml(html: String): String {
+    return html
+        .replace(Regex("(?is)<script[^>]*>.*?</script>"), "")
+        .replace(Regex("(?is)<style[^>]*>.*?</style>"), "")
+        .replace(Regex("(?i)<br\\s*/?>"), "\n")
+        .replace(Regex("(?i)</p\\s*>"), "\n\n")
+        .replace(Regex("(?i)</h[1-6]\\s*>"), "\n")
+        .replace(Regex("(?i)</li\\s*>"), "\n")
+        .replace(Regex("(?i)<li[^>]*>"), "• ")
+        .replace(Regex("<[^>]+>"), "")
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace(Regex("[ \t]+\n"), "\n")
+        .replace(Regex("\n{3,}"), "\n\n")
+        .trim()
+}
+
 /**
- * Read-only recipe view.
+ * Read-only recipe view, or [WelcomePane] when nothing is selected.
  *
  * Preferred path: compose-webview-multiplatform [WebView] loading `file://…` so relative
  * CSS (`style/default.css`) and images resolve against the repository directory.
  *
- * Fallback: scrollable monospaced HTML source. Used when KCEF has not finished initializing
- * (first-run CEF download / install can fail or require restart). Desktop WebView backend is
- * KCEF-based; without a ready CEF runtime, embedding WebView crashes or shows nothing.
- * See Main.kt KCEF bootstrap and README notes.
+ * Fallback: scrollable HTML source. Used when KCEF has not finished initializing.
  */
 @Composable
 fun RecipeReader(
     selectedFilename: String?,
     selectedFileUrl: String?,
     selectedHtml: String?,
+    welcomeHtml: String = "",
+    welcomeFileUrl: String? = null,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     if (selectedFilename == null) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            Text(
-                "Select a recipe from the index",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        WelcomePane(
+            welcomeHtml = welcomeHtml,
+            welcomeFileUrl = welcomeFileUrl,
+            webViewReady = webViewReady,
+            restartRequired = restartRequired,
+            modifier = modifier,
+        )
         return
     }
 
@@ -797,14 +895,16 @@ fun RecipeReader(
                     .padding(4.dp),
             )
         } else {
-            Box(
-                Modifier
+            // Loading or missing file: never leave a blank black WebView surface.
+            WelcomePane(
+                welcomeHtml = welcomeHtml,
+                welcomeFileUrl = welcomeFileUrl,
+                webViewReady = webViewReady,
+                restartRequired = restartRequired,
+                modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("Unable to load recipe content.")
-            }
+            )
         }
     }
 }

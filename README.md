@@ -12,7 +12,7 @@ Keep your recipes in a local repository of HTML files, viewable in any browser a
 |------|--------|
 | Open HTML recipe repo (`Test/Recipes` works) | Done |
 | A–Z index + recipe reader (WebView / HTML fallback) | Done |
-| Code editor + save (HTML roundtrip) | Done |
+| Structured editor + save (HTML roundtrip) | Done |
 | Menus, Cmd/Ctrl shortcuts, OS hooks | Done |
 | Macros (JSON + legacy txt import) | Done |
 | Search + preferences (last repo/recipe, author) | Done |
@@ -29,26 +29,49 @@ Active code lives in `shared/` + `composeApp/`.
 
 ### Requirements
 
-- **JDK 17+** (Gradle toolchain is 17; required by KCEF / recipe WebView). Foojay auto-provisions a JDK 17 for compile/run if the system only has an older Java. For a packaged or IDE run, install Temurin/OpenJDK 17+ and set `JAVA_HOME`.
+- **JDK 17+** for development builds (required by KCEF / recipe WebView). The Gradle `run` task is pinned to a **Java 17 toolchain** so system Java 11 alone is not enough unless a JDK 17 is installed or auto-provisioned.
 - Internet on **first run** (KCEF downloads a Chromium embed under `~/.cache/recipejar/`)
 - Optional: OS packaging tools if you build installers (macOS for DMG, WiX/JDK for MSI, etc.)
 
-### Build & run (desktop runbook)
+### Run (end users)
+
+**Preferred:** install or unpack a **packaged app** (bundled runtime — no `JAVA_HOME`, no Gradle):
+
+```bash
+# Build a self-contained app image for this OS
+./gradlew :composeApp:createDistributable
+
+# Then launch the binary (path may vary slightly by OS/version), e.g. Linux:
+# composeApp/build/compose/binaries/main/app/RecipeJar/bin/RecipeJar
+```
+
+Or build an installer:
+
+```bash
+./gradlew :composeApp:packageDistributionForCurrentOS
+# → Deb / MSI / DMG under composeApp/build/compose/binaries/…
+```
+
+Double-click the installed app (or the `RecipeJar` launcher in the distributable) like any desktop application.
+
+### Run (developers)
 
 From the repository root:
 
 ```bash
-# Compile shared + desktop app
-./gradlew :shared:compileKotlinDesktop :composeApp:compileKotlinDesktop
+# Simplest: one launcher finds JDK 17 and runs the app (or a prebuilt distributable if present)
+./recipejar
 
-# Unit tests (shared; does not mutate Test/Recipes)
-./gradlew :shared:desktopTest
-
-# Run the desktop app
+# Or explicitly:
 ./gradlew :composeApp:run
+
+# Tests (shared; does not mutate Test/Recipes)
+./gradlew :shared:desktopTest
 ```
 
-First launch may take longer while KCEF installs under `~/.cache/recipejar/kcef-bundle/` and `kcef-cache/` (stable user cache, not the project working directory). A status banner shows download/extract progress. If WebView is not ready, the reader shows HTML source instead of a rendered page; restart after install if prompted.
+If `./gradlew :composeApp:run` fails with `UnsupportedClassVersionError`, your runtime is older than 17. Use `./recipejar`, install JDK 17, or set `JAVA_HOME` to a 17+ JDK. The Gradle run task also requests a Java 17 toolchain launcher.
+
+First launch may take longer while KCEF installs under `~/.cache/recipejar/kcef-bundle/` and `kcef-cache/` (stable user cache, not the project working directory). A status banner shows download/extract progress. If WebView is not ready, the reader shows HTML source / welcome text instead of a rendered page; restart after install if prompted.
 
 ### UI notes (desktop)
 
@@ -62,7 +85,7 @@ First launch may take longer while KCEF installs under `~/.cache/recipejar/kcef-
 2. Click **Open repository** (or **Tools → Preferences…**).
 3. Choose the **`Test/Recipes`** directory in this repo (absolute path).
 4. Recipes appear in the A–Z index; select one to read.
-5. **Recipe → Toggle Edit** for the code editor; **Save** writes via the HTML serializer.
+5. **Recipe → Toggle Edit** opens a structured form (title, categories, notes, ingredients list, procedure). Notes and procedure accept HTML fragments. Changing the **title** and saving creates a **new** recipe file (original kept). **Save** writes via the HTML serializer and rebuilds `index.html` categories.
 
 Last repository path (absolute), last recipe **per repository**, and optional author name are stored in Java user preferences (`recipejar` node) and restored on the next launch. Only valid directories are remembered; a blank path in Preferences clears the last-repo key without closing the open session.
 

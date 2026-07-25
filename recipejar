@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Single developer launcher: find JDK 17+, then run Compose desktop app.
+# End users should use a packaged build (Deb/MSI/DMG or createDistributable binary).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+pick_java_home() {
+  if [[ -n "${JAVA_HOME:-}" && -x "${JAVA_HOME}/bin/java" ]]; then
+    local v
+    v="$("${JAVA_HOME}/bin/java" -version 2>&1 | head -1 || true)"
+    if echo "$v" | grep -qE 'version "(1[7-9]|2[0-9])\.'; then
+      echo "$JAVA_HOME"
+      return 0
+    fi
+  fi
+  local candidates=(
+    "$HOME/.local/jdk/current"
+    "$HOME/.local/jdk/jdk-17.0.19+10"
+    "/usr/lib/jvm/java-17-openjdk-amd64"
+    "/usr/lib/jvm/java-17-openjdk"
+    "/usr/lib/jvm/temurin-17-jdk-amd64"
+  )
+  local d
+  for d in "${candidates[@]}"; do
+    if [[ -x "$d/bin/java" ]]; then
+      echo "$d"
+      return 0
+    fi
+  done
+  # Gradle-provisioned toolchain (path may vary)
+  local g
+  g="$(ls -d "$HOME"/.gradle/jdks/*17* 2>/dev/null | head -1 || true)"
+  if [[ -n "$g" && -x "$g/bin/java" ]]; then
+    echo "$g"
+    return 0
+  fi
+  return 1
+}
+
+# Prefer a prebuilt distributable if present (no Gradle needed).
+DIST_BIN="$(ls -d "$ROOT"/composeApp/build/compose/binaries/main/app/RecipeJar/bin/RecipeJar 2>/dev/null | head -1 || true)"
+if [[ -z "$DIST_BIN" ]]; then
+  DIST_BIN="$(ls -d "$ROOT"/composeApp/build/compose/binaries/*/app/*/bin/RecipeJar 2>/dev/null | head -1 || true)"
+fi
+if [[ -n "$DIST_BIN" && -x "$DIST_BIN" ]]; then
+  exec "$DIST_BIN" "$@"
+fi
+
+if ! JH="$(pick_java_home)"; then
+  echo "RecipeJar needs JDK 17+." >&2
+  echo "Install Temurin/OpenJDK 17, or set JAVA_HOME to a JDK 17 install." >&2
+  echo "Alternatively build a packaged app: ./gradlew :composeApp:createDistributable" >&2
+  exit 1
+fi
+
+export JAVA_HOME="$JH"
+export PATH="$JAVA_HOME/bin:$PATH"
+echo "Using JAVA_HOME=$JAVA_HOME"
+exec ./gradlew :composeApp:run "$@"

@@ -1,3 +1,5 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -85,8 +87,14 @@ compose.desktop {
     }
 }
 
+// Ensure :composeApp:run (and other JavaExec) use JDK 17 even when system `java` is 11.
 afterEvaluate {
+    val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
+    val jdk17 = toolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
     tasks.withType<JavaExec>().configureEach {
+        javaLauncher.set(jdk17)
         jvmArgs(kcefJvmOpens)
     }
 }

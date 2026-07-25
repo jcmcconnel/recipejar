@@ -1,0 +1,60 @@
+;These are the units that RecipeJar recognizes.
+;You can add your own simply by typing them in below.
+;For more information about Units, see: http://code.google.com/p/recipejar/wiki/Units
+;Please note, units are used exactly as they are typed, spaces and all.
+
+;Lines beginning with ";" are comments, and will be ignored by the program.
+
+;English cooking
+oz,oz,Tbsp(0.5)|lbs(0.0625)|Cups(0.125)|pt(0.0625)|Jiggers(0.666667)|ml(29.57)
+Cups,Cup,oz(8)|pt(0.5)|qt(0.25)|gal(0.0625)
+pt,pt,oz(16)|Cups(2)|qt(0.5)|gal(0.125)
+qt,qt,oz(32)|Cups(4)|gal(0.25)|pt(2)
+lbs,lb,oz(16)
+Tbsps,Tbsp,oz(2)|Cups(0.0625)|tsps(3)|ml(14.79)|Sticks(0.125)
+tsps,tsp,Tbsp(0.3333333)|ml(4.93)
+
+gal,gal,qt(4)|liters(3.78)
+Gills,Gill,oz(4)|Cups(0.5)
+
+Jiggers,Jigger,oz(1.5)
+
+Pecks,Peck,gal(2)
+
+Bushels,Bushel,gal(8)
+
+
+
+;English Other
+in,in,ft(0.0833334)|cm(2.54)
+
+ft,ft,in(12)|yd(0.333333)
+yd,yd,ft(3)|mi(0.000568181818)
+mi,mi,yd(1760)
+
+;Metric
+grams,gram,ml(1)|kgs(0.001)
+kgs,kg,grams(1000)|liters(1)
+liters,liter,ml(1000)|kgs(1)
+ml,ml,liters(0.001)|cc(1)|grams(1)
+cc,cc,ml(1)
+cm,cm,in(0.3937)
+
+;Other
+bags,bag
+boxes,box
+cans,can
+Cloves,Clove
+Count,Count
+Packets,Packet
+pieces,piece
+pkgs,pkg
+Ribs,Rib
+Slices,Slice
+Sprigs,Sprig
+Sticks,Stick,Tbsps(8)
+
+;Temperature
+Celsius,Celsius,Farenheit(1.8+32)|Kelvin(1+273.15)
+Farenheit,Farenheit,Celsius(5/9-160/9)|Kelvin(5/9+255.37222)
+Kelvin,Kelvin,Celsius(1-273.15)|Farenheit(1.8-459.67)
