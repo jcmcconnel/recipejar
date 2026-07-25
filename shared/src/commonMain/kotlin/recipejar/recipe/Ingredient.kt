@@ -31,8 +31,8 @@ data class Ingredient(
                         remaining = StringProcessor.removeCarriageReturns(remaining.substring(endQuantity + 7))
                     }
                 }
-            } catch (e: StringIndexOutOfBoundsException) {
-                // keep empty as original
+            } catch (_: IndexOutOfBoundsException) {
+                // keep empty as original (KMP-safe; JVM used StringIndexOutOfBoundsException)
             }
             try {
                 val unitToken = "<span class=\"unit\">"
@@ -44,7 +44,7 @@ data class Ingredient(
                         remaining = StringProcessor.removeCarriageReturns(remaining.substring(endUnit + 7))
                     }
                 }
-            } catch (e: StringIndexOutOfBoundsException) {
+            } catch (_: IndexOutOfBoundsException) {
             }
             try {
                 val nameToken = "<span class=\"name\">"
@@ -55,7 +55,7 @@ data class Ingredient(
                         data2 = StringProcessor.removeCarriageReturns(remaining.substring(nameIdx + nameToken.length, endName)).trim()
                     }
                 }
-            } catch (e: StringIndexOutOfBoundsException) {
+            } catch (_: IndexOutOfBoundsException) {
             }
             return Ingredient(data0, data1, data2)
         }

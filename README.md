@@ -17,7 +17,8 @@ Keep your recipes in a local repository of HTML files, viewable in any browser a
 | Macros (JSON + legacy txt import) | Done |
 | Search + preferences (last repo/recipe, author) | Done |
 | Native packaging (DMG / MSI / Deb) | Configured |
-| **Android / iOS / Web** | **Deferred** (notes below) |
+| **Android / iOS** | **Gradle targets wired** (library + debug app shell / iOS framework scaffold); full mobile MVP UI still Phase 1A |
+| **Web** | **Deferred** |
 
 The classic Java Swing app under `src/` remains for **reference only**. Prefer `./gradlew :composeApp:run` for the active app.
 
@@ -67,7 +68,13 @@ From the repository root:
 
 # Tests (shared; does not mutate Test/Recipes)
 ./gradlew :shared:desktopTest
+
+# Android (requires ANDROID_HOME / local.properties sdk.dir)
+./gradlew :shared:compileDebugKotlinAndroid
+./gradlew :composeApp:assembleDebug
 ```
+
+Publishing / first-time store operator steps: [docs/publishing/HUMAN-OPERATOR-GUIDE.md](docs/publishing/HUMAN-OPERATOR-GUIDE.md).
 
 If `./gradlew :composeApp:run` fails with `UnsupportedClassVersionError`, your runtime is older than 17. Use `./recipejar`, install JDK 17, or set `JAVA_HOME` to a 17+ JDK. The Gradle run task also requests a Java 17 toolchain launcher.
 

@@ -1,12 +1,14 @@
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization")
+    id("com.android.application")
 }
 
 // KCEF / JCEF reflective access (compose-webview-multiplatform README.desktop.md)
@@ -30,6 +32,12 @@ private val kcefJvmOpens = buildList {
 kotlin {
     jvm("desktop")
 
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
     // KCEF (compose-webview-multiplatform desktop) is bytecode 61 / Java 17+
     jvmToolchain(17)
 
@@ -51,6 +59,43 @@ kotlin {
                 implementation("io.github.kevinnzou:compose-webview-multiplatform:${project.property("webview.version")}")
                 implementation("com.squareup.okio:okio:${project.property("okio.version")}")
             }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation(compose.preview)
+                implementation("androidx.activity:activity-compose:1.9.3")
+                implementation("androidx.appcompat:appcompat:1.7.0")
+            }
+        }
+    }
+}
+
+android {
+    namespace = "org.recipejar.app"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "org.recipejar.app"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 }

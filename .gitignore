@@ -22,3 +22,9 @@ gradle-app.setting
 # Misc
 *.iml
 *.log
+
+# Android
+local.properties
+
+# Grok local
+.grok/
