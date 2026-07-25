@@ -1,0 +1,82 @@
+package recipejar.html
+
+import recipejar.domain.Recipe
+import java.io.File
+import kotlin.test.*
+
+/**
+ * Roundtrip tests against original Test/ corpus goldens (kept intact).
+ * Load parse -> model -> serialize (re-apply template + footer variant) -> reparse
+ * Verify: no data loss on core (title, notes, procedure, ingredients, labels)
+ * + browser compatible structure (doctype, div ids, footer present).
+ * Use "browser-footer" for resting files.
+ */
+class RecipeRoundtripTest {
+
+    private val corpusDir = File("../Test/Recipes").let { if (it.exists()) it else File("Test/Recipes") }
+
+    @Test
+    fun roundtrip_SimpleTest1() {
+        roundtrip("Test1.html", useBrowserFooter = true)
+    }
+
+    @Test
+    fun roundtrip_AppleSauceCobbler() {
+        roundtrip("AppleSauceCobbler.html", useBrowserFooter = true)
+    }
+
+    @Test
+    fun roundtrip_WithLabelsAndMarkup() {
+        roundtrip("BananaBread.html", useBrowserFooter = true)
+    }
+
+    @Test
+    fun roundtrip_AppViewVariant() {
+        // smart: program-footer for app view
+        roundtrip("Test1.html", useBrowserFooter = false)
+    }
+
+    private fun roundtrip(filename: String, useBrowserFooter: Boolean) {
+        val htmlFile = File(corpusDir, filename)
+        if (!htmlFile.exists()) {
+            // hard fail (no silent skip); corpus must be present for roundtrip fidelity tests
+            fail("corpus not found for $filename at ${htmlFile.absolutePath} (cwd=${System.getProperty("user.dir")})")
+        }
+        val origHtml = htmlFile.readText(Charsets.UTF_8)
+
+        val parsed: Recipe = RecipeSerializer.parse(origHtml)
+        assertTrue(parsed.title.isNotBlank(), "title from $filename")
+
+        val footer = if (useBrowserFooter) "browser-footer" else "program-footer"
+        val serialized = RecipeSerializer.serialize(parsed, footer)
+
+        // Browser compat structure
+        assertTrue(serialized.startsWith("<!DOCTYPE html PUBLIC"), "doctype for browser")
+        assertTrue(serialized.contains("<div id=\"header\">"), "header div")
+        assertTrue(serialized.contains("<div id=\"notes\">"), "notes div")
+        assertTrue(serialized.contains("<div id=\"ingredients\">"), "ingredients div")
+        assertTrue(serialized.contains("<div id=\"procedure\">"), "procedure div")
+        assertTrue(serialized.contains("id=\"$footer\""), "chosen footer variant $footer")
+
+        // reparse for no data loss on core
+        val reparsed = RecipeSerializer.parse(serialized)
+
+        assertEquals(parsed.title, reparsed.title, "title roundtrip $filename")
+        // notes/procedure: compare after ws normalize because template emit + original may have slight diffs
+        assertEquals(normalizeWs(parsed.notes), normalizeWs(reparsed.notes), "notes roundtrip $filename")
+        assertEquals(normalizeWs(parsed.procedure), normalizeWs(reparsed.procedure), "procedure $filename")
+        assertEquals(parsed.labels, reparsed.labels, "labels $filename")
+
+        assertEquals(parsed.ingredients.size, reparsed.ingredients.size, "ing count $filename")
+        for (i in parsed.ingredients.indices) {
+            val a = parsed.ingredients[i]
+            val b = reparsed.ingredients[i]
+            assertEquals(a.quantity, b.quantity, "ing qty[$i] $filename")
+            assertEquals(a.unit, b.unit, "ing unit[$i] $filename")
+            assertEquals(a.name, b.name, "ing name[$i] $filename")
+        }
+    }
+
+    private fun normalizeWs(s: String): String =
+        s.replace(Regex("\\s+"), " ").trim()
+}
