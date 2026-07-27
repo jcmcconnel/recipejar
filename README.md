@@ -17,8 +17,11 @@ Keep your recipes in a local repository of HTML files, viewable in any browser a
 | Macros (JSON + legacy txt import) | Done |
 | Search + preferences (last repo/recipe, author) | Done |
 | Native packaging (DMG / MSI / Deb) | Configured |
-| **Android / iOS** | **Gradle targets wired** (library + debug app shell / iOS framework scaffold); full mobile MVP UI still Phase 1A |
+| **Android** | **Working prototype** — debug APK loads bundled sample recipes via real HTML serializer + shared UI shell |
+| **iOS (iPhone)** | **Working prototype** — Simulator app host (`iosApp`) with the same sample jar + Compose shell |
+| **iPad** | **Target platform** (same iOS app binary / universal iPhone+iPad family; layout uses compact shell; full iPad chrome later) |
 | **Web** | **Deferred** |
+| Full mobile MVP (SAF/iCloud open, edit parity, store polish) | Phase 1A+ |
 
 The classic Java Swing app under `src/` remains for **reference only**. Prefer `./gradlew :composeApp:run` for the active app.
 
@@ -69,10 +72,22 @@ From the repository root:
 # Tests (shared; does not mutate Test/Recipes)
 ./gradlew :shared:desktopTest
 
-# Android (requires ANDROID_HOME / local.properties sdk.dir)
-./gradlew :shared:compileDebugKotlinAndroid
+# Android prototype (requires ANDROID_HOME / local.properties sdk.dir)
 ./gradlew :composeApp:assembleDebug
+# → composeApp/build/outputs/apk/debug/composeApp-debug.apk
+
+# iOS prototype framework (then open iosApp in Xcode, or see docs)
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 ```
+
+### Mobile platforms (roadmap)
+
+| Platform | Role |
+|----------|------|
+| **Android** (phone) | Primary store target; debug prototype ships sample jar |
+| **iOS (iPhone)** | Primary store target; Simulator prototype via `iosApp` |
+| **iPad** | **Explicit target** — same RecipeJar iOS app supports **iPhone and iPad**; prototype runs on iPad Simulator; larger-canvas layout polish follows phone MVP |
+| Desktop (macOS / Windows / Linux) | Secondary / power-user (v1 complete) |
 
 Publishing / first-time store operator steps: [docs/publishing/HUMAN-OPERATOR-GUIDE.md](docs/publishing/HUMAN-OPERATOR-GUIDE.md).
 

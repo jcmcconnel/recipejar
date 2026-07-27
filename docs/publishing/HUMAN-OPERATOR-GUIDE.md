@@ -8,6 +8,9 @@ Companion docs:
 - [MAC-TOOLCHAIN.md](./MAC-TOOLCHAIN.md) — versions and paths already installed on the development Mac  
 - Plan context: App Store + Play primary; desktop secondary; marketing site Phase 2  
 
+**Mobile targets:** Android phones, **iPhone**, and **iPad** (one iOS app binary / universal family; iPad is an explicit product target, not an afterthought).  
+
+
 **You (Human)** create accounts, pay fees, click Submit, and answer review questions.  
 **Agent (AI)** drafts copy, policies, checklists, and builds binaries for you to upload.
 

@@ -38,6 +38,17 @@ kotlin {
         }
     }
 
+    // iOS app host (phone + iPad Simulator / device families via single binary)
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
+
     // KCEF (compose-webview-multiplatform desktop) is bytecode 61 / Java 17+
     jvmToolchain(17)
 
@@ -66,6 +77,18 @@ kotlin {
                 implementation("androidx.activity:activity-compose:1.9.3")
                 implementation("androidx.appcompat:appcompat:1.7.0")
             }
+        }
+        val iosMain by creating {
+            dependsOn(commonMain)
+            dependencies {
+                // Compose UIKit host for iPhone / iPad
+            }
+        }
+        val iosArm64Main by getting {
+            dependsOn(iosMain)
+        }
+        val iosSimulatorArm64Main by getting {
+            dependsOn(iosMain)
         }
     }
 }
