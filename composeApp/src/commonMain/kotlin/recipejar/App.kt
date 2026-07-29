@@ -2,14 +2,39 @@ package recipejar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -300,6 +325,19 @@ fun App(
     }
 }
 
+/**
+ * Vertical metrics for the chrome band under the menu strip (above index/content).
+ * Kept compact so recipe content claims more of the viewport on phone layouts.
+ */
+object AppHeaderMetrics {
+    val HorizontalPadding = 8.dp
+    /** Was 8.dp — tightened to reclaim space under the Material menu strip. */
+    val VerticalPadding = 2.dp
+    /** Compact open control padding (Material menus path). */
+    val OpenButtonHorizontalPadding = 8.dp
+    val OpenButtonVerticalPadding = 2.dp
+}
+
 @Composable
 private fun AppTopBar(
     selectedDir: String?,
@@ -317,54 +355,75 @@ private fun AppTopBar(
             MaterialMenuBar(model = materialMenus)
             HorizontalDivider()
         }
+        // Dense chrome row: title + open + path/count/mode (+ optional phone chip).
+        // Menu strip stays above; this band is intentionally short (titleSmall, 2.dp pad).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(
+                    horizontal = AppHeaderMetrics.HorizontalPadding,
+                    vertical = AppHeaderMetrics.VerticalPadding,
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 "RecipeJar",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
             )
             // When Material menus include Recipe → actions, Open is still convenient here.
             if (materialMenus == null) {
-                Button(onClick = onOpenRepo) {
-                    Text("Open repository")
+                Button(
+                    onClick = onOpenRepo,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                ) {
+                    Text("Open repository", style = MaterialTheme.typography.labelLarge)
                 }
             } else {
-                OutlinedButton(onClick = onOpenRepo) {
-                    Text("Open repository")
+                TextButton(
+                    onClick = onOpenRepo,
+                    contentPadding = PaddingValues(
+                        horizontal = AppHeaderMetrics.OpenButtonHorizontalPadding,
+                        vertical = AppHeaderMetrics.OpenButtonVerticalPadding,
+                    ),
+                ) {
+                    Text("Open", style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (selectedDir != null) {
                 Text(
                     selectedDir,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    if (indexLoading) "Loading…" else "$recipeCount recipes",
-                    style = MaterialTheme.typography.bodySmall,
+                    if (indexLoading) "…" else "$recipeCount",
+                    style = MaterialTheme.typography.labelSmall,
                 )
                 if (selectedFilename != null) {
                     Text(
-                        if (isEditing) "[editing]" else "[read]",
-                        style = MaterialTheme.typography.labelMedium,
+                        if (isEditing) "edit" else "read",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             } else {
                 Spacer(Modifier.weight(1f))
             }
             if (onForceCompactChange != null) {
-                FilterChip(
-                    selected = forceCompactLayout,
+                // Dense toggle: FilterChip is tall — use a compact text affordance instead.
+                TextButton(
                     onClick = { onForceCompactChange(!forceCompactLayout) },
-                    label = { Text("Phone layout") },
-                )
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        if (forceCompactLayout) "Phone ✓" else "Phone",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
     }
@@ -755,14 +814,14 @@ fun WelcomePane(
     restartRequired: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
+    Column(modifier.fillMaxSize()) {
         Text(
             "Welcome",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 4.dp),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(bottom = 2.dp),
         )
         HorizontalDivider()
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         if (webViewReady && !welcomeFileUrl.isNullOrBlank()) {
             RecipeHtmlWebView(
                 fileUrl = welcomeFileUrl,
@@ -772,30 +831,37 @@ fun WelcomePane(
             )
         } else {
             val scroll = rememberScrollState()
-            if (!webViewReady) {
-                Text(
-                    if (restartRequired) {
-                        "WebView not ready — restart after install for rendered view."
-                    } else {
-                        "WebView not ready — showing welcome text."
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-            }
-            val display = welcomeHtml.ifBlank {
-                "<p>Welcome to RecipeJar. Open a repository and select a recipe to begin.</p>"
-            }
-            Text(
-                text = stripSimpleHtml(display),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
+            // Viewport (weight) + inner scroll surface — see [ContentScrollLayout].
+            Box(
+                Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scroll)
-                    .padding(8.dp),
-            )
+                    .fillMaxWidth(),
+            ) {
+                Column(
+                    ContentScrollLayout.contentScrollSurface(Modifier, scroll)
+                        .padding(8.dp),
+                ) {
+                    if (!webViewReady) {
+                        Text(
+                            if (restartRequired) {
+                                "WebView not ready — restart after install for rendered view."
+                            } else {
+                                "WebView not ready — showing welcome text."
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                    val display = welcomeHtml.ifBlank {
+                        "<p>Welcome to RecipeJar. Open a repository and select a recipe to begin.</p>"
+                    }
+                    Text(
+                        text = stripSimpleHtml(display),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         }
     }
 }
@@ -850,14 +916,16 @@ fun RecipeReader(
         return
     }
 
-    Column(modifier) {
+    Column(modifier.fillMaxSize()) {
         Text(
             selectedFilename,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 4.dp),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(bottom = 2.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         HorizontalDivider()
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
 
         if (webViewReady && !selectedFileUrl.isNullOrBlank()) {
             RecipeHtmlWebView(
@@ -877,23 +945,31 @@ fun RecipeReader(
                     "Showing unsaved buffer (save to refresh rendered WebView preview)."
                 else -> null
             }
-            if (banner != null) {
-                Text(
-                    banner,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-            }
-            Text(
-                text = selectedHtml,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                modifier = Modifier
+            // Bounded viewport + inner vertical scroll (not weight+scroll on same node).
+            // Procedure / lower HTML must remain reachable — [ContentScrollLayout].
+            Box(
+                Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scroll)
-                    .padding(4.dp),
-            )
+                    .fillMaxWidth(),
+            ) {
+                Column(
+                    ContentScrollLayout.contentScrollSurface(Modifier, scroll)
+                        .padding(4.dp),
+                ) {
+                    if (banner != null) {
+                        Text(
+                            banner,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                    Text(
+                        text = selectedHtml,
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    )
+                }
+            }
         } else {
             // Loading or missing file: never leave a blank black WebView surface.
             WelcomePane(

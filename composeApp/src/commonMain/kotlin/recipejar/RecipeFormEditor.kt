@@ -1,6 +1,7 @@
 package recipejar
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,14 +99,15 @@ fun RecipeFormEditor(
         labelDraft = ""
     }
 
+    // Outer Box is the height-bounded viewport; Column is scroll-only (no weight).
+    // See [ContentScrollLayout] — procedure fields must remain reachable.
+    Box(modifier.fillMaxSize()) {
     Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(scroll)
+        ContentScrollLayout.contentScrollSurface(Modifier, scroll)
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Edit recipe", style = MaterialTheme.typography.titleMedium)
+        Text("Edit recipe", style = MaterialTheme.typography.titleSmall)
         Text(
             "Notes and procedure accept HTML tags (e.g. <br/>). Title change + Save creates a new file.",
             style = MaterialTheme.typography.labelSmall,
@@ -265,6 +266,7 @@ fun RecipeFormEditor(
 
         Spacer(Modifier.height(16.dp))
     }
+    } // end viewport Box
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

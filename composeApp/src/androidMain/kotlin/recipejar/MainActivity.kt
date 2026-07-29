@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 
 /**
  * Android prototype entry: hosts [MobilePrototypeApp] with real sample recipes.
+ * Exit (Recipe → Exit) finishes this activity.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,7 +18,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MobilePrototypeApp()
+                    MobilePrototypeApp(
+                        onExit = { finish() },
+                    )
                 }
             }
         }
