@@ -26,12 +26,14 @@ object RecipeSerializer {
     private const val INGREDIENTS_HEADER = "<div id=\"ingredients-header\"><h3>You will need:</h3></div>"
     private const val PROCEDURE_HEADER = "<div id=\"procedure-header\"><h3>Procedure:</h3></div>"
 
+    /** In-app readonly footer: category links only (intercepted by the shell). */
     private const val PROGRAM_FOOTER = """<div id="program-footer">
 		  <br/>
 		  <hr/>
-        [LABELS]
+		  Categories: [LABELS]
     </div>"""
 
+    /** Resting on-disk / website footer: index navigation + category anchors. */
     private const val BROWSER_FOOTER = """<div id="browser-footer">
 		  <br/>
 		  <hr/>
@@ -39,11 +41,12 @@ object RecipeSerializer {
 	      Last Saved: [LASTSAVE]<br/>
 	      Created: [CREATED]<br/>
 	      By: [AUTHOR]<br/>
-	      Using: <a href="http://code.google.com/p/recipejar/">[ABOUT] [VERSION]</a>.
+	      Using: <a href="https://github.com/jcmcconnel/recipejar">[ABOUT] [VERSION]</a>.
 	      <hr/>
          <a href="index.html">Index</a>
     </div>"""
 
+    /** Standalone export footer: categories as plain text, no navigation chrome. */
     private const val EXPORT_FOOTER = """<div id="export-footer">
 		  <br/>
 		  <hr/>
@@ -51,9 +54,12 @@ object RecipeSerializer {
 	      Last Saved: [CURRENT-TIME]<br/>
 	      Created: [CREATED]<br/>
 	      By: [AUTHOR]<br/>
-	      Using: <a href="http://code.google.com/p/recipejar/">[ABOUT] [VERSION]</a>.
+	      Using: <a href="https://github.com/jcmcconnel/recipejar">[ABOUT] [VERSION]</a>.
 	      <hr/>
     </div>"""
+
+    /** Custom scheme for program-footer category links (in-app navigation). */
+    const val CATEGORY_LINK_SCHEME = "recipejar://category/"
 
     /**
      * Parse HTML (from on-disk or string) into domain Recipe.
@@ -284,8 +290,7 @@ object RecipeSerializer {
                             textStroke.append(m ?: "Unknown.")
                         }
                         "[LABELS]" -> {
-                            val isExport = activeFooter == "export-footer"
-                            textStroke.append(getMacroLabels(recipe, isExport))
+                            textStroke.append(getMacroLabels(recipe, activeFooter))
                         }
                         "[AUTHOR]" -> {
                             val m = recipe.meta["author"]
@@ -320,16 +325,26 @@ object RecipeSerializer {
         }
     }
 
-    private fun getMacroLabels(recipe: Recipe, isExport: Boolean): String {
+    /**
+     * Label/category list for the active footer variant:
+     * - export-footer: plain text only (no hrefs, no index chrome)
+     * - program-footer: in-app [CATEGORY_LINK_SCHEME] links for alphatab navigation
+     * - browser-footer: website-style index.html#category anchors (+ Index in template)
+     */
+    private fun getMacroLabels(recipe: Recipe, activeFooter: String): String {
         if (recipe.labels.isEmpty()) {
             return "Currently None."
         }
         return recipe.labels.joinToString(", ") { label ->
             val trimmed = label.trim()
-            if (isExport) {
-                trimmed
-            } else {
-                "<a href=\"index.html#${StringProcessor.underscoreSpaces(trimmed)}\">$trimmed</a>"
+            when (activeFooter) {
+                "export-footer" -> trimmed
+                "program-footer" -> {
+                    val encoded = CategoryNavigation.encodeLabel(trimmed)
+                    "<a href=\"$CATEGORY_LINK_SCHEME$encoded\">$trimmed</a>"
+                }
+                else ->
+                    "<a href=\"index.html#${StringProcessor.underscoreSpaces(trimmed)}\">$trimmed</a>"
             }
         }
     }
@@ -337,7 +352,7 @@ object RecipeSerializer {
     private fun getMacroText(macro: String, recipe: Recipe, activeFooter: String): String {
         val upper = macro.uppercase()
         if (upper == "[LABELS]") {
-            return getMacroLabels(recipe, activeFooter == "export-footer")
+            return getMacroLabels(recipe, activeFooter)
         }
         // others fallback to raw or basic
         return macro

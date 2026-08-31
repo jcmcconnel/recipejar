@@ -10,8 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import recipejar.macro.MacroDefinition
 
 /**
@@ -19,6 +17,7 @@ import recipejar.macro.MacroDefinition
  *
  * [initial] is the current macro list; edits are local until [onSave].
  * [onImportTxt] should open a file picker and return parsed macros (or null if cancelled).
+ * [useDialog]: true on Desktop; false embeds in main content panel on mobile/compact.
  */
 @Composable
 fun MacroManagerDialog(
@@ -26,6 +25,7 @@ fun MacroManagerDialog(
     onSave: (List<MacroDefinition>) -> Unit,
     onDismiss: () -> Unit,
     onImportTxt: (() -> List<MacroDefinition>?)? = null,
+    useDialog: Boolean = true,
 ) {
     var macros by remember { mutableStateOf(initial.toList()) }
     var selectedIndex by remember { mutableStateOf(if (macros.isEmpty()) -1 else 0) }
@@ -62,18 +62,7 @@ fun MacroManagerDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .widthIn(min = 560.dp, max = 720.dp)
-                .heightIn(min = 400.dp, max = 560.dp)
-                .padding(16.dp),
-        ) {
+    ModalHost(useDialog = useDialog, onDismiss = onDismiss) {
             Column(Modifier.padding(16.dp).fillMaxSize()) {
                 Text("Macro Manager", style = MaterialTheme.typography.titleLarge)
                 Text(
@@ -222,6 +211,5 @@ fun MacroManagerDialog(
                     }) { Text("Save") }
                 }
             }
-        }
     }
 }

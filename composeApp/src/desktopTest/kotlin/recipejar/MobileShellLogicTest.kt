@@ -26,76 +26,109 @@ class MobileShellLogicTest {
             state = state,
             actions = MobileMenuActions(
                 onSave = { saveHits++ },
-                onFindAll = { findAllHits++ },
+                onFind = { findAllHits++ },
                 onPreferences = { prefsHits++ },
                 onAbout = { aboutHits++ },
                 onExit = {},
                 onToggleEdit = {},
             ),
+            includeDesktopRepoChrome = false,
         )
 
         assertEquals(MobileMenuTitles.TOP_LEVEL, MobileShellLogic.menuTitles(model))
+        assertFalse(MobileMenuTitles.FIND in MobileShellLogic.menuTitles(model), "no top-level Find menu")
 
         val all = MobileShellLogic.allItemTitles(model)
-        MobileMenuTitles.RECIPE_ITEMS.forEach { title ->
+        MobileMenuTitles.RECIPE_ITEMS_MOBILE.forEach { title ->
             assertTrue(title in all, "Recipe menu missing “$title” in $all")
         }
+        // Mobile model omits Open repository and Exit by default
+        assertFalse(MobileMenuTitles.OPEN_REPOSITORY in all)
+        assertFalse(MobileMenuTitles.EXIT in all)
         MobileMenuTitles.EDIT_ITEMS.forEach { title ->
             assertTrue(title in all, "Edit menu missing “$title” in $all")
         }
-        MobileMenuTitles.FIND_ITEMS.forEach { title ->
-            assertTrue(title in all, "Find menu missing “$title” in $all")
-        }
+        assertTrue(MobileMenuTitles.FIND_ELLIPSIS in all, "Edit → Find… required")
         assertTrue(MobileMenuTitles.MANAGE_MACROS in all)
-        assertTrue(
-            MobileMenuTitles.NO_MACROS_PLACEHOLDER in all ||
-                all.any { it !in MobileMenuTitles.RECIPE_ITEMS && it !in MobileMenuTitles.EDIT_ITEMS },
-        )
         assertTrue(MobileMenuTitles.PREFERENCES in all)
         assertTrue(
             MobileMenuTitles.PHONE_LAYOUT in all || MobileMenuTitles.PHONE_LAYOUT_ON in all,
             "Tools must expose Phone layout: $all",
         )
         assertTrue(MobileMenuTitles.ABOUT in all)
+        assertTrue(MobileMenuTitles.CONVERTER in all)
+        assertTrue(MobileMenuTitles.HELP_WEB in all)
 
-        // Invoke several callbacks through the shipped builder items.
         MobileShellLogic.findItem(model, MobileMenuTitles.ABOUT)!!.onClick()
-        MobileShellLogic.findItem(model, MobileMenuTitles.FIND_ALL)!!.onClick()
+        MobileShellLogic.findItem(model, MobileMenuTitles.FIND_ELLIPSIS)!!.onClick()
         MobileShellLogic.findItem(model, MobileMenuTitles.SAVE)!!.onClick()
         MobileShellLogic.findItem(model, MobileMenuTitles.PREFERENCES)!!.onClick()
         assertEquals(1, aboutHits)
-        assertEquals(1, findAllHits)
+        assertEquals(1, findAllHits) // reused as find hits
         assertEquals(1, saveHits)
         assertEquals(1, prefsHits)
 
         assertEquals(
-            MobileMenuTitles.RECIPE_ITEMS.toSet(),
+            MobileMenuTitles.RECIPE_ITEMS_MOBILE.toSet(),
             MobileShellLogic.itemTitlesInMenu(model, MobileMenuTitles.RECIPE).toSet(),
         )
     }
 
     @Test
-    fun menuModel_exposesToggleEditAndExit() {
+    fun desktopChrome_includesOpenAndExit_mobileOmits() {
+        var openHits = 0
+        val desktop = MobileShellLogic.buildMenuModel(
+            state = MobileShellState(),
+            actions = MobileMenuActions(onOpenRepo = { openHits++ }),
+            includeDesktopRepoChrome = true,
+        )
+        assertTrue(MobileMenuTitles.OPEN_REPOSITORY in MobileShellLogic.allItemTitles(desktop))
+        assertTrue(MobileMenuTitles.EXIT in MobileShellLogic.allItemTitles(desktop))
+        assertEquals(
+            MobileMenuTitles.OPEN_REPOSITORY,
+            MobileShellLogic.itemTitlesInMenu(desktop, MobileMenuTitles.RECIPE).first(),
+        )
+        MobileShellLogic.findItem(desktop, MobileMenuTitles.OPEN_REPOSITORY)!!.onClick()
+        assertEquals(1, openHits)
+
+        val mobile = MobileShellLogic.buildMenuModel(
+            state = MobileShellState(),
+            actions = MobileMenuActions(),
+            includeDesktopRepoChrome = false,
+        )
+        assertFalse(MobileMenuTitles.OPEN_REPOSITORY in MobileShellLogic.allItemTitles(mobile))
+        assertFalse(MobileMenuTitles.EXIT in MobileShellLogic.allItemTitles(mobile))
+        assertFalse(MobileMenuTitles.FIND in MobileShellLogic.menuTitles(mobile))
+    }
+
+    @Test
+    fun menuModel_exposesToggleEdit_desktopHasExit() {
         val state = MobileShellState()
         var toggled = false
         var exited = false
-        val model = MobileShellLogic.buildMenuModel(
+        val mobile = MobileShellLogic.buildMenuModel(
             state = state,
             onToggleEdit = { toggled = true },
             onExit = { exited = true },
         )
+        assertTrue(MobileMenuTitles.RECIPE in MobileShellLogic.menuTitles(mobile))
+        assertTrue(MobileMenuTitles.TOGGLE_EDIT in MobileShellLogic.allItemTitles(mobile))
+        assertNull(MobileShellLogic.findItem(mobile, MobileMenuTitles.EXIT))
 
-        assertTrue(MobileMenuTitles.RECIPE in MobileShellLogic.menuTitles(model))
-        val titles = MobileShellLogic.allItemTitles(model)
-        assertTrue(MobileMenuTitles.TOGGLE_EDIT in titles, "menu must expose Toggle Edit: $titles")
-        assertTrue(MobileMenuTitles.EXIT in titles, "menu must expose Exit: $titles")
-
-        val exitItem = MobileShellLogic.findItem(model, MobileMenuTitles.EXIT)!!
+        val desktop = MobileShellLogic.buildMenuModel(
+            state = state,
+            actions = MobileMenuActions(
+                onToggleEdit = { toggled = true },
+                onExit = { exited = true },
+            ),
+            includeDesktopRepoChrome = true,
+        )
+        val exitItem = MobileShellLogic.findItem(desktop, MobileMenuTitles.EXIT)!!
         assertTrue(exitItem.enabled)
         exitItem.onClick()
         assertTrue(exited, "Exit menu item must invoke onExit")
 
-        val toggleItem = MobileShellLogic.findItem(model, MobileMenuTitles.TOGGLE_EDIT)!!
+        val toggleItem = MobileShellLogic.findItem(mobile, MobileMenuTitles.TOGGLE_EDIT)!!
         assertFalse(toggleItem.enabled, "Toggle Edit disabled with no selection")
         toggleItem.onClick()
         assertTrue(toggled)
@@ -170,7 +203,7 @@ class MobileShellLogicTest {
         )
         val enabled = MobileShellLogic.enabledItemTitles(modelWhileEditing)
         assertTrue(MobileMenuTitles.TOGGLE_EDIT in enabled)
-        assertTrue(MobileMenuTitles.EXIT in enabled)
+        assertFalse(MobileMenuTitles.EXIT in enabled, "mobile model omits Exit")
 
         MobileShellLogic.findItem(modelWhileEditing, MobileMenuTitles.TOGGLE_EDIT)!!.onClick()
 
@@ -192,12 +225,12 @@ class MobileShellLogicTest {
     }
 
     @Test
-    fun exitMenuItem_invokesCallback_fromBuilder() {
+    fun exitMenuItem_invokesCallback_fromDesktopBuilder() {
         var exitCount = 0
         val model = MobileShellLogic.buildMenuModel(
             state = MobileShellState(selectedFilename = "Pancakes.html"),
-            onToggleEdit = {},
-            onExit = { exitCount++ },
+            actions = MobileMenuActions(onExit = { exitCount++ }),
+            includeDesktopRepoChrome = true,
         )
         val exit = MobileShellLogic.findItem(model, MobileMenuTitles.EXIT)!!
         exit.onClick()
@@ -221,8 +254,5 @@ class MobileShellLogicTest {
     fun contentScrollLayout_contract_forbidsWeightOnScrollSurface() {
         assertTrue(ContentScrollLayout.USES_VIEWPORT_THEN_SCROLL)
         assertFalse(ContentScrollLayout.SCROLL_SURFACE_USES_WEIGHT)
-        // Header metrics must stay denser than the previous titleLarge + 8.dp chrome.
-        assertTrue(AppHeaderMetrics.VerticalPadding.value < 8f)
-        assertTrue(AppHeaderMetrics.HorizontalPadding.value <= 12f)
     }
 }

@@ -35,7 +35,9 @@ class FileSystemRecipeRepository(override val location: String) : RecipeReposito
             f.isFile &&
                 f.name.endsWith(".html", ignoreCase = true) &&
                 !f.name.equals("index.html", ignoreCase = true) &&
-                !f.name.startsWith("._")
+                !f.name.startsWith("._") &&
+                // Transient WebView previews must never appear in the alpha index
+                !f.name.startsWith("rj-preview-")
         }
         return files?.map { it.name }?.sorted() ?: emptyList()
     }
@@ -113,6 +115,56 @@ class FileSystemRecipeRepository(override val location: String) : RecipeReposito
         val rec = loadRecipe(filename)
         val html = RecipeSerializer.serialize(rec, "export-footer")
         File(targetPath).writeText(html, Charsets.UTF_8)
+    }
+
+    /**
+     * Zip the entire repository directory tree (recipes, index, style/, images/, etc.).
+     * Skips the zip file itself if it would live inside [base], and skips mac `._*` junk.
+     */
+    override fun exportDirectoryZip(targetZipPath: String) {
+        val zipFile = File(targetZipPath).absoluteFile
+        zipFile.parentFile?.mkdirs()
+        val zipCanon = try {
+            zipFile.canonicalFile
+        } catch (_: Exception) {
+            zipFile
+        }
+        java.util.zip.ZipOutputStream(zipFile.outputStream().buffered()).use { zos ->
+            fun addFile(file: File, entryName: String) {
+                if (!file.isFile) return
+                // Never nest the output zip into itself mid-write.
+                val fileCanon = try {
+                    file.canonicalFile
+                } catch (_: Exception) {
+                    file.absoluteFile
+                }
+                if (fileCanon == zipCanon) return
+                if (file.name.startsWith("._")) return
+                val entry = java.util.zip.ZipEntry(entryName.replace('\\', '/'))
+                zos.putNextEntry(entry)
+                file.inputStream().use { it.copyTo(zos) }
+                zos.closeEntry()
+            }
+            fun walk(dir: File, prefix: String) {
+                val children = dir.listFiles() ?: return
+                for (child in children.sortedBy { it.name.lowercase(Locale.US) }) {
+                    val name = if (prefix.isEmpty()) child.name else "$prefix/${child.name}"
+                    when {
+                        child.isDirectory -> {
+                            if (child.name == "." || child.name == "..") continue
+                            // Skip hidden cache dirs inside the repo if any
+                            if (child.name == ".recipejar-preview") continue
+                            walk(child, name)
+                        }
+                        child.isFile -> addFile(child, name)
+                    }
+                }
+            }
+            if (!base.isDirectory) {
+                throw IllegalStateException("Repository is not a directory: $base")
+            }
+            walk(base, "")
+        }
     }
 
     /** Public for tests / callers that need the same naming rule as save. */

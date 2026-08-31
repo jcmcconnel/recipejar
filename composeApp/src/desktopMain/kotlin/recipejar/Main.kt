@@ -1,5 +1,6 @@
 package recipejar
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -23,7 +24,7 @@ import recipejar.macro.MacroIo
 import recipejar.macro.MacroProcessor
 import recipejar.macro.MacroStore
 import recipejar.persistence.FileSystemRecipeRepository
-import recipejar.recipe.UnitsCatalog
+import recipejar.recipe.UnitDef
 import recipejar.search.SearchScope
 import java.awt.Color
 import java.io.File
@@ -52,6 +53,63 @@ private fun kcefDataRoot(): File {
     val home = System.getProperty("user.home") ?: "."
     return File(home, ".cache/recipejar").also { it.mkdirs() }
 }
+
+/**
+ * Recent KCEF macOS packages nest Chromium + jcef Helpers under
+ * `Frameworks/cef_server.app/Contents/Frameworks/`, while JCEF looks for them
+ * directly under `Frameworks/`. Missing paths cause native SIGSEGV on init.
+ * Create symlinks so both layouts work without re-downloading.
+ */
+private fun repairKcefMacFrameworkLayout(installDir: File) {
+    if (!System.getProperty("os.name").orEmpty().contains("Mac", ignoreCase = true)) return
+    val frameworks = File(installDir, "Frameworks")
+    val nested = File(frameworks, "cef_server.app/Contents/Frameworks")
+    if (!nested.isDirectory) return
+    nested.listFiles()?.forEach { child ->
+        if (!child.isDirectory && !child.isFile) return@forEach
+        val name = child.name
+        if (name != "Chromium Embedded Framework.framework" && !name.startsWith("jcef Helper")) {
+            return@forEach
+        }
+        val dest = File(frameworks, name)
+        if (dest.exists()) return@forEach
+        try {
+            java.nio.file.Files.createSymbolicLink(dest.toPath(), child.toPath())
+            Debug.log("KCEF repair: linked $name → ${child.absolutePath}")
+        } catch (e: Exception) {
+            // Fallback: hard copy tree (slower, works when symlinks blocked)
+            try {
+                child.copyRecursively(dest, overwrite = false)
+                Debug.log("KCEF repair: copied $name")
+            } catch (e2: Exception) {
+                Debug.error("KCEF repair failed for $name", e2)
+            }
+        }
+    }
+}
+
+/** True when the Chromium framework JCEF expects is present (post-repair). */
+private fun kcefFrameworkPresent(installDir: File): Boolean {
+    val mac = System.getProperty("os.name").orEmpty().contains("Mac", ignoreCase = true)
+    if (mac) {
+        val direct = File(
+            installDir,
+            "Frameworks/Chromium Embedded Framework.framework/Chromium Embedded Framework",
+        )
+        if (direct.isFile || direct.exists()) return true
+        val nested = File(
+            installDir,
+            "Frameworks/cef_server.app/Contents/Frameworks/" +
+                "Chromium Embedded Framework.framework/Chromium Embedded Framework",
+        )
+        return nested.isFile || nested.exists()
+    }
+    // Non-mac: lib presence is enough to attempt init (Windows/Linux layouts differ).
+    return File(installDir, "libjcef.dylib").exists() ||
+        File(installDir, "libjcef.so").exists() ||
+        File(installDir, "jcef.dll").exists() ||
+        installDir.isDirectory
+}
 fun main() {
     Platform.applyStartupProperties()
     application {
@@ -74,10 +132,11 @@ fun main() {
     val editFocusSection = remember { mutableStateOf(RecipeEditSection.NOTES) }
     /** Category names from the open repository (suggestions for the label picker). */
     val knownLabels = remember { mutableStateOf<List<String>>(emptyList()) }
-    /** Unit plurals from bundled units.txt. */
-    val unitCatalog = remember { mutableStateOf(loadBundledUnitCatalog()) }
-    val welcomeHtml = remember { loadClasspathText("welcome.html") }
-    val welcomeFileUrl = remember { materializeWelcomeFileUrl(welcomeHtml) }
+    /** Live unit definitions (user file or bundled); plurals drive the ingredient picker. */
+    val unitDefs = remember { mutableStateOf(UnitsStore.load()) }
+    val unitCatalog = remember { mutableStateOf(UnitsStore.dropdownPlurals(unitDefs.value)) }
+    val welcomeHtml = remember { mutableStateOf(loadWelcomeHtml()) }
+    val welcomeFileUrl = remember { mutableStateOf(materializeWelcomeFileUrl(welcomeHtml.value)) }
     val webViewReady = remember { mutableStateOf(false) }
     val restartRequired = remember { mutableStateOf(false) }
     /** Human-readable KCEF status for the top banner (null when ready / silent). */
@@ -94,6 +153,10 @@ fun main() {
         mutableStateOf(setOf(SearchScope.TITLES, SearchScope.LABELS))
     }
     val showPreferences = remember { mutableStateOf(false) }
+    val showUnitsManager = remember { mutableStateOf(false) }
+    val showConverter = remember { mutableStateOf(false) }
+    val appearanceId = remember { mutableStateOf(AppPrefs.appearanceId) }
+    val appearanceDark = remember { mutableStateOf(AppPrefs.appearanceDark) }
     val scope = rememberCoroutineScope()
     /** Native AWT menu on macOS; Material in-window menus elsewhere. */
     val useNativeMenuBar = Platform.isMac
@@ -138,6 +201,8 @@ fun main() {
             cacheDir.mkdirs()
             Debug.log("KCEF installDir=${installDir.absolutePath}")
             try {
+                // Repair incomplete mac layout *before* native init (avoids SIGSEGV).
+                repairKcefMacFrameworkLayout(installDir)
                 KCEF.init(builder = {
                     installDir(installDir)
                     progress {
@@ -155,8 +220,11 @@ fun main() {
                         }
                         onInstall {
                             setWebViewStatusOnMain("WebView: installing CEF…")
+                            // Package may land nested under cef_server.app — fix paths immediately.
+                            repairKcefMacFrameworkLayout(installDir)
                         }
                         onInitializing {
+                            repairKcefMacFrameworkLayout(installDir)
                             setWebViewStatusOnMain("WebView: initializing…")
                         }
                         onInitialized {
@@ -171,20 +239,29 @@ fun main() {
                     Debug.error("KCEF init error", err)
                     setWebViewReadyOnMain(false)
                     val msg = err?.message?.takeIf { it.isNotBlank() } ?: err?.toString() ?: "unknown error"
-                    setWebViewStatusOnMain("WebView unavailable ($msg). Showing HTML source.")
+                    setWebViewStatusOnMain("WebView unavailable ($msg). Showing rendered text fallback.")
                 }, onRestartRequired = {
                     Debug.log("KCEF restart required after install")
+                    // Repair layout so the *next* launch can find frameworks.
+                    repairKcefMacFrameworkLayout(installDir)
                     setRestartRequiredOnMain(true)
                 })
+                // If init returned without success and framework is still missing, surface fallback.
+                if (!webViewReady.value && !kcefFrameworkPresent(installDir)) {
+                    setWebViewReadyOnMain(false)
+                    setWebViewStatusOnMain(
+                        "WebView runtime incomplete (Chromium framework missing). Showing rendered text fallback.",
+                    )
+                }
             } catch (t: Throwable) {
                 Debug.error("KCEF bootstrap failed", t)
                 withContext(Dispatchers.Main) {
                     webViewReady.value = false
                     webViewStatusText.value = when (t) {
                         is UnsupportedClassVersionError ->
-                            "WebView requires Java 17+ (KCEF). Current runtime is too old. Showing HTML source."
+                            "WebView requires Java 17+ (KCEF). Current runtime is too old. Showing rendered text fallback."
                         else ->
-                            "WebView bootstrap failed (${t.message ?: t::class.simpleName}). Showing HTML source."
+                            "WebView bootstrap failed (${t.message ?: t::class.simpleName}). Showing rendered text fallback."
                     }
                 }
             }
@@ -255,7 +332,7 @@ fun main() {
                     isUnsavedNew.value = false
                     val file = File(abs, want)
                     if (file.isFile) {
-                        selectedFileUrl.value = file.toURI().toString()
+                        selectedFileUrl.value = FileUrls.fromFile(file)
                         val html = withContext(Dispatchers.IO) {
                             try {
                                 file.readText(Charsets.UTF_8)
@@ -476,27 +553,19 @@ fun main() {
         }
         // Persist last recipe only after a successful bind to an on-disk file in this repo.
         AppPrefs.setLastRecipe(dir, filename)
-        selectedFileUrl.value = file.toURI().toString()
-        selectedHtml.value = null
-        lastDiskHtml.value = null
-        scope.launch {
-            val html = withContext(Dispatchers.IO) {
-                try {
-                    file.readText(Charsets.UTF_8)
-                } catch (e: Exception) {
-                    Debug.error("Failed to read $filename", e)
-                    null
-                }
-            }
-            if (selectedFilename.value != filename || selectedDir.value != dir) return@launch
-            if (html == null) {
-                selectedFileUrl.value = null
-                selectedHtml.value = null
-                lastDiskHtml.value = null
-            } else {
-                selectedHtml.value = html
-                lastDiskHtml.value = html
-            }
+        selectedFileUrl.value = FileUrls.fromFile(file)
+        // Recipe HTML files are small — read immediately so the readonly document
+        // never flashes blank (async was leaving selectedHtml null for a frame).
+        try {
+            val html = file.readText(Charsets.UTF_8)
+            selectedHtml.value = html
+            lastDiskHtml.value = html
+        } catch (e: Exception) {
+            Debug.error("Failed to read $filename", e)
+            selectedFileUrl.value = null
+            selectedHtml.value = null
+            lastDiskHtml.value = null
+            statusMessage.value = "Could not read $filename"
         }
     }
 
@@ -533,6 +602,72 @@ fun main() {
         }
         searchScopes.value = scopes
         showSearch.value = true
+    }
+
+    /** Export the selected recipe as standalone HTML with export-footer (no nav links). */
+    fun exportCurrentRecipe() {
+        val dir = selectedDir.value ?: return
+        val filename = selectedFilename.value ?: return
+        val chooser = JFileChooser(dir)
+        chooser.dialogTitle = "Export recipe as HTML"
+        chooser.selectedFile = File(dir, filename.removeSuffix(".html") + "-export.html")
+        chooser.fileFilter = FileNameExtensionFilter("HTML (*.html)", "html")
+        if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) return
+        val target = chooser.selectedFile ?: return
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    FileSystemRecipeRepository(dir).exportRecipe(filename, target.absolutePath)
+                }
+                statusMessage.value = "Exported ${target.name} (export-footer)"
+            } catch (e: Exception) {
+                Debug.error("Export failed", e)
+                statusMessage.value = "Export failed: ${e.message}"
+            }
+        }
+    }
+
+    /** Zip the entire open recipe directory tree. */
+    fun exportRepositoryZip() {
+        val dir = selectedDir.value ?: return
+        val chooser = JFileChooser(File(dir).parentFile ?: File(dir))
+        chooser.dialogTitle = "Export recipe directory as zip"
+        chooser.selectedFile = File(chooser.currentDirectory, File(dir).name + "-recipes.zip")
+        chooser.fileFilter = FileNameExtensionFilter("Zip archive (*.zip)", "zip")
+        if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) return
+        val target = chooser.selectedFile ?: return
+        val zipPath = if (target.name.endsWith(".zip", ignoreCase = true)) {
+            target.absolutePath
+        } else {
+            target.absolutePath + ".zip"
+        }
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    FileSystemRecipeRepository(dir).exportDirectoryZip(zipPath)
+                }
+                statusMessage.value = "Exported directory zip: ${File(zipPath).name}"
+            } catch (e: Exception) {
+                Debug.error("Zip export failed", e)
+                statusMessage.value = "Zip export failed: ${e.message}"
+            }
+        }
+    }
+
+    fun saveUnits(list: List<UnitDef>) {
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    UnitsStore.save(list)
+                }
+                unitDefs.value = list
+                unitCatalog.value = UnitsStore.dropdownPlurals(list)
+                showUnitsManager.value = false
+                statusMessage.value = "Saved ${list.size} unit(s) to ${UnitsStore.userUnitsFile().name}"
+            } catch (e: Exception) {
+                statusMessage.value = "Units save failed: ${e.message}"
+            }
+        }
     }
 
     /**
@@ -608,7 +743,7 @@ fun main() {
                 AppPrefs.setLastRecipe(dir, savedName)
                 val file = File(dir, savedName)
                 if (file.isFile) {
-                    selectedFileUrl.value = file.toURI().toString()
+                    selectedFileUrl.value = FileUrls.fromFile(file)
                     val diskHtml = withContext(Dispatchers.IO) {
                         try {
                             file.readText(Charsets.UTF_8)
@@ -675,6 +810,17 @@ fun main() {
     val registry = remember {
         ActionRegistry().also { reg ->
             val isOpen = isRecipeOpen
+
+            reg.register(
+                ActionIds.FILE_OPEN_REPO,
+                Command(
+                    id = ActionIds.FILE_OPEN_REPO,
+                    title = "Open repository",
+                    mnemonic = 'D',
+                    execute = { pickDirectory() },
+                    enabled = { true },
+                )
+            )
 
             reg.register(
                 ActionIds.FILE_NEW,
@@ -761,9 +907,19 @@ fun main() {
                 ActionIds.FILE_EXPORT,
                 Command(
                     id = ActionIds.FILE_EXPORT,
-                    title = "Export",
-                    execute = { Debug.log("Export stub for: ${selectedFilename.value}") },
+                    title = "Export Recipe…",
+                    execute = { exportCurrentRecipe() },
                     enabled = isOpen
+                )
+            )
+
+            reg.register(
+                ActionIds.FILE_EXPORT_ZIP,
+                Command(
+                    id = ActionIds.FILE_EXPORT_ZIP,
+                    title = "Export Directory as Zip…",
+                    execute = { exportRepositoryZip() },
+                    enabled = { selectedDir.value != null },
                 )
             )
 
@@ -892,6 +1048,38 @@ fun main() {
                 )
             )
             reg.register(
+                ActionIds.TOOLS_UNITS,
+                Command(
+                    id = ActionIds.TOOLS_UNITS,
+                    title = "Units…",
+                    execute = { showUnitsManager.value = true },
+                )
+            )
+            reg.register(
+                ActionIds.TOOLS_CONVERTER,
+                Command(
+                    id = ActionIds.TOOLS_CONVERTER,
+                    title = "Unit Converter…",
+                    execute = { showConverter.value = true },
+                )
+            )
+            reg.register(
+                ActionIds.HELP_WEB,
+                Command(
+                    id = ActionIds.HELP_WEB,
+                    title = "RecipeJar on GitHub",
+                    mnemonic = 'H',
+                    execute = {
+                        val opened = openExternalUrl(HelpLinks.WEB_URL)
+                        statusMessage.value = if (opened) {
+                            "Opened ${HelpLinks.WEB_URL}"
+                        } else {
+                            "Help: ${HelpLinks.WEB_URL}"
+                        }
+                    },
+                )
+            )
+            reg.register(
                 ActionIds.HELP_ABOUT,
                 Command(
                     id = ActionIds.HELP_ABOUT,
@@ -1015,6 +1203,8 @@ fun main() {
                 AppMenu(
                     "Recipe",
                     listOf(
+                        item(ActionIds.FILE_OPEN_REPO),
+                        AppMenuEntry.Separator,
                         item(ActionIds.FILE_NEW),
                         item(ActionIds.FILE_TOGGLE_EDIT),
                         item(ActionIds.FILE_SAVE),
@@ -1022,6 +1212,7 @@ fun main() {
                         AppMenuEntry.Separator,
                         item(ActionIds.FILE_IMPORT),
                         item(ActionIds.FILE_EXPORT),
+                        item(ActionIds.FILE_EXPORT_ZIP),
                         AppMenuEntry.Separator,
                         item(ActionIds.FILE_DELETE),
                         AppMenuEntry.Separator,
@@ -1039,22 +1230,14 @@ fun main() {
                         item(ActionIds.EDIT_FIND),
                     ),
                 ),
-                AppMenu(
-                    "Find",
-                    listOf(
-                        item(ActionIds.FIND_ALL),
-                        item(ActionIds.FIND_TITLES),
-                        item(ActionIds.FIND_LABELS),
-                        item(ActionIds.FIND_NOTES),
-                        item(ActionIds.FIND_INGREDIENTS),
-                        item(ActionIds.FIND_PROCEDURES),
-                    ),
-                ),
+                // No top-level Find menu — use Edit → Find… (dialog has scope chips).
                 AppMenu("Macros", macroEntries),
                 AppMenu(
                     "Tools",
                     listOf(
                         item(ActionIds.TOOLS_PREFERENCES),
+                        item(ActionIds.TOOLS_UNITS),
+                        item(ActionIds.TOOLS_CONVERTER),
                         AppMenuEntry.Item(
                             title = if (forceCompactLayout.value) "Phone layout ✓" else "Phone layout",
                             onClick = { toggleForceCompact() },
@@ -1063,7 +1246,10 @@ fun main() {
                 ),
                 AppMenu(
                     "Help",
-                    listOf(item(ActionIds.HELP_ABOUT)),
+                    listOf(
+                        item(ActionIds.HELP_WEB),
+                        item(ActionIds.HELP_ABOUT),
+                    ),
                 ),
             ),
         )
@@ -1102,6 +1288,9 @@ fun main() {
         if (useNativeMenuBar) {
             MenuBar {
                 Menu("Recipe", mnemonic = 'R') {
+                    val open = registry.require(ActionIds.FILE_OPEN_REPO)
+                    Item(open.title, onClick = { open.execute(ActionContext()) }, enabled = open.enabled())
+                    Separator()
                     val c = registry.require(ActionIds.FILE_NEW)
                     Item(c.title, onClick = { c.execute(ActionContext()) }, enabled = c.enabled(), shortcut = toKeyShortcut(c.shortcut))
                     val t = registry.require(ActionIds.FILE_TOGGLE_EDIT)
@@ -1115,6 +1304,8 @@ fun main() {
                     Item(im.title, onClick = { im.execute(ActionContext()) }, enabled = im.enabled())
                     val ex = registry.require(ActionIds.FILE_EXPORT)
                     Item(ex.title, onClick = { ex.execute(ActionContext()) }, enabled = ex.enabled())
+                    val ez = registry.require(ActionIds.FILE_EXPORT_ZIP)
+                    Item(ez.title, onClick = { ez.execute(ActionContext()) }, enabled = ez.enabled())
                     Separator()
                     val del = registry.require(ActionIds.FILE_DELETE)
                     Item(del.title, onClick = { del.execute(ActionContext()) }, enabled = del.enabled())
@@ -1135,20 +1326,7 @@ fun main() {
                     val fnd = registry.require(ActionIds.EDIT_FIND)
                     Item(fnd.title, onClick = { fnd.execute(ActionContext()) }, enabled = fnd.enabled(), shortcut = toKeyShortcut(fnd.shortcut))
                 }
-                Menu("Find", mnemonic = 'F') {
-                    val fa = registry.require(ActionIds.FIND_ALL)
-                    Item(fa.title, onClick = { fa.execute(ActionContext()) }, enabled = fa.enabled())
-                    val ft = registry.require(ActionIds.FIND_TITLES)
-                    Item(ft.title, onClick = { ft.execute(ActionContext()) }, enabled = ft.enabled())
-                    val fl = registry.require(ActionIds.FIND_LABELS)
-                    Item(fl.title, onClick = { fl.execute(ActionContext()) }, enabled = fl.enabled())
-                    val fn = registry.require(ActionIds.FIND_NOTES)
-                    Item(fn.title, onClick = { fn.execute(ActionContext()) }, enabled = fn.enabled())
-                    val fi = registry.require(ActionIds.FIND_INGREDIENTS)
-                    Item(fi.title, onClick = { fi.execute(ActionContext()) }, enabled = fi.enabled())
-                    val fp = registry.require(ActionIds.FIND_PROCEDURES)
-                    Item(fp.title, onClick = { fp.execute(ActionContext()) }, enabled = fp.enabled())
-                }
+                // No top-level Find menu — Edit → Find… only.
                 Menu("Macros", mnemonic = 'M') {
                     val macroList = macros.value
                     if (macroList.isEmpty()) {
@@ -1169,12 +1347,18 @@ fun main() {
                 Menu("Tools", mnemonic = 'T') {
                     val pref = registry.require(ActionIds.TOOLS_PREFERENCES)
                     Item(pref.title, onClick = { pref.execute(ActionContext()) }, enabled = pref.enabled())
+                    val units = registry.require(ActionIds.TOOLS_UNITS)
+                    Item(units.title, onClick = { units.execute(ActionContext()) }, enabled = units.enabled())
+                    val conv = registry.require(ActionIds.TOOLS_CONVERTER)
+                    Item(conv.title, onClick = { conv.execute(ActionContext()) }, enabled = conv.enabled())
                     Item(
                         if (forceCompactLayout.value) "Phone layout ✓" else "Phone layout",
                         onClick = { toggleForceCompact() },
                     )
                 }
                 Menu("Help", mnemonic = 'H') {
+                    val help = registry.require(ActionIds.HELP_WEB)
+                    Item(help.title, onClick = { help.execute(ActionContext()) }, enabled = help.enabled())
                     val about = registry.require(ActionIds.HELP_ABOUT)
                     Item(about.title, onClick = { about.execute(ActionContext()) }, enabled = about.enabled())
                 }
@@ -1202,6 +1386,7 @@ fun main() {
             null
         }
 
+        MaterialTheme(colorScheme = AppearanceTheme.schemeFor(appearanceId.value, appearanceDark.value)) {
         App(
             selectedDir = selectedDir.value,
             recipes = recipes.value,
@@ -1211,8 +1396,14 @@ fun main() {
             editingRecipe = editingRecipe.value,
             knownLabels = knownLabels.value,
             unitCatalog = unitCatalog.value,
-            welcomeHtml = welcomeHtml,
-            welcomeFileUrl = welcomeFileUrl,
+            welcomeHtml = welcomeHtml.value,
+            welcomeFileUrl = welcomeFileUrl.value,
+            // Hide CEF welcome while any modal is open (KCEF draws above Compose Dialogs).
+            welcomeWebViewEnabled = !showMacroManager.value &&
+                !showSearch.value &&
+                !showPreferences.value &&
+                !showUnitsManager.value &&
+                !showConverter.value,
             webViewReady = webViewReady.value,
             restartRequired = restartRequired.value,
             webViewStatusText = webViewStatusText.value,
@@ -1230,6 +1421,8 @@ fun main() {
             onRecipeChange = { applyEditingRecipe(it) },
             onEditFocusSection = { editFocusSection.value = it },
             onClearSelection = ::clearSelection,
+            appearanceId = appearanceId.value,
+            appearanceDark = appearanceDark.value,
         )
 
         if (showMacroManager.value) {
@@ -1258,6 +1451,9 @@ fun main() {
             PreferencesDialog(
                 initialRepoPath = selectedDir.value ?: AppPrefs.lastRepoPath.orEmpty(),
                 initialAuthorName = AppPrefs.authorName,
+                initialWelcomeFilePath = AppPrefs.welcomeFilePath,
+                initialAppearanceId = appearanceId.value,
+                initialAppearanceDark = appearanceDark.value,
                 onBrowseRepo = {
                     val start = AppPrefs.normalizeRepoPath(selectedDir.value ?: AppPrefs.lastRepoPath)
                         ?.let { File(it) }
@@ -1271,11 +1467,36 @@ fun main() {
                         null
                     }
                 },
-                onSave = { path, author ->
+                onBrowseWelcome = {
+                    val start = AppPrefs.welcomeFilePath.takeIf { it.isNotBlank() }?.let { File(it).parentFile }
+                        ?: AppPrefs.normalizeRepoPath(selectedDir.value ?: AppPrefs.lastRepoPath)?.let { File(it) }
+                        ?: FileSystemView.getFileSystemView().homeDirectory
+                    val chooser = JFileChooser(start)
+                    chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+                    chooser.dialogTitle = "Welcome message HTML file"
+                    chooser.fileFilter = FileNameExtensionFilter("HTML (*.html, *.htm)", "html", "htm")
+                    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        chooser.selectedFile?.absolutePath
+                    } else {
+                        null
+                    }
+                },
+                onSave = { path, author, welcomePath, schemeId, dark ->
+                    val welcomeErr = PreferencesSaveLogic.validateWelcomeFilePath(welcomePath) { p ->
+                        File(p).isFile
+                    }
+                    if (welcomeErr != null) return@PreferencesDialog welcomeErr
                     AppPrefs.authorName = author
+                    AppPrefs.welcomeFilePath = welcomePath
+                    AppPrefs.appearanceId = schemeId
+                    AppPrefs.appearanceDark = dark
+                    appearanceId.value = AppPrefs.appearanceId
+                    appearanceDark.value = dark
+                    val html = loadWelcomeHtml()
+                    welcomeHtml.value = html
+                    welcomeFileUrl.value = materializeWelcomeFileUrl(html)
                     when {
                         path.isBlank() -> {
-                            // Intentional: forget last repo without closing the open session.
                             AppPrefs.lastRepoPath = null
                             statusMessage.value = "Preferences saved (last repository cleared)"
                             Debug.log("Preferences saved; lastRepoPath cleared")
@@ -1284,7 +1505,6 @@ fun main() {
                         else -> {
                             val abs = AppPrefs.normalizeRepoPath(path)
                             if (abs == null) {
-                                // Do not clobber a good lastRepoPath with an invalid path.
                                 Debug.log("Prefs path invalid (not persisted): $path")
                                 "Not a directory: $path"
                             } else {
@@ -1293,27 +1513,50 @@ fun main() {
                                     openRepository(abs, restoreLastRecipe = false)
                                 }
                                 statusMessage.value = "Preferences saved"
-                                Debug.log("Preferences saved (repo=$abs, author=${author.isNotBlank()})")
+                                Debug.log("Preferences saved (repo=$abs, welcome=${welcomePath.isNotBlank()})")
                                 null
                             }
                         }
                     }
                 },
                 onDismiss = { showPreferences.value = false },
+                useDialog = true,
             )
         }
+
+        if (showUnitsManager.value) {
+            UnitsManagerDialog(
+                initial = unitDefs.value,
+                onSave = { saveUnits(it) },
+                onDismiss = { showUnitsManager.value = false },
+                useDialog = true,
+            )
+        }
+
+        if (showConverter.value) {
+            UnitConverterDialog(
+                units = unitDefs.value,
+                onDismiss = { showConverter.value = false },
+                useDialog = true,
+            )
+        }
+        } // MaterialTheme wraps App + dialogs so Preferences/Units/etc. match appearance
     }
     }
 }
 
 private fun loadRecipeIndex(repo: FileSystemRecipeRepository): List<RecipeListItem> {
     return repo.listRecipes().map { filename ->
-        val title = try {
-            repo.loadRecipe(filename).title.ifBlank { stripHtmlExtension(filename) }
+        try {
+            val r = repo.loadRecipe(filename)
+            RecipeListItem(
+                filename = filename,
+                title = r.title.ifBlank { stripHtmlExtension(filename) },
+                labels = r.labels.toList(),
+            )
         } catch (_: Exception) {
-            stripHtmlExtension(filename)
+            RecipeListItem(filename = filename, title = stripHtmlExtension(filename))
         }
-        RecipeListItem(filename = filename, title = title)
     }
 }
 
@@ -1350,13 +1593,21 @@ private fun loadClasspathText(resourceName: String): String {
     }
 }
 
-private fun loadBundledUnitCatalog(): List<String> {
-    val text = loadClasspathText("units.txt")
-    if (text.isBlank()) {
-        Debug.log("units.txt not found on classpath; unit dropdown empty")
-        return emptyList()
+/** Load welcome HTML from [AppPrefs.welcomeFilePath] or bundled classpath default. */
+internal fun loadWelcomeHtml(): String {
+    val path = AppPrefs.welcomeFilePath.trim()
+    if (path.isNotEmpty()) {
+        val f = File(path)
+        if (f.isFile) {
+            return try {
+                f.readText(Charsets.UTF_8)
+            } catch (e: Exception) {
+                Debug.error("Failed to read welcome file $path", e)
+                loadClasspathText("welcome.html")
+            }
+        }
     }
-    return UnitsCatalog.parse(text).map { it.displayName() }
+    return loadClasspathText("welcome.html")
 }
 
 /**
@@ -1369,7 +1620,7 @@ private fun materializeWelcomeFileUrl(html: String): String? {
         val dir = File(home, ".cache/recipejar").also { it.mkdirs() }
         val f = File(dir, "welcome.html")
         f.writeText(html, Charsets.UTF_8)
-        f.toURI().toString()
+        FileUrls.fromFile(f)
     } catch (e: Exception) {
         Debug.error("Could not materialize welcome.html", e)
         null

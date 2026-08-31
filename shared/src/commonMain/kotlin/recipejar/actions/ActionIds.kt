@@ -11,9 +11,13 @@ object ActionIds {
     const val FILE_DELETE = "file.delete"
     const val FILE_RENAME = "file.rename"
     const val FILE_EXPORT = "file.export"
+    /** Export entire open recipe directory as a zip archive. */
+    const val FILE_EXPORT_ZIP = "file.exportZip"
     const val FILE_IMPORT = "file.import"
     const val FILE_TOGGLE_EDIT = "file.toggleEdit"
     const val FILE_NEW = "file.new"
+    /** Open a recipe repository directory (directory picker). */
+    const val FILE_OPEN_REPO = "file.openRepo"
     const val FILE_PRINT = "file.print"
     const val FILE_EXIT = "file.exit"
 
@@ -40,6 +44,8 @@ object ActionIds {
     // Other ids for compatibility (not fully wired in PR5 menus)
     const val TOOLS_CONVERTER = "tools.converter"
     const val TOOLS_PREFERENCES = "tools.preferences"
+    /** Open units catalog maintenance UI. */
+    const val TOOLS_UNITS = "tools.units"
     const val HELP_WEB = "help.web"
     const val HELP_ABOUT = "help.about"
 }

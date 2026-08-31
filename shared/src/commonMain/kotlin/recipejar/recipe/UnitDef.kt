@@ -20,10 +20,19 @@ data class UnitDef(
 }
 
 /**
- * Parse classic units.txt: `;` comments, blank lines ignored,
+ * Parse/serialize classic units.txt: `;` comments, blank lines ignored,
  * data lines `plural[,singular[,convA(factor)|convB(factor)…]]`.
+ *
+ * User edits go through [serialize] + host persistence (e.g. desktop units file);
+ * the ingredient unit picker reloads from the live catalog after save.
  */
 object UnitsCatalog {
+    const val FILE_HEADER: String =
+        ";These are the units that RecipeJar recognizes.\n" +
+            ";You can add your own simply by typing them in below.\n" +
+            ";Please note, units are used exactly as they are typed, spaces and all.\n" +
+            ";Lines beginning with \";\" are comments, and will be ignored by the program.\n"
+
     fun parse(text: String): List<UnitDef> {
         val out = mutableListOf<UnitDef>()
         for (raw in text.lineSequence()) {
@@ -40,6 +49,49 @@ object UnitsCatalog {
     }
 
     /**
+     * Write units back to classic units.txt shape (stable for grandchildren / plain text).
+     * Sorted by plural (case-insensitive) to match [parse] ordering.
+     */
+    fun serialize(units: List<UnitDef>): String {
+        val sb = StringBuilder()
+        sb.append(FILE_HEADER).append('\n')
+        for (u in units.sortedBy { it.plural.lowercase() }) {
+            if (u.plural.isBlank()) continue
+            sb.append(u.plural)
+            val hasSingular = u.singular.isNotBlank()
+            val hasConv = u.conversions.isNotEmpty()
+            if (hasSingular || hasConv) {
+                sb.append(',').append(u.singular)
+            }
+            if (hasConv) {
+                sb.append(',')
+                sb.append(
+                    u.conversions.entries.joinToString("|") { (k, v) -> "$k($v)" },
+                )
+            }
+            sb.append('\n')
+        }
+        return sb.toString()
+    }
+
+    /** Insert or replace a unit by plural (case-insensitive match). Returns new sorted list. */
+    fun upsert(units: List<UnitDef>, unit: UnitDef): List<UnitDef> {
+        val plural = unit.plural.trim()
+        if (plural.isEmpty()) return units.sortedBy { it.plural.lowercase() }
+        val cleaned = unit.copy(plural = plural, singular = unit.singular.trim())
+        val without = units.filterNot { it.plural.equals(plural, ignoreCase = true) }
+        return (without + cleaned).sortedBy { it.plural.lowercase() }
+    }
+
+    /** Remove unit matching [plural] (case-insensitive). */
+    fun remove(units: List<UnitDef>, plural: String): List<UnitDef> {
+        val p = plural.trim()
+        if (p.isEmpty()) return units
+        return units.filterNot { it.plural.equals(p, ignoreCase = true) }
+            .sortedBy { it.plural.lowercase() }
+    }
+
+    /**
      * Display labels for a unit picker: blank first, then each unit plural.
      * If [current] is non-blank and not already listed, append it (preserve freeform values).
      */
@@ -51,6 +103,13 @@ object UnitsCatalog {
             labels.add(c)
         }
         return labels
+    }
+
+    /** True when [name] is present in the catalog (plural or singular). */
+    fun contains(units: List<UnitDef>, name: String): Boolean {
+        val n = name.trim()
+        if (n.isEmpty()) return false
+        return units.any { it.matches(n) }
     }
 
     private fun splitCsvLimited(line: String, maxParts: Int): List<String> {

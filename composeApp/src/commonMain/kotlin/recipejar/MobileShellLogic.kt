@@ -21,12 +21,14 @@ data class MobileShellState(
  * Hosts supply real platform paths (exit) or status/stub implementations.
  */
 data class MobileMenuActions(
+    val onOpenRepo: () -> Unit = {},
     val onNew: () -> Unit = {},
     val onToggleEdit: () -> Unit = {},
     val onSave: () -> Unit = {},
     val onRename: () -> Unit = {},
     val onImport: () -> Unit = {},
     val onExport: () -> Unit = {},
+    val onExportZip: () -> Unit = {},
     val onRemove: () -> Unit = {},
     val onExit: () -> Unit = {},
     val onCut: () -> Unit = {},
@@ -43,7 +45,10 @@ data class MobileMenuActions(
     val onManageMacros: () -> Unit = {},
     val onMacro: (name: String) -> Unit = {},
     val onPreferences: () -> Unit = {},
+    val onUnits: () -> Unit = {},
+    val onConverter: () -> Unit = {},
     val onPhoneLayout: () -> Unit = {},
+    val onHelpWeb: () -> Unit = {},
     val onAbout: () -> Unit = {},
     /** Macro names listed under Macros (empty → placeholder item). */
     val macroNames: List<String> = emptyList(),
@@ -61,12 +66,14 @@ object MobileMenuTitles {
     const val TOOLS = "Tools"
     const val HELP = "Help"
 
+    const val OPEN_REPOSITORY = "Open repository"
     const val NEW = "New"
     const val TOGGLE_EDIT = "Toggle Edit"
     const val SAVE = "Save"
     const val RENAME = "Rename"
     const val IMPORT = "Import"
-    const val EXPORT = "Export"
+    const val EXPORT = "Export Recipe…"
+    const val EXPORT_ZIP = "Export Directory as Zip…"
     const val REMOVE = "Remove"
     const val EXIT = "Exit"
 
@@ -87,26 +94,41 @@ object MobileMenuTitles {
     const val MANAGE_MACROS = "Manage Macros…"
 
     const val PREFERENCES = "Preferences…"
+    const val UNITS = "Units…"
+    const val CONVERTER = "Unit Converter…"
     const val PHONE_LAYOUT = "Phone layout"
     const val PHONE_LAYOUT_ON = "Phone layout ✓"
+    const val HELP_WEB = "RecipeJar on GitHub"
     const val ABOUT = "About RecipeJar"
 
-    /** Top-level menus in desktop Material order. */
-    val TOP_LEVEL: List<String> = listOf(RECIPE, EDIT, FIND, MACROS, TOOLS, HELP)
+    /**
+     * Top-level menus: no separate Find bar (search is Edit → Find… only).
+     * Desktop and mobile share this set.
+     */
+    val TOP_LEVEL: List<String> = listOf(RECIPE, EDIT, MACROS, TOOLS, HELP)
 
-    /** Required Recipe item titles (order not required for presence checks). */
-    val RECIPE_ITEMS: List<String> = listOf(
-        NEW, TOGGLE_EDIT, SAVE, RENAME, IMPORT, EXPORT, REMOVE, EXIT,
+    /** Desktop Recipe items (Open repository + Exit). */
+    val RECIPE_ITEMS_DESKTOP: List<String> = listOf(
+        OPEN_REPOSITORY, NEW, TOGGLE_EDIT, SAVE, RENAME, IMPORT, EXPORT, EXPORT_ZIP, REMOVE, EXIT,
     )
+
+    /** iOS / Android prototype Recipe items (no Open repository, no Exit). */
+    val RECIPE_ITEMS_MOBILE: List<String> = listOf(
+        NEW, TOGGLE_EDIT, SAVE, RENAME, IMPORT, EXPORT, EXPORT_ZIP, REMOVE,
+    )
+
+    /** @deprecated Prefer [RECIPE_ITEMS_DESKTOP] / [RECIPE_ITEMS_MOBILE]. */
+    val RECIPE_ITEMS: List<String> = RECIPE_ITEMS_DESKTOP
 
     val EDIT_ITEMS: List<String> = listOf(CUT, COPY, PASTE, SELECT_ALL, FIND_ELLIPSIS)
 
+    /** Legacy titles for scoped find (dialog scopes only; not a top-level menu). */
     val FIND_ITEMS: List<String> = listOf(
         FIND_ALL, FIND_TITLES, FIND_LABELS, FIND_NOTES, FIND_INGREDIENTS, FIND_PROCEDURES,
     )
 
-    val TOOLS_ITEMS_BASE: List<String> = listOf(PREFERENCES)
-    val HELP_ITEMS: List<String> = listOf(ABOUT)
+    val TOOLS_ITEMS_BASE: List<String> = listOf(PREFERENCES, UNITS, CONVERTER)
+    val HELP_ITEMS: List<String> = listOf(HELP_WEB, ABOUT)
 
     // Back-compat aliases used by earlier tests
     const val RECIPE_MENU = RECIPE
@@ -250,15 +272,19 @@ object MobileShellLogic {
     }
 
     /**
-     * Full Material menu model matching desktop structure:
-     * Recipe / Edit / Find / Macros / Tools / Help.
+     * Full Material menu model: Recipe / Edit / Macros / Tools / Help
+     * (no top-level Find — use Edit → Find…).
+     *
+     * @param includeDesktopRepoChrome when true (Desktop), include Open repository + Exit;
+     *   when false (iOS / phone prototype), omit those items.
      */
     fun buildMenuModel(
         state: MobileShellState,
         actions: MobileMenuActions,
+        includeDesktopRepoChrome: Boolean = false,
     ): AppMenuModel {
         val hasSelection = state.selectedFilename != null
-        val hasRepo = true // sample jar is always "open"
+        val hasRepo = true // library / sample jar is always "open" on mobile hosts
         val canToggle = hasSelection || state.isEditing
         val editEnabled = hasSelection
 
@@ -304,23 +330,32 @@ object MobileShellLogic {
             MobileMenuTitles.PHONE_LAYOUT
         }
 
+        val recipeEntries: List<AppMenuEntry> = buildList {
+            if (includeDesktopRepoChrome) {
+                add(item(MobileMenuTitles.OPEN_REPOSITORY, enabled = true, onClick = actions.onOpenRepo))
+                add(AppMenuEntry.Separator)
+            }
+            add(item(MobileMenuTitles.NEW, enabled = hasRepo, onClick = actions.onNew))
+            add(item(MobileMenuTitles.TOGGLE_EDIT, enabled = canToggle, onClick = actions.onToggleEdit))
+            add(item(MobileMenuTitles.SAVE, enabled = hasSelection, onClick = actions.onSave))
+            add(item(MobileMenuTitles.RENAME, enabled = hasSelection, onClick = actions.onRename))
+            add(AppMenuEntry.Separator)
+            add(item(MobileMenuTitles.IMPORT, enabled = hasRepo, onClick = actions.onImport))
+            add(item(MobileMenuTitles.EXPORT, enabled = hasSelection, onClick = actions.onExport))
+            add(item(MobileMenuTitles.EXPORT_ZIP, enabled = hasRepo, onClick = actions.onExportZip))
+            add(AppMenuEntry.Separator)
+            add(item(MobileMenuTitles.REMOVE, enabled = hasSelection, onClick = actions.onRemove))
+            if (includeDesktopRepoChrome) {
+                add(AppMenuEntry.Separator)
+                add(item(MobileMenuTitles.EXIT, enabled = true, onClick = actions.onExit))
+            }
+        }
+
         return AppMenuModel(
             menus = listOf(
                 AppMenu(
                     title = MobileMenuTitles.RECIPE,
-                    entries = listOf(
-                        item(MobileMenuTitles.NEW, enabled = hasRepo, onClick = actions.onNew),
-                        item(MobileMenuTitles.TOGGLE_EDIT, enabled = canToggle, onClick = actions.onToggleEdit),
-                        item(MobileMenuTitles.SAVE, enabled = hasSelection, onClick = actions.onSave),
-                        item(MobileMenuTitles.RENAME, enabled = hasSelection, onClick = actions.onRename),
-                        AppMenuEntry.Separator,
-                        item(MobileMenuTitles.IMPORT, enabled = hasRepo, onClick = actions.onImport),
-                        item(MobileMenuTitles.EXPORT, enabled = hasSelection, onClick = actions.onExport),
-                        AppMenuEntry.Separator,
-                        item(MobileMenuTitles.REMOVE, enabled = hasSelection, onClick = actions.onRemove),
-                        AppMenuEntry.Separator,
-                        item(MobileMenuTitles.EXIT, enabled = true, onClick = actions.onExit),
-                    ),
+                    entries = recipeEntries,
                 ),
                 AppMenu(
                     title = MobileMenuTitles.EDIT,
@@ -333,28 +368,20 @@ object MobileShellLogic {
                         item(MobileMenuTitles.FIND_ELLIPSIS, enabled = hasRepo, onClick = actions.onFind),
                     ),
                 ),
-                AppMenu(
-                    title = MobileMenuTitles.FIND,
-                    entries = listOf(
-                        item(MobileMenuTitles.FIND_ALL, enabled = hasRepo, onClick = actions.onFindAll),
-                        item(MobileMenuTitles.FIND_TITLES, enabled = hasRepo, onClick = actions.onFindTitles),
-                        item(MobileMenuTitles.FIND_LABELS, enabled = hasRepo, onClick = actions.onFindLabels),
-                        item(MobileMenuTitles.FIND_NOTES, enabled = hasRepo, onClick = actions.onFindNotes),
-                        item(MobileMenuTitles.FIND_INGREDIENTS, enabled = hasRepo, onClick = actions.onFindIngredients),
-                        item(MobileMenuTitles.FIND_PROCEDURES, enabled = hasRepo, onClick = actions.onFindProcedures),
-                    ),
-                ),
                 AppMenu(title = MobileMenuTitles.MACROS, entries = macroEntries),
                 AppMenu(
                     title = MobileMenuTitles.TOOLS,
                     entries = listOf(
                         item(MobileMenuTitles.PREFERENCES, onClick = actions.onPreferences),
+                        item(MobileMenuTitles.UNITS, onClick = actions.onUnits),
+                        item(MobileMenuTitles.CONVERTER, onClick = actions.onConverter),
                         item(phoneTitle, onClick = actions.onPhoneLayout),
                     ),
                 ),
                 AppMenu(
                     title = MobileMenuTitles.HELP,
                     entries = listOf(
+                        item(MobileMenuTitles.HELP_WEB, onClick = actions.onHelpWeb),
                         item(MobileMenuTitles.ABOUT, onClick = actions.onAbout),
                     ),
                 ),

@@ -6,35 +6,77 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+# True if $1/bin/java reports major version >= 17.
+is_jdk_17_plus() {
+  local home="$1"
+  [[ -x "$home/bin/java" ]] || return 1
+  local v
+  v="$("$home/bin/java" -version 2>&1 | head -1 || true)"
+  # Matches: version "17…", "21…", "1.8" is rejected (needs 17+)
+  echo "$v" | grep -qE 'version "(1[7-9]|[2-9][0-9])\.'
+}
+
+# Resolve a macOS bundle root (…/jdk-21…/Contents/Home) when given either the
+# bundle or the Home directory.
+normalize_java_home() {
+  local d="$1"
+  if [[ -x "$d/bin/java" ]]; then
+    echo "$d"
+  elif [[ -x "$d/Contents/Home/bin/java" ]]; then
+    echo "$d/Contents/Home"
+  else
+    return 1
+  fi
+}
+
 pick_java_home() {
-  if [[ -n "${JAVA_HOME:-}" && -x "${JAVA_HOME}/bin/java" ]]; then
-    local v
-    v="$("${JAVA_HOME}/bin/java" -version 2>&1 | head -1 || true)"
-    if echo "$v" | grep -qE 'version "(1[7-9]|2[0-9])\.'; then
-      echo "$JAVA_HOME"
+  if [[ -n "${JAVA_HOME:-}" ]]; then
+    local nh
+    if nh="$(normalize_java_home "$JAVA_HOME")" && is_jdk_17_plus "$nh"; then
+      echo "$nh"
       return 0
     fi
   fi
   local candidates=(
     "$HOME/.local/jdk/current"
     "$HOME/.local/jdk/jdk-17.0.19+10"
+    "$HOME/.local/jdks/current"
     "/usr/lib/jvm/java-17-openjdk-amd64"
     "/usr/lib/jvm/java-17-openjdk"
     "/usr/lib/jvm/temurin-17-jdk-amd64"
   )
-  local d
+  local d nh
   for d in "${candidates[@]}"; do
-    if [[ -x "$d/bin/java" ]]; then
-      echo "$d"
+    if nh="$(normalize_java_home "$d")" && is_jdk_17_plus "$nh"; then
+      echo "$nh"
       return 0
     fi
   done
+  # ~/.local/jdks/* (Temurin tarballs on macOS often live here)
+  for d in "$HOME"/.local/jdks/jdk-* "$HOME"/.local/jdk/jdk-*; do
+    [[ -e "$d" ]] || continue
+    if nh="$(normalize_java_home "$d")" && is_jdk_17_plus "$nh"; then
+      echo "$nh"
+      return 0
+    fi
+  done
+  # macOS java_home helper (often missing when only a user-local JDK is installed)
+  if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    local jh
+    jh="$(/usr/libexec/java_home -v 17+ 2>/dev/null || true)"
+    if [[ -n "$jh" ]] && is_jdk_17_plus "$jh"; then
+      echo "$jh"
+      return 0
+    fi
+  fi
   # Gradle-provisioned toolchain (path may vary)
   local g
-  g="$(ls -d "$HOME"/.gradle/jdks/*17* 2>/dev/null | head -1 || true)"
-  if [[ -n "$g" && -x "$g/bin/java" ]]; then
-    echo "$g"
-    return 0
+  g="$(ls -d "$HOME"/.gradle/jdks/*{17,21,22,23,24}* 2>/dev/null | head -1 || true)"
+  if [[ -n "$g" ]]; then
+    if nh="$(normalize_java_home "$g")" && is_jdk_17_plus "$nh"; then
+      echo "$nh"
+      return 0
+    fi
   fi
   return 1
 }

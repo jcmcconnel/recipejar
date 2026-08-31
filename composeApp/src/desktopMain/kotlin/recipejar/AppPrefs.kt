@@ -20,6 +20,11 @@ object AppPrefs {
     private const val KEY_LAST_RECIPE_LEGACY = "lastRecipeFilename"
     /** Force single-pane phone-style layout on desktop (mobile UX testing). */
     private const val KEY_FORCE_COMPACT = "forceCompactLayout"
+    /** Absolute path to user welcome HTML (blank → bundled classpath welcome). */
+    private const val KEY_WELCOME_FILE = "welcomeFilePath"
+    /** Appearance scheme id (forest/ocean/slate/warm/rose). */
+    private const val KEY_APPEARANCE = "appearanceId"
+    private const val KEY_APPEARANCE_DARK = "appearanceDark"
 
     var lastRepoPath: String?
         get() = prefs.get(KEY_LAST_REPO, null)?.takeIf { it.isNotBlank() }
@@ -47,6 +52,42 @@ object AppPrefs {
         get() = prefs.getBoolean(KEY_FORCE_COMPACT, false)
         set(value) {
             prefs.putBoolean(KEY_FORCE_COMPACT, value)
+            flushQuietly()
+        }
+
+    /**
+     * Path to the welcome HTML file shown when no recipe is selected.
+     * Blank means use the bundled default welcome.html.
+     */
+    var welcomeFilePath: String
+        get() = prefs.get(KEY_WELCOME_FILE, "") ?: ""
+        set(value) {
+            val t = value.trim()
+            if (t.isEmpty()) {
+                prefs.remove(KEY_WELCOME_FILE)
+            } else {
+                prefs.put(KEY_WELCOME_FILE, t)
+            }
+            flushQuietly()
+        }
+
+    /**
+     * Color scheme id applied at the Material theme wrapper.
+     * Default is Forest (green), not Material3 pink/purple.
+     */
+    var appearanceId: String
+        get() = prefs.get(KEY_APPEARANCE, AppearanceTheme.DEFAULT_ID)
+            ?.takeIf { it.isNotBlank() }
+            ?: AppearanceTheme.DEFAULT_ID
+        set(value) {
+            prefs.put(KEY_APPEARANCE, AppearanceTheme.parse(value).id)
+            flushQuietly()
+        }
+
+    var appearanceDark: Boolean
+        get() = prefs.getBoolean(KEY_APPEARANCE_DARK, false)
+        set(value) {
+            prefs.putBoolean(KEY_APPEARANCE_DARK, value)
             flushQuietly()
         }
 

@@ -33,10 +33,19 @@ class RecipeRoundtripTest {
     @Test
     fun roundtrip_AppViewVariant() {
         // smart: program-footer for app view
-        roundtrip("Test1.html", useBrowserFooter = false)
+        roundtrip("Test1.html", footer = "program-footer")
+    }
+
+    @Test
+    fun roundtrip_ExportFooterVariant() {
+        roundtrip("Test1.html", footer = "export-footer")
     }
 
     private fun roundtrip(filename: String, useBrowserFooter: Boolean) {
+        roundtrip(filename, footer = if (useBrowserFooter) "browser-footer" else "program-footer")
+    }
+
+    private fun roundtrip(filename: String, footer: String) {
         val htmlFile = File(corpusDir, filename)
         if (!htmlFile.exists()) {
             // hard fail (no silent skip); corpus must be present for roundtrip fidelity tests
@@ -47,7 +56,6 @@ class RecipeRoundtripTest {
         val parsed: Recipe = RecipeSerializer.parse(origHtml)
         assertTrue(parsed.title.isNotBlank(), "title from $filename")
 
-        val footer = if (useBrowserFooter) "browser-footer" else "program-footer"
         val serialized = RecipeSerializer.serialize(parsed, footer)
 
         // Browser compat structure

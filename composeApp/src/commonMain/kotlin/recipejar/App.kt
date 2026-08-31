@@ -37,18 +37,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import recipejar.html.CategoryNavigation
 
 /**
- * Catalog entry for the alpha-tab index (filename key + display title).
+ * Catalog entry for the alpha-tab index (filename key + display title + labels).
+ * [labels] power category → listing navigation from the program-footer.
  */
 data class RecipeListItem(
     val filename: String,
     val title: String,
+    val labels: List<String> = emptyList(),
 )
 
 private val ALPHA_TABS: List<String> = ('A'..'Z').map { it.toString() } + "Other"
@@ -105,6 +109,11 @@ fun App(
     welcomeHtml: String = "",
     /** file:// URL for welcome (WebView); null uses HTML text fallback. */
     welcomeFileUrl: String? = null,
+    /**
+     * When false, welcome never uses WebView (text only). Set false while desktop
+     * dialogs/modals are open so KCEF cannot paint over Preferences etc.
+     */
+    welcomeWebViewEnabled: Boolean = true,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
     webViewStatusText: String? = null,
@@ -119,17 +128,41 @@ fun App(
     onRecipeChange: (recipejar.domain.Recipe) -> Unit = {},
     onEditFocusSection: (RecipeEditSection) -> Unit = {},
     onClearSelection: () -> Unit = {},
+    /**
+     * When non-null, replaces the main content pane (mobile/compact modals).
+     * Desktop hosts typically pass null and use [Dialog] overlays instead.
+     */
+    contentModal: (@Composable () -> Unit)? = null,
+    /** Persisted appearance id (forest/ocean/slate/warm/rose). */
+    appearanceId: String = AppearanceTheme.DEFAULT_ID,
+    appearanceDark: Boolean = false,
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     /** Compact single-pane: false = index, true = recipe content. */
     var compactShowContent by remember { mutableStateOf(false) }
+    /**
+     * When set (program-footer category activation), the index lists recipes that carry
+     * this label rather than filtering solely by title letter.
+     */
+    var categoryFilter by remember { mutableStateOf<String?>(null) }
+
+    fun activateCategory(label: String) {
+        val trimmed = label.trim()
+        if (trimmed.isEmpty()) return
+        categoryFilter = trimmed
+        selectedTabIndex = CategoryNavigation.tabIndexForCategory(trimmed)
+        compactShowContent = false
+        onClearSelection()
+    }
 
     // After repo load: keep current tab if it has items; else jump to first non-empty tab.
     LaunchedEffect(selectedDir, recipes) {
         if (selectedDir == null || recipes.isEmpty()) {
             selectedTabIndex = 0
+            categoryFilter = null
             return@LaunchedEffect
         }
+        if (categoryFilter != null) return@LaunchedEffect
         fun countFor(tab: Int): Int {
             val letter = if (tab in 0..25) ('A' + tab) else '0'
             return recipes.count { letterBucket(it.title) == letter }
@@ -146,6 +179,8 @@ fun App(
             return@LaunchedEffect
         }
         if (recipes.isEmpty()) return@LaunchedEffect
+        // Selecting a recipe clears category filter so title letter navigation wins.
+        categoryFilter = null
         val item = recipes.find { it.filename == selectedFilename } ?: return@LaunchedEffect
         val letter = letterBucket(item.title)
         selectedTabIndex = if (letter == '0') 26 else (letter - 'A')
@@ -155,10 +190,16 @@ fun App(
     val selectedLetter: Char =
         if (selectedTabIndex in 0..25) ('A' + selectedTabIndex) else '0'
 
-    val filtered = remember(recipes, selectedLetter) {
-        recipes
-            .filter { letterBucket(it.title) == selectedLetter }
-            .sortedBy { titleSortKey(it.title) }
+    val filtered = remember(recipes, selectedLetter, categoryFilter) {
+        val base = if (categoryFilter != null) {
+            val cat = categoryFilter!!
+            recipes.filter { item ->
+                item.labels.any { it.equals(cat, ignoreCase = true) }
+            }
+        } else {
+            recipes.filter { letterBucket(it.title) == selectedLetter }
+        }
+        base.sortedBy { titleSortKey(it.title) }
     }
 
     val letterCounts = remember(recipes) {
@@ -168,19 +209,14 @@ fun App(
         }
     }
 
-    MaterialTheme {
+    MaterialTheme(colorScheme = AppearanceTheme.schemeFor(appearanceId, appearanceDark)) {
         Column(Modifier.fillMaxSize()) {
-            AppTopBar(
-                selectedDir = selectedDir,
-                recipeCount = recipes.size,
-                indexLoading = indexLoading,
-                isEditing = isEditing,
-                selectedFilename = selectedFilename,
-                materialMenus = materialMenus,
-                forceCompactLayout = forceCompactLayout,
-                onForceCompactChange = onForceCompactChange,
-                onOpenRepo = onOpenRepo,
-            )
+            // Menu strip only (Material path). Dense header band removed — Open repository
+            // lives under Recipe → Open repository. Native macOS uses the screen menu bar.
+            if (materialMenus != null) {
+                MaterialMenuBar(model = materialMenus)
+                HorizontalDivider()
+            }
 
             if (restartRequired || webViewStatusText != null) {
                 val banner = when {
@@ -222,8 +258,13 @@ fun App(
 
             HorizontalDivider()
 
-            if (selectedDir == null) {
-                // No repo yet: still show welcome (not a blank/black pane) + open CTA.
+            // Content modals (mobile) replace the whole body — never leave welcome/WebView under them.
+            if (contentModal != null) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    contentModal()
+                }
+            } else if (selectedDir == null) {
+                // No repo yet: open CTA + welcome (WebView only when [welcomeWebViewEnabled]).
                 Column(Modifier.weight(1f).fillMaxWidth()) {
                     Row(
                         Modifier
@@ -246,7 +287,7 @@ fun App(
                     WelcomePane(
                         welcomeHtml = welcomeHtml,
                         welcomeFileUrl = welcomeFileUrl,
-                        webViewReady = webViewReady,
+                        webViewReady = webViewReady && welcomeWebViewEnabled,
                         restartRequired = restartRequired,
                         modifier = Modifier.weight(1f).fillMaxWidth().padding(8.dp),
                     )
@@ -272,10 +313,15 @@ fun App(
                                 onClearSelection()
                             },
                             selectedTabIndex = selectedTabIndex,
-                            onSelectTab = { selectedTabIndex = it },
+                            onSelectTab = {
+                                categoryFilter = null
+                                selectedTabIndex = it
+                            },
                             letterCounts = letterCounts,
                             selectedLetter = selectedLetter,
                             filtered = filtered,
+                            categoryFilter = categoryFilter,
+                            recipes = recipes,
                             selectedFilename = selectedFilename,
                             onSelectRecipe = { name ->
                                 onSelectRecipe(name)
@@ -289,19 +335,27 @@ fun App(
                             selectedFileUrl = selectedFileUrl,
                             welcomeHtml = welcomeHtml,
                             welcomeFileUrl = welcomeFileUrl,
+                            welcomeWebViewEnabled = welcomeWebViewEnabled,
                             webViewReady = webViewReady,
                             restartRequired = restartRequired,
                             onRecipeChange = onRecipeChange,
                             onEditFocusSection = onEditFocusSection,
+                            onCategoryActivate = { activateCategory(it) },
+                            onClearCategoryFilter = { categoryFilter = null },
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
                         WideShell(
                             selectedTabIndex = selectedTabIndex,
-                            onSelectTab = { selectedTabIndex = it },
+                            onSelectTab = {
+                                categoryFilter = null
+                                selectedTabIndex = it
+                            },
                             letterCounts = letterCounts,
                             selectedLetter = selectedLetter,
                             filtered = filtered,
+                            categoryFilter = categoryFilter,
+                            recipes = recipes,
                             selectedFilename = selectedFilename,
                             onSelectRecipe = onSelectRecipe,
                             isEditing = isEditing,
@@ -312,10 +366,13 @@ fun App(
                             selectedFileUrl = selectedFileUrl,
                             welcomeHtml = welcomeHtml,
                             welcomeFileUrl = welcomeFileUrl,
+                            welcomeWebViewEnabled = welcomeWebViewEnabled,
                             webViewReady = webViewReady,
                             restartRequired = restartRequired,
                             onRecipeChange = onRecipeChange,
                             onEditFocusSection = onEditFocusSection,
+                            onCategoryActivate = { activateCategory(it) },
+                            onClearCategoryFilter = { categoryFilter = null },
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -326,111 +383,9 @@ fun App(
 }
 
 /**
- * Vertical metrics for the chrome band under the menu strip (above index/content).
- * Kept compact so recipe content claims more of the viewport on phone layouts.
- */
-object AppHeaderMetrics {
-    val HorizontalPadding = 8.dp
-    /** Was 8.dp — tightened to reclaim space under the Material menu strip. */
-    val VerticalPadding = 2.dp
-    /** Compact open control padding (Material menus path). */
-    val OpenButtonHorizontalPadding = 8.dp
-    val OpenButtonVerticalPadding = 2.dp
-}
-
-@Composable
-private fun AppTopBar(
-    selectedDir: String?,
-    recipeCount: Int,
-    indexLoading: Boolean,
-    isEditing: Boolean,
-    selectedFilename: String?,
-    materialMenus: AppMenuModel?,
-    forceCompactLayout: Boolean,
-    onForceCompactChange: ((Boolean) -> Unit)?,
-    onOpenRepo: () -> Unit,
-) {
-    Column(Modifier.fillMaxWidth()) {
-        if (materialMenus != null) {
-            MaterialMenuBar(model = materialMenus)
-            HorizontalDivider()
-        }
-        // Dense chrome row: title + open + path/count/mode (+ optional phone chip).
-        // Menu strip stays above; this band is intentionally short (titleSmall, 2.dp pad).
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = AppHeaderMetrics.HorizontalPadding,
-                    vertical = AppHeaderMetrics.VerticalPadding,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                "RecipeJar",
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-            )
-            // When Material menus include Recipe → actions, Open is still convenient here.
-            if (materialMenus == null) {
-                Button(
-                    onClick = onOpenRepo,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Text("Open repository", style = MaterialTheme.typography.labelLarge)
-                }
-            } else {
-                TextButton(
-                    onClick = onOpenRepo,
-                    contentPadding = PaddingValues(
-                        horizontal = AppHeaderMetrics.OpenButtonHorizontalPadding,
-                        vertical = AppHeaderMetrics.OpenButtonVerticalPadding,
-                    ),
-                ) {
-                    Text("Open", style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            if (selectedDir != null) {
-                Text(
-                    selectedDir,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    if (indexLoading) "…" else "$recipeCount",
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                if (selectedFilename != null) {
-                    Text(
-                        if (isEditing) "edit" else "read",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
-            if (onForceCompactChange != null) {
-                // Dense toggle: FilterChip is tall — use a compact text affordance instead.
-                TextButton(
-                    onClick = { onForceCompactChange(!forceCompactLayout) },
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        if (forceCompactLayout) "Phone ✓" else "Phone",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
  * Material3 dropdown menu strip for hybrid menu mode (non-macOS).
+ * The dense info header (app name / path / count / mode / Phone) was removed;
+ * open a repository via Recipe → Open repository.
  */
 @Composable
 fun MaterialMenuBar(
@@ -487,6 +442,8 @@ private fun WideShell(
     letterCounts: IntArray,
     selectedLetter: Char,
     filtered: List<RecipeListItem>,
+    categoryFilter: String?,
+    recipes: List<RecipeListItem>,
     selectedFilename: String?,
     onSelectRecipe: (String) -> Unit,
     isEditing: Boolean,
@@ -497,10 +454,13 @@ private fun WideShell(
     selectedFileUrl: String?,
     welcomeHtml: String,
     welcomeFileUrl: String?,
+    welcomeWebViewEnabled: Boolean,
     webViewReady: Boolean,
     restartRequired: Boolean,
     onRecipeChange: (recipejar.domain.Recipe) -> Unit,
     onEditFocusSection: (RecipeEditSection) -> Unit,
+    onCategoryActivate: (String) -> Unit,
+    onClearCategoryFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier) {
@@ -510,8 +470,12 @@ private fun WideShell(
             letterCounts = letterCounts,
             selectedLetter = selectedLetter,
             filtered = filtered,
+            categoryFilter = categoryFilter,
+            recipes = recipes,
             selectedFilename = selectedFilename,
             onSelectRecipe = onSelectRecipe,
+            onCategoryActivate = onCategoryActivate,
+            onClearCategoryFilter = onClearCategoryFilter,
             modifier = Modifier
                 .width(320.dp)
                 .fillMaxHeight()
@@ -528,10 +492,12 @@ private fun WideShell(
             selectedFileUrl = selectedFileUrl,
             welcomeHtml = welcomeHtml,
             welcomeFileUrl = welcomeFileUrl,
+            welcomeWebViewEnabled = welcomeWebViewEnabled,
             webViewReady = webViewReady,
             restartRequired = restartRequired,
             onRecipeChange = onRecipeChange,
             onEditFocusSection = onEditFocusSection,
+            onCategoryActivate = onCategoryActivate,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -552,6 +518,8 @@ private fun CompactShell(
     letterCounts: IntArray,
     selectedLetter: Char,
     filtered: List<RecipeListItem>,
+    categoryFilter: String?,
+    recipes: List<RecipeListItem>,
     selectedFilename: String?,
     onSelectRecipe: (String) -> Unit,
     isEditing: Boolean,
@@ -562,15 +530,26 @@ private fun CompactShell(
     selectedFileUrl: String?,
     welcomeHtml: String,
     welcomeFileUrl: String?,
+    welcomeWebViewEnabled: Boolean,
     webViewReady: Boolean,
     restartRequired: Boolean,
     onRecipeChange: (recipejar.domain.Recipe) -> Unit,
     onEditFocusSection: (RecipeEditSection) -> Unit,
+    onCategoryActivate: (String) -> Unit,
+    onClearCategoryFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Compact content must get a *bounded height* (fillMaxSize → Column → weight).
     if (compactShowContent && selectedFilename != null) {
-        Column(modifier.padding(8.dp)) {
-            TextButton(onClick = onBackToIndex) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .padding(8.dp),
+        ) {
+            TextButton(
+                onClick = onBackToIndex,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
                 Text("← Index")
             }
             ContentPane(
@@ -583,13 +562,16 @@ private fun CompactShell(
                 selectedFileUrl = selectedFileUrl,
                 welcomeHtml = welcomeHtml,
                 welcomeFileUrl = welcomeFileUrl,
+                welcomeWebViewEnabled = welcomeWebViewEnabled,
                 webViewReady = webViewReady,
                 restartRequired = restartRequired,
                 onRecipeChange = onRecipeChange,
                 onEditFocusSection = onEditFocusSection,
+                onCategoryActivate = onCategoryActivate,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
             )
         }
     } else {
@@ -599,9 +581,15 @@ private fun CompactShell(
             letterCounts = letterCounts,
             selectedLetter = selectedLetter,
             filtered = filtered,
+            categoryFilter = categoryFilter,
+            recipes = recipes,
             selectedFilename = selectedFilename,
             onSelectRecipe = onSelectRecipe,
-            modifier = modifier.padding(8.dp),
+            onCategoryActivate = onCategoryActivate,
+            onClearCategoryFilter = onClearCategoryFilter,
+            modifier = modifier
+                .fillMaxSize()
+                .padding(8.dp),
         )
     }
 }
@@ -613,12 +601,22 @@ private fun IndexPane(
     letterCounts: IntArray,
     selectedLetter: Char,
     filtered: List<RecipeListItem>,
+    categoryFilter: String? = null,
+    recipes: List<RecipeListItem> = emptyList(),
     selectedFilename: String?,
     onSelectRecipe: (String) -> Unit,
+    onCategoryActivate: (String) -> Unit = {},
+    onClearCategoryFilter: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val letterCategories = remember(recipes, selectedLetter, categoryFilter) {
+        if (categoryFilter != null) {
+            emptyList()
+        } else {
+            CategoryIndexLogic.categoriesForLetter(recipes, selectedLetter)
+        }
+    }
     Row(modifier) {
-        // Rolodex edge: vertical A–Z rail (Swing JTabbedPane.LEFT equivalent)
         LetterRail(
             selectedTabIndex = selectedTabIndex,
             onSelectTab = onSelectTab,
@@ -630,32 +628,84 @@ private fun IndexPane(
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Text(
-                if (selectedLetter == '0') "Other" else "Letter $selectedLetter",
+                when {
+                    categoryFilter != null -> "Category: $categoryFilter"
+                    selectedLetter == '0' -> "Other"
+                    else -> "Letter $selectedLetter"
+                },
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
+            if (categoryFilter != null) {
+                TextButton(
+                    onClick = onClearCategoryFilter,
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                ) {
+                    Text("← All recipes", style = MaterialTheme.typography.labelMedium)
+                }
+            }
             Text(
                 "${filtered.size} recipe(s)",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
             )
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            if (filtered.isEmpty()) {
-                Text(
-                    "(none)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp),
-                )
-            } else {
-                LazyColumn(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                ) {
+            LazyColumn(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                // Category discovery without opening a recipe (classic alphatab sub-lists).
+                if (categoryFilter == null && letterCategories.isNotEmpty()) {
+                    item(key = "cat-header") {
+                        Text(
+                            "Categories",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    }
+                    items(letterCategories, key = { "cat-$it" }) { cat ->
+                        val count = CategoryIndexLogic.recipesForCategory(recipes, cat).size
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCategoryActivate(cat) },
+                        ) {
+                            Text(
+                                "$cat ($count)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                    item(key = "recipes-header") {
+                        Text(
+                            "Recipes",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                if (filtered.isEmpty()) {
+                    item(key = "none") {
+                        Text(
+                            "(none)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(8.dp),
+                        )
+                    }
+                } else {
                     items(filtered, key = { it.filename }) { item ->
                         val selected = item.filename == selectedFilename
+                        val displayTitle = item.title.trim().ifBlank {
+                            item.filename.removeSuffix(".html").removeSuffix(".HTML")
+                                .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+                        }
                         Surface(
                             color = if (selected) {
                                 MaterialTheme.colorScheme.primaryContainer
@@ -666,21 +716,13 @@ private fun IndexPane(
                                 .fillMaxWidth()
                                 .clickable { onSelectRecipe(item.filename) },
                         ) {
-                            Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-                                Text(
-                                    item.title.ifBlank { item.filename },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    item.filename,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            Text(
+                                displayTitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            )
                         }
                     }
                 }
@@ -762,10 +804,12 @@ private fun ContentPane(
     selectedFileUrl: String?,
     welcomeHtml: String,
     welcomeFileUrl: String?,
+    welcomeWebViewEnabled: Boolean = true,
     webViewReady: Boolean,
     restartRequired: Boolean,
     onRecipeChange: (recipejar.domain.Recipe) -> Unit,
     onEditFocusSection: (RecipeEditSection) -> Unit,
+    onCategoryActivate: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier) {
@@ -795,8 +839,10 @@ private fun ContentPane(
                 selectedHtml = selectedHtml,
                 welcomeHtml = welcomeHtml,
                 welcomeFileUrl = welcomeFileUrl,
+                welcomeWebViewEnabled = welcomeWebViewEnabled,
                 webViewReady = webViewReady,
                 restartRequired = restartRequired,
+                onCategoryActivate = onCategoryActivate,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -804,16 +850,36 @@ private fun ContentPane(
 }
 
 /**
- * Bundled welcome page when no recipe is selected (avoids blank/black CEF pane).
+ * Body fragment of a welcome HTML document (or the raw string if there is no
+ * `<body>`). Same input the read-only recipe notes/procedure path consumes.
  */
+internal fun welcomeHtmlForReadonly(html: String): String {
+    val raw = html.ifBlank {
+        "<h1>RecipeJar</h1><p>Welcome to RecipeJar. Open a repository and select a recipe to begin.</p>"
+    }
+    val withoutComments = raw.replace(Regex("(?is)<!--.*?-->"), "")
+    val body = Regex("(?is)<body[^>]*>(.*)</body>").find(withoutComments)?.groupValues?.get(1)
+        ?: withoutComments
+    return body.trim()
+}
+
+/**
+ * Welcome when no recipe is selected — Compose styled-fragment look, matching
+ * [RecipeReadonlyDocument] (not a WebView HTML page, not tag-stripped dump).
+ */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun WelcomePane(
     welcomeHtml: String,
     welcomeFileUrl: String?,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
+    welcomeWebViewEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
+    val fragment = remember(welcomeHtml) { welcomeHtmlForReadonly(welcomeHtml) }
+    val styled = remember(fragment) { htmlFragmentToAnnotatedString(fragment) }
+    val scroll = rememberScrollState()
     Column(modifier.fillMaxSize()) {
         Text(
             "Welcome",
@@ -821,46 +887,21 @@ fun WelcomePane(
             modifier = Modifier.padding(bottom = 2.dp),
         )
         HorizontalDivider()
-        Spacer(Modifier.height(2.dp))
-        if (webViewReady && !welcomeFileUrl.isNullOrBlank()) {
-            RecipeHtmlWebView(
-                fileUrl = welcomeFileUrl,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-        } else {
-            val scroll = rememberScrollState()
-            // Viewport (weight) + inner scroll surface — see [ContentScrollLayout].
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
+            Column(
+                ContentScrollLayout.contentScrollSurface(Modifier, scroll)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
-                Column(
-                    ContentScrollLayout.contentScrollSurface(Modifier, scroll)
-                        .padding(8.dp),
-                ) {
-                    if (!webViewReady) {
-                        Text(
-                            if (restartRequired) {
-                                "WebView not ready — restart after install for rendered view."
-                            } else {
-                                "WebView not ready — showing welcome text."
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                    val display = welcomeHtml.ifBlank {
-                        "<p>Welcome to RecipeJar. Open a repository and select a recipe to begin.</p>"
-                    }
-                    Text(
-                        text = stripSimpleHtml(display),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                Text(
+                    text = styled,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
@@ -881,18 +922,61 @@ internal fun stripSimpleHtml(html: String): String {
         .replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
+        .replace("&deg;", "°")
         .replace(Regex("[ \t]+\n"), "\n")
         .replace(Regex("\n{3,}"), "\n\n")
         .trim()
 }
 
 /**
+ * Reader fallback when WebView is unavailable: structured plain text from core
+ * recipe sections so the pane is never blank monospaced source.
+ */
+internal fun recipePlainTextFromHtml(html: String): String {
+    fun section(id: String): String {
+        val re = Regex(
+            """(?is)<div[^>]*id\s*=\s*["']$id["'][^>]*>(.*?)</div>""",
+        )
+        val inner = re.find(html)?.groupValues?.get(1) ?: return ""
+        return stripSimpleHtml(inner)
+    }
+    val title = Regex("(?is)<title>(.*?)</title>").find(html)?.groupValues?.get(1)?.trim()
+        ?: Regex("(?is)<h1>(.*?)</h1>").find(html)?.groupValues?.get(1)?.let { stripSimpleHtml(it) }
+        ?: ""
+    val notes = section("notes")
+    val ingredients = section("ingredients")
+    val procedure = section("procedure")
+    return buildString {
+        if (title.isNotBlank()) {
+            appendLine(title)
+            appendLine()
+        }
+        if (notes.isNotBlank()) {
+            appendLine("Notes:")
+            appendLine(notes)
+            appendLine()
+        }
+        if (ingredients.isNotBlank()) {
+            appendLine("You will need:")
+            appendLine(ingredients)
+            appendLine()
+        }
+        if (procedure.isNotBlank()) {
+            appendLine("Procedure:")
+            appendLine(procedure)
+        }
+    }.trim().ifBlank { stripSimpleHtml(html) }
+}
+
+/**
  * Read-only recipe view, or [WelcomePane] when nothing is selected.
  *
- * Preferred path: compose-webview-multiplatform [WebView] loading `file://…` so relative
- * CSS (`style/default.css`) and images resolve against the repository directory.
+ * Recipe body uses [RecipeReadonlyDocument]: a Compose-rendered view of the parsed
+ * recipe (title, notes, ingredients, procedure). This is **not** HTML source and does
+ * not depend on KCEF/WebView sizing — so Desktop wide and Phone/compact both always
+ * show content. Category chips provide program-footer-style navigation.
  *
- * Fallback: scrollable HTML source. Used when KCEF has not finished initializing.
+ * Welcome uses the same [htmlFragmentToAnnotatedString] path as notes/procedure.
  */
 @Composable
 fun RecipeReader(
@@ -901,8 +985,10 @@ fun RecipeReader(
     selectedHtml: String?,
     welcomeHtml: String = "",
     welcomeFileUrl: String? = null,
+    welcomeWebViewEnabled: Boolean = true,
     webViewReady: Boolean,
     restartRequired: Boolean = false,
+    onCategoryActivate: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (selectedFilename == null) {
@@ -911,88 +997,111 @@ fun RecipeReader(
             welcomeFileUrl = welcomeFileUrl,
             webViewReady = webViewReady,
             restartRequired = restartRequired,
+            welcomeWebViewEnabled = welcomeWebViewEnabled,
             modifier = modifier,
         )
         return
     }
 
+    val categoryLabels = remember(selectedHtml) { RecipePreviewHtml.labelsFromHtml(selectedHtml) }
+    val headerTitle = remember(selectedHtml, selectedFilename) {
+        titleFromRecipeHtml(selectedHtml).ifBlank {
+            selectedFilename.removeSuffix(".html").removeSuffix(".HTML")
+        }
+    }
+
+    // Header (intrinsic) + scrollable body viewport (weight) — works in compact and wide.
     Column(modifier.fillMaxSize()) {
         Text(
-            selectedFilename,
+            headerTitle,
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(bottom = 2.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         HorizontalDivider()
-        Spacer(Modifier.height(2.dp))
-
-        if (webViewReady && !selectedFileUrl.isNullOrBlank()) {
-            RecipeHtmlWebView(
-                fileUrl = selectedFileUrl,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-        } else if (selectedHtml != null) {
-            val scroll = rememberScrollState()
-            val banner = when {
-                !webViewReady && restartRequired ->
-                    "Showing HTML source — restart RecipeJar after WebView install to enable rendered view."
-                !webViewReady ->
-                    "Showing HTML source (WebView/KCEF not ready — CSS may not apply)."
-                selectedFileUrl.isNullOrBlank() ->
-                    "Showing unsaved buffer (save to refresh rendered WebView preview)."
-                else -> null
-            }
-            // Bounded viewport + inner vertical scroll (not weight+scroll on same node).
-            // Procedure / lower HTML must remain reachable — [ContentScrollLayout].
-            Box(
+        if (categoryLabels.isNotEmpty()) {
+            Row(
                 Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
-                    ContentScrollLayout.contentScrollSurface(Modifier, scroll)
-                        .padding(4.dp),
-                ) {
-                    if (banner != null) {
-                        Text(
-                            banner,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
+                Text(
+                    "Categories:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                categoryLabels.forEach { label ->
+                    TextButton(
+                        onClick = { onCategoryActivate(label) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelMedium)
                     }
-                    Text(
-                        text = selectedHtml,
-                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    )
                 }
             }
-        } else {
-            // Loading or missing file: never leave a blank black WebView surface.
-            WelcomePane(
-                welcomeHtml = welcomeHtml,
-                welcomeFileUrl = welcomeFileUrl,
-                webViewReady = webViewReady,
-                restartRequired = restartRequired,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
+            HorizontalDivider()
+        }
+        Spacer(Modifier.height(2.dp))
+
+        // Bounded viewport: never weight+scroll on the same node ([ContentScrollLayout]).
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .fillMaxHeight(),
+        ) {
+            when {
+                !selectedHtml.isNullOrBlank() -> {
+                    RecipeReadonlyDocument(
+                        html = selectedHtml,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                else -> {
+                    // HTML still loading from disk — avoid a black empty WebView.
+                    Box(
+                        Modifier.fillMaxSize().padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Loading recipe…",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+/** Recipe title from `<title>` / `<h1>` for chrome labels (never the bare filename when possible). */
+internal fun titleFromRecipeHtml(html: String?): String {
+    if (html.isNullOrBlank()) return ""
+    Regex("(?is)<title>(.*?)</title>").find(html)?.groupValues?.get(1)?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { return stripSimpleHtml(it) }
+    Regex("(?is)<h1[^>]*>(.*?)</h1>").find(html)?.groupValues?.get(1)?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { return stripSimpleHtml(it) }
+    return ""
+}
+
 /**
- * Platform WebView host for a local `file://` recipe URL.
+ * Platform WebView host for a local `file://` recipe URL and/or inline HTML.
  * Desktop: compose-webview-multiplatform when KCEF is initialized.
- * Default/common: empty — App falls through only when [webViewReady] is true,
- * so desktop must provide a real implementation.
+ * Android / iOS: system WebView / WKWebView.
+ *
+ * When [htmlContent] is non-null and non-blank, platforms load that HTML
+ * (with [fileUrl] as base when it is a file:// URL). Otherwise [fileUrl] is loaded.
  */
 @Composable
 expect fun RecipeHtmlWebView(
     fileUrl: String,
     modifier: Modifier = Modifier,
+    htmlContent: String? = null,
 )

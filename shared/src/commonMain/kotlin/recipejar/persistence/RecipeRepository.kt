@@ -34,4 +34,12 @@ interface RecipeRepository {
 
     /** Export using the export-footer serializer variant. */
     fun exportRecipe(filename: String, targetPath: String)
+
+    /**
+     * Export the entire open recipe directory as a zip of the on-disk tree
+     * (HTML and supporting assets as present). Optional for hosts without FS zip support.
+     */
+    fun exportDirectoryZip(targetZipPath: String) {
+        throw UnsupportedOperationException("Directory zip export is not available on this host")
+    }
 }

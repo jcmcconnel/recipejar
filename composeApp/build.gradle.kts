@@ -145,6 +145,7 @@ compose.desktop {
 
             macOS {
                 bundleID = "org.recipejar.app"
+                iconFile.set(project.file("icons/RecipeJar.icns"))
                 // Screen menu bar / dock title use packageName; apple.awt.application.name set at runtime.
             }
             windows {
@@ -160,14 +161,30 @@ compose.desktop {
     }
 }
 
-// Ensure :composeApp:run (and other JavaExec) use JDK 17 even when system `java` is 11.
+// KCEF needs --add-opens on the run JVM. Prefer the process JAVA_HOME (./recipejar sets
+// JDK 17+) for executable so we never disagree with Compose/Gradle's launcher choice —
+// Gradle 8 fails with:
+//   Toolchain from `executable` property does not match toolchain from `javaLauncher`
+// Only force a toolchain-provisioned JDK 17 when the current JVM is too old.
 afterEvaluate {
+    fun currentJvmMajor(): Int {
+        val v = System.getProperty("java.specification.version") ?: return 0
+        return v.substringBefore('.').toIntOrNull() ?: 0
+    }
     val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
-    val jdk17 = toolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(17))
+    val needForcedJdk17 = currentJvmMajor() in 1..16
+    val jdk17Launcher = if (needForcedJdk17) {
+        toolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(17)) }
+    } else {
+        null
     }
     tasks.withType<JavaExec>().configureEach {
-        javaLauncher.set(jdk17)
         jvmArgs(kcefJvmOpens)
+        if (jdk17Launcher != null) {
+            javaLauncher.set(jdk17Launcher)
+            // Pin executable to the same launcher to avoid the mismatch error above.
+            executable = jdk17Launcher.get().executablePath.asFile.absolutePath
+        }
+        // When JVM is already 17+, leave executable/javaLauncher to Compose + JAVA_HOME.
     }
 }

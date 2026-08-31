@@ -13,8 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 import recipejar.search.SearchCatalogEntry
 import recipejar.search.SearchResult
@@ -27,6 +25,7 @@ import recipejar.search.filterRecipesByQuery
  * [initialScopes] pre-selects fields (e.g. Find Titles → titles only).
  * [fieldTextProvider] may hit disk; invoked on a background-friendly coroutine when
  * non-title scopes are active (host should use Dispatchers.IO).
+ * [useDialog]: true on Desktop; false embeds in main content panel on mobile/compact.
  */
 @Composable
 fun SearchDialog(
@@ -35,6 +34,7 @@ fun SearchDialog(
     fieldTextProvider: suspend () -> Map<String, Map<SearchScope, String>>,
     onSelect: (filename: String) -> Unit,
     onDismiss: () -> Unit,
+    useDialog: Boolean = true,
 ) {
     var query by remember { mutableStateOf("") }
     var inTitles by remember { mutableStateOf(SearchScope.TITLES in initialScopes) }
@@ -91,18 +91,7 @@ fun SearchDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .widthIn(min = 420.dp, max = 560.dp)
-                .heightIn(min = 360.dp, max = 520.dp)
-                .padding(16.dp),
-        ) {
+    ModalHost(useDialog = useDialog, onDismiss = onDismiss) {
             Column(Modifier.padding(16.dp).fillMaxSize()) {
                 Text("Search recipes", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))
@@ -201,6 +190,5 @@ fun SearchDialog(
                     }
                 }
             }
-        }
     }
 }
