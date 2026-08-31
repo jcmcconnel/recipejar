@@ -152,10 +152,12 @@ compose.desktop {
                 menuGroup = "RecipeJar"
                 // Per-user install is friendlier for recipe-folder workflows.
                 dirChooser = true
+                iconFile.set(project.file("icons/RecipeJar.ico"))
             }
             linux {
                 menuGroup = "Office"
                 appCategory = "Office"
+                iconFile.set(project.file("icons/RecipeJar.png"))
             }
         }
     }
