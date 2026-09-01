@@ -57,7 +57,7 @@ jobs:
       - name: Package MSI
         shell: pwsh
         run: |
-          .\gradlew.bat :composeApp:packageMsi --no-daemon --stacktrace -Pkotlin.native.ignoreDisabledTargets=true
+          .\gradlew.bat :composeApp:packageMsi --no-daemon --stacktrace "-Pkotlin.native.ignoreDisabledTargets=true"
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
