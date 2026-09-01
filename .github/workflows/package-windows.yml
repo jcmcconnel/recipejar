@@ -1,0 +1,68 @@
+# Unsigned Windows installer for RecipeJar desktop (Compose / jpackage).
+# MSI preferred. SmartScreen will warn; that is expected without Authenticode.
+name: Package Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cmp
+      - packaging/win-linux
+
+permissions:
+  contents: read
+
+jobs:
+  package-msi:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Ensure WiX 3.x (jpackage MSI)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Find-WixBin {
+            Get-ChildItem -Path @(
+              "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin",
+              "${env:ProgramFiles}\WiX Toolset v3*\bin"
+            ) -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+          }
+          $wixBin = Find-WixBin
+          if ($wixBin) {
+            Add-Content -Path $env:GITHUB_PATH -Value $wixBin.FullName
+            Write-Host "Using existing WiX at $($wixBin.FullName)"
+          } elseif (Get-Command candle -ErrorAction SilentlyContinue) {
+            Write-Host "candle.exe already on PATH"
+          } else {
+            Write-Host "WiX 3.x not found; installing WiX Toolset 3.14.1"
+            choco install wixtoolset --version=3.14.1 -y --no-progress
+            $wixBin = Find-WixBin
+            if (-not $wixBin) {
+              throw "WiX 3.x install finished but candle/light bin dir was not found"
+            }
+            Add-Content -Path $env:GITHUB_PATH -Value $wixBin.FullName
+          }
+
+      - name: Package MSI
+        shell: pwsh
+        run: |
+          .\gradlew.bat :composeApp:packageMsi --no-daemon --stacktrace "-Pkotlin.native.ignoreDisabledTargets=true"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecipeJar-windows
+          path: composeApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+          retention-days: 14
